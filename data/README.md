@@ -22,14 +22,29 @@ data/
 
 ## Download
 
-Fill in the exact command once the download source is confirmed from the portal.
+The processed data sits on a public, no-auth S3 bucket:
+`s3://genome-scale-tcell-perturb-seq/marson2025_data/`. Two objects cover our needs.
 
 ```bash
-# Example placeholder — replace with the confirmed download step:
-# curl -L "<dataset-url>" -o data/raw/cd4_perturbseq.h5ad
+# Per-perturbation x per-condition effect matrix, ~16.8 GB. This is the main input.
+aws s3 cp --no-sign-request \
+  s3://genome-scale-tcell-perturb-seq/marson2025_data/GWCD4i.DE_stats.h5ad \
+  data/raw/GWCD4i.DE_stats.h5ad
+
+# Lightweight obs-level summary, ~4.8 MB: per-perturbation metadata and DE counts.
+aws s3 cp --no-sign-request \
+  s3://genome-scale-tcell-perturb-seq/marson2025_data/suppl_tables/DE_stats.suppl_table.csv \
+  data/raw/DE_stats.suppl_table.csv
+
+# Browse the full bucket to confirm keys and find the guide/donor-resolved variants:
+aws s3 ls --no-sign-request s3://genome-scale-tcell-perturb-seq/marson2025_data/
 ```
 
-Record the file name, size, and access date here after downloading, so the provenance
+Guide- and donor-resolved variants (`GWCD4i.DE_stats.by_guide.h5mu`,
+`GWCD4i.DE_stats.by_donors.h5mu`) live in the same bucket for the confidence checks. Raw
+reads are under SRA SRP643211 / GEO GSE314342.
+
+Record the file name, size, and access date below after downloading, so the provenance
 is clear.
 
 | file | size | source | date accessed |

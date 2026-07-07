@@ -4,6 +4,7 @@
 > **Track:** Researcher, 2026 Built with Claude: Life Sciences.
 > **Started:** 2026-07-07. All analysis performed during the event.
 > **Source:** Literature review done with Claude Science. See [`PerturbTarget-T_feasibility.md`](./PerturbTarget-T_feasibility.md).
+> **Prior-work check:** how this plan sits against the authors' own stated future work is in [`strategy_vs_authors_future_work.md`](./strategy_vs_authors_future_work.md).
 
 **One-line pitch.** A reproducible pipeline that first proves it can recover the targets of approved T cell immunomodulators from the Perturb-seq data alone, then uses that validated therapeutic-window score to nominate novel, druggable, context-selective regulators of pathogenic CD4⁺ activation, each delivered as a sourced evidence card.
 
@@ -35,7 +36,7 @@ The prior art this builds on, and must cite as context rather than claim to disp
 
 ### Method
 
-**Inputs.** Released gene-level, per-condition perturbation effect matrices (Rest / Stim 8h / Stim 48h) with donor and guide resolution. Do not reprocess the 22M cells; confirm on Day 1 that these matrices are in the released objects and in the `emdann/GWT_perturbseq_analysis_2025` repo.
+**Inputs.** Released gene-level, per-condition perturbation effect matrices (Rest / Stim 8h / Stim 48h) with donor and guide resolution. Do not reprocess the 22M cells. Confirmed: the released object is `GWCD4i.DE_stats.h5ad` on the public no-auth S3 bucket `s3://genome-scale-tcell-perturb-seq/marson2025_data/`, with 33,983 perturbation-by-condition rows over 10,282 genes and layers `log_fc`, `zscore`, `p_value`, `adj_p_value`, `baseMean`, `lfcSE`. Guide- and donor-resolved variants (`GWCD4i.DE_stats.by_guide.h5mu`, `.by_donors.h5mu`) feed the confidence gating. See [`../data/README.md`](../data/README.md) for the download step.
 
 **Program module scores.** Define 6 to 8 T cell programs from canonical marker sets: activation (CD69, IL2RA, CD40LG, ICOS), inflammatory cytokines (IFNG, TNF, IL2, IL17A, CSF2), Th1 (TBX21, CXCR3), Th17 (RORC, IL23R, CCR6), proliferation (MKI67, TOP2A, PCNA), stress/apoptosis (DDIT3, JUN, FOS, BAX), tolerance (FOXP3, CTLA4, IKZF2), homeostasis/memory (IL7R, CCR7, SELL, TCF7).
 
@@ -45,7 +46,7 @@ The prior art this builds on, and must cite as context rather than claim to disp
 
 **Confidence gating.** Report donor consistency and guide consistency for every hit; treat single-donor or single-guide effects as low confidence. Rank on calibrated effect sizes with FDR control, not nominal *p*-values.
 
-**Annotation filters, applied after the window score, not before.** Druggability and tractability from Open Targets and ChEMBL (tractability buckets, known drugs, mechanisms, chemical probes); protein-class tractability from UniProt and InterPro; surface/secreted localisation from the Human Protein Atlas; autoimmune genetics from GWAS Catalog, eQTL Catalogue, and FinnGen.
+**Annotation filters, applied after the window score, not before.** Druggability and tractability from Open Targets and ChEMBL (tractability buckets, known drugs, mechanisms, chemical probes); protein-class tractability from UniProt and InterPro; surface/secreted localisation from the Human Protein Atlas; autoimmune genetics from GWAS Catalog, eQTL Catalogue, and FinnGen. This genetics layer builds on and cites the authors' own GWAS and OpenTargets disease-gene enrichment; we do not claim it as novel.
 
 **Second differentiating axis (in-silico safety liability).** Because the readout is transcriptome-wide, characterise the mechanism-based liability of inhibiting each top candidate: does knockdown collapse homeostasis/memory programs, trigger stress modules, or hit housekeeping processes? A search for in-silico on-target safety from knockdown transcriptomes returns zero papers, so this is a genuine differentiator; word the safety claims humbly.
 
@@ -84,6 +85,7 @@ The prior art this builds on, and must cite as context rather than claim to disp
 3. **Competition on a fresh dataset.** The preprint posted 24 December 2025 and is a CZI community resource; reanalyses will appear within months, so favour speed and a citable method over breadth.
 4. **Scope creep.** Hold to one disease framing (pathogenic CD4⁺ activation in autoimmunity); do not add oncology, aging, or Treg biology.
 5. **Benchmark honesty.** Report where the score fails to recover a known target as well as where it succeeds; a benchmark that only shows wins is not a benchmark.
+6. **Non-polarized data.** The screen used only non-polarized culture (Rest, Stim 8h, Stim 48h). The Th1 and Th17 program scores are therefore proxies read from marker genes within stimulated cells, not measurements under polarizing conditions. The authors flag polarizing cytokine conditions as unmapped future work. State this limit and avoid strong Th-subset claims.
 
 ### What to cut from the original plan
 
