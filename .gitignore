@@ -37,3 +37,6 @@ data/processed/*
 
 # Session log (kept local, not committed)
 SESSION_SUMMARY.md
+
+# Local-only working notes
+*.local.md
