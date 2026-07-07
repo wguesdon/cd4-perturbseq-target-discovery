@@ -1,0 +1,39 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environment / secrets
+.env
+.env.*
+
+# Data (large and/or restricted — keep folder structure, ignore contents)
+data/raw/*
+data/interim/*
+data/processed/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+
+# Single-cell / genomics artifacts (never commit these anywhere)
+*.h5ad
+*.h5
+*.loom
+*.zarr/
+*.mtx
+*.mtx.gz
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS cruft
+.DS_Store
+
+# Session log (kept local, not committed)
+SESSION_SUMMARY.md
