@@ -6,6 +6,7 @@
 > **Source:** Literature review done with Claude Science. See [`PerturbTarget-T_feasibility.md`](./PerturbTarget-T_feasibility.md).
 > **Prior-work check:** how this plan sits against the authors' own stated future work is in [`strategy_vs_authors_future_work.md`](./strategy_vs_authors_future_work.md).
 > **Literature review:** the methods and prior-work survey is in [`literature/lit_review_2026_07_07.md`](./literature/lit_review_2026_07_07.md); the reusable toolkit is in [`literature/methods_toolkit.md`](./literature/methods_toolkit.md).
+> **Detailed strategy (current):** a deeper, evidence-grounded strategy that supersedes this draft is in [`strategy_2026_07_07.md`](./strategy_2026_07_07.md).
 
 **One-line pitch.** A reproducible pipeline that first proves it can recover the targets of approved T cell immunomodulators from the Perturb-seq data alone, then uses that validated therapeutic-window score to nominate novel, druggable, context-selective regulators of pathogenic CD4⁺ activation, each delivered as a sourced evidence card.
 
