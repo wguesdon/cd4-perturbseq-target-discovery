@@ -17,13 +17,17 @@ donors, so the resting arm is a within-experiment control for guide representati
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-REPO = "/home/will/Documents/Github/cd4-perturbseq-target-discovery"
-sys.path.insert(0, f"{REPO}/src")
+# Resolve from this file, never from a hardcoded home directory. The previous literal pointed at
+# `~/Documents/Github/...`, which is a symlink to the real checkout under `/mnt/data`; the path
+# resolved for one user on one box and the script could not run anywhere else.
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "src"))
 
 from cd4_perturbseq import de_stats, priors  # noqa: E402
 

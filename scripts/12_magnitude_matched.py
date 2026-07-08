@@ -183,8 +183,10 @@ def build_frame(top_k: int) -> pd.DataFrame:
     )
     frame = frame.dropna(subset=["naive_suppression"]).reset_index(drop=True)
 
-    # The resting arm, mapped by gene. Not QC-filtered upstream, and 179 stimulated genes have no
-    # resting row at all, so this genuinely produces NaN rather than a zero.
+    # The resting arm, mapped by gene. Not QC-filtered upstream, and 51 stimulated genes have no
+    # resting row at all, so this genuinely produces NaN rather than a zero. (This comment said 179
+    # until 2026-07-08. The code has always produced 51; the printed output, the committed
+    # `magnitude_matched_rows.csv` and the report all say 51. The comment was simply wrong.)
     rest = obs[obs["culture_condition"] == REST].drop_duplicates("target_contrast_gene_name").copy()
     rest.index = rest["target_contrast_gene_name"].astype(str)
     rest_qc = de_stats.qc_mask(rest)
