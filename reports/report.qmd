@@ -348,9 +348,16 @@ uv run python scripts/05_figures.py
 quarto render reports/report.qmd
 ```
 
-`scripts/02_risk_kill_reversal.py` is written so that it can fail. If the naive ranking is no more
-toxic than a cell-count-matched background, it exits non-zero and this report's central claim is
-wrong.
+`scripts/02_risk_kill_reversal.py` is written so that it can fail, on one pre-registered primary
+endpoint: the naive top 100 must collapse the tolerance module more than a background matched on
+transcriptome-wide effect magnitude. If it does not, the script exits non-zero and this report's
+central claim is wrong. Permuting the tolerance column, or flipping its sign, makes it exit 1.
+
+It formerly exited on `any()` of five one-sided tests, against a background matched on cell count
+and drawn once with `seed=0`. Cell count is a viability readout, not a power proxy, so that matching
+controlled the confound backwards; a single draw made the p-value a random variable spanning
+[0.00064, 0.178]; and `any()` over five tests carries a ~23% family-wise false-positive rate. See
+`docs/results/magnitude_matched_2026_07_08.md`.
 
 # How Claude was used
 
@@ -361,8 +368,10 @@ at it: the first version of @fig-naive ranked ascending and crowned the perturba
 *raised* the inflammatory program.
 
 Claude Science was given the tasks that could break the result rather than decorate it. It
-independently recomputes the risk-kill statistics, including resampling a cell-count-matched
-background that Claude Code drew only once, and it queries Open Targets for the approved-drug
-positives our hand curation missed. Where it corrects Claude Code, the disagreement is logged.
+independently recomputes the risk-kill statistics from the committed table, including resampling the
+background that Claude Code drew only once, and adjudicating whether cell count or effect magnitude
+is the variable that background should have been matched on. It queries Open Targets for the
+approved-drug positives our hand curation missed. Where it corrects Claude Code, the disagreement is
+logged.
 
 The full audit trail is `docs/claude_tooling_log.md`.

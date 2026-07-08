@@ -170,8 +170,17 @@ uv run python scripts/02_risk_kill_reversal.py      # exits non-zero if the head
 uv run python scripts/03_export_handoff_inputs.py
 ```
 
-`scripts/02_risk_kill_reversal.py` is written so it can fail. If the naive ranking is no more
-toxic than a cell count matched background, it exits non-zero and the project's headline is wrong.
+`scripts/02_risk_kill_reversal.py` is written so it can fail, on **one pre-registered primary
+endpoint**: the naive top 100 must collapse the tolerance module more than a background matched on
+transcriptome-wide effect magnitude. If it does not, the script exits non-zero and the project's
+headline is wrong. Verified falsifiable — permuting or sign-flipping the tolerance column drives it
+to exit 1.
+
+It used to exit on `any()` of five one-sided tests, against a background matched on cell count and
+drawn once with `seed=0`. All three of those were defects, and all three are described in
+[`docs/results/magnitude_matched_2026_07_08.md`](docs/results/magnitude_matched_2026_07_08.md).
+Cell count turned out to be a viability readout rather than a power proxy, so the original matching
+controlled the confound backwards.
 
 ## Repository layout
 
