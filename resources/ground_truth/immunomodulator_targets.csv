@@ -1,0 +1,47 @@
+gene_symbol,drug_examples,drug_class,mechanism,approved,lof_mimics_drug,include_as_positive,rationale
+PPP3CA,ciclosporin;tacrolimus,calcineurin inhibitor,inhibitor,TRUE,TRUE,TRUE,Catalytic calcineurin subunit; loss of function blocks NFAT nuclear translocation and IL2 induction
+PPP3CB,ciclosporin;tacrolimus,calcineurin inhibitor,inhibitor,TRUE,TRUE,TRUE,Second catalytic calcineurin subunit
+PPP3R1,ciclosporin;tacrolimus,calcineurin inhibitor,inhibitor,TRUE,TRUE,TRUE,Regulatory calcineurin subunit required for phosphatase activity
+JAK1,tofacitinib;upadacitinib;baricitinib,JAK inhibitor,inhibitor,TRUE,TRUE,TRUE,Cytokine receptor signalling kinase; inhibition is the approved mechanism
+JAK2,baricitinib;ruxolitinib,JAK inhibitor,inhibitor,TRUE,TRUE,TRUE,Shared JAK subunit for several inflammatory cytokines
+JAK3,tofacitinib;ritlecitinib,JAK inhibitor,inhibitor,TRUE,TRUE,TRUE,Common gamma chain associated kinase; LoF causes SCID and phenocopies inhibition
+TYK2,deucravacitinib,TYK2 inhibitor,inhibitor,TRUE,TRUE,TRUE,IL12 and IL23 signalling kinase; allosteric inhibition approved for psoriasis
+MTOR,sirolimus;everolimus,mTOR inhibitor,inhibitor,TRUE,TRUE,TRUE,Central growth and effector differentiation kinase
+DHODH,teriflunomide;leflunomide,pyrimidine synthesis inhibitor,inhibitor,TRUE,TRUE,TRUE,De novo pyrimidine synthesis; inhibition blocks lymphocyte proliferation
+IMPDH1,mycophenolate mofetil,purine synthesis inhibitor,inhibitor,TRUE,TRUE,TRUE,De novo guanine nucleotide synthesis
+IMPDH2,mycophenolate mofetil,purine synthesis inhibitor,inhibitor,TRUE,TRUE,TRUE,Dominant IMPDH isoform in activated lymphocytes
+IL2RA,basiliximab;daclizumab,anti-CD25 antibody,antagonist,TRUE,TRUE,TRUE,High affinity IL2 receptor alpha chain; blockade prevents allograft rejection
+PDE4A,apremilast;roflumilast,PDE4 inhibitor,inhibitor,TRUE,TRUE,TRUE,cAMP phosphodiesterase; inhibition raises cAMP and dampens effector cytokines
+PDE4B,apremilast;roflumilast,PDE4 inhibitor,inhibitor,TRUE,TRUE,TRUE,Principal immune cell PDE4 isoform
+PDE4D,apremilast;roflumilast,PDE4 inhibitor,inhibitor,TRUE,TRUE,TRUE,PDE4 isoform targeted by apremilast
+S1PR1,fingolimod;ozanimod;siponimod,S1P receptor modulator,functional antagonist,TRUE,TRUE,TRUE,Functional antagonism causes receptor internalisation; LoF traps lymphocytes in nodes
+TNF,infliximab;adalimumab;etanercept,anti-TNF biologic,neutralising,TRUE,TRUE,TRUE,T cell derived TNF; neutralisation is the approved mechanism
+IL17A,secukinumab;ixekizumab,anti-IL17 antibody,neutralising,TRUE,TRUE,TRUE,Th17 effector cytokine
+IL17F,bimekizumab,anti-IL17A/F antibody,neutralising,TRUE,TRUE,TRUE,Co-neutralised with IL17A by bimekizumab
+IL23A,risankizumab;guselkumab,anti-IL23 p19 antibody,neutralising,TRUE,TRUE,TRUE,IL23 p19 subunit sustaining the Th17 program
+IL12B,ustekinumab,anti-IL12/23 p40 antibody,neutralising,TRUE,TRUE,TRUE,Shared p40 subunit of IL12 and IL23
+IL6R,tocilizumab;sarilumab,anti-IL6R antibody,antagonist,TRUE,TRUE,TRUE,IL6 receptor; blockade approved in RA
+IL4R,dupilumab,anti-IL4Ra antibody,antagonist,TRUE,TRUE,TRUE,Shared IL4 and IL13 receptor chain
+IL13,tralokinumab;lebrikizumab,anti-IL13 antibody,neutralising,TRUE,TRUE,TRUE,Type 2 effector cytokine
+IL5,mepolizumab;reslizumab,anti-IL5 antibody,neutralising,TRUE,TRUE,TRUE,Type 2 effector cytokine driving eosinophilia
+ITGA4,natalizumab;vedolizumab,anti-integrin antibody,antagonist,TRUE,TRUE,TRUE,Alpha 4 integrin; blockade prevents lymphocyte trafficking
+ITGAL,efalizumab,anti-LFA1 antibody,antagonist,TRUE,TRUE,TRUE,LFA1 alpha chain; approved then withdrawn for PML risk
+CD52,alemtuzumab,anti-CD52 antibody,depleting,TRUE,TRUE,TRUE,Lymphocyte depleting antibody target
+CD3E,teplizumab;muromonab,anti-CD3 antibody,antagonist,TRUE,TRUE,TRUE,TCR complex epsilon chain
+CD3D,muromonab,anti-CD3 antibody,antagonist,TRUE,TRUE,TRUE,TCR complex delta chain
+CD3G,muromonab,anti-CD3 antibody,antagonist,TRUE,TRUE,TRUE,TCR complex gamma chain
+PIK3CD,leniolisib,PI3K delta inhibitor,inhibitor,TRUE,TRUE,TRUE,Approved 2023 for activated PI3K delta syndrome
+IKZF1,lenalidomide;pomalidomide,cereblon molecular glue,degrader,TRUE,TRUE,TRUE,Degraded by IMiDs; the validated degrader archetype in immune cells
+IKZF3,lenalidomide;pomalidomide,cereblon molecular glue,degrader,TRUE,TRUE,TRUE,Degraded by IMiDs alongside IKZF1
+CCR4,mogamulizumab,anti-CCR4 antibody,depleting,TRUE,TRUE,TRUE,Approved for mycosis fungoides and Sezary syndrome
+DHFR,methotrexate,antifolate,inhibitor,TRUE,TRUE,TRUE,Antifolate target; also core essential, so it exemplifies the effective-but-toxic class
+NR3C1,prednisolone;dexamethasone,glucocorticoid,agonist,TRUE,FALSE,FALSE,EXCLUDED: glucocorticoids are receptor AGONISTS. Knockdown removes the anti-inflammatory signal and does the opposite of the drug
+FKBP1A,tacrolimus;sirolimus,immunophilin,drug-binding chaperone,TRUE,FALSE,FALSE,EXCLUDED: the drug BINDS FKBP1A to form the inhibitory complex. Knockdown abolishes drug efficacy rather than mimicking it
+PPIA,ciclosporin,immunophilin,drug-binding chaperone,TRUE,FALSE,FALSE,EXCLUDED: cyclophilin A is the ciclosporin-binding partner not the effector target
+IL2,aldesleukin;low-dose IL2,cytokine therapy,agonist,TRUE,FALSE,FALSE,EXCLUDED: administered as an agonist. Knockdown is not the therapeutic direction
+TNFRSF4,rocatinlimab;amlitelimab,anti-OX40 antibody,antagonist,FALSE,TRUE,FALSE,EXCLUDED: phase 3 not approved. Held out as a prospective validation target
+STAT6,KT-621,STAT6 degrader,degrader,FALSE,TRUE,FALSE,EXCLUDED: phase 1 not approved. Cited as the degrader-handle archetype only
+CD80,abatacept,CTLA4-Ig fusion,antagonist,TRUE,TRUE,FALSE,EXCLUDED: costimulatory ligand expressed on antigen presenting cells not CD4 T cells
+CD86,abatacept,CTLA4-Ig fusion,antagonist,TRUE,TRUE,FALSE,EXCLUDED: costimulatory ligand expressed on antigen presenting cells not CD4 T cells
+MS4A1,rituximab,anti-CD20 antibody,depleting,TRUE,TRUE,FALSE,EXCLUDED: B cell restricted; not expressed in CD4 T cells
+BTK,ibrutinib;remibrutinib,BTK inhibitor,inhibitor,TRUE,TRUE,FALSE,EXCLUDED: B cell kinase; ITK is the T cell paralogue
