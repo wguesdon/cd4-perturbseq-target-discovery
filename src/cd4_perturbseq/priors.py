@@ -66,19 +66,60 @@ def druggable_classes() -> dict[str, set[str]]:
     return {name: _read_symbol_list(f) for name, f in files.items()}
 
 
-def iei_genes() -> set[str]:
-    """Genes whose loss of function causes an inborn error of immunity (IUIS 2024).
+def iei_genes(lof_only: bool = True) -> set[str]:
+    """Genes whose LOSS of function causes an inborn error of immunity (IUIS 2024).
 
-    The `Genetic defect` column mixes gene symbols with cytogenetic lesions (for
-    example `11q23del`). We keep only entries that look like HGNC symbols.
+    Three corrections over the naive read of this table.
+
+    **Mechanism.** The table has a ``GOF/DN`` column. Sixteen entries are gain-of-function
+    diseases, where loss of function is not the pathogenic mechanism and therefore says nothing
+    about what CRISPRi does: ``CXCR4``, ``HCK``, ``LYN``, ``NFKBIA``, ``NLRC4``, ``NLRP12``,
+    ``NLRP3``, ``PLCG1``, ``PLCG2``, ``SAMD9``, ``SAMD9L``, ``STAT4``, ``STAT6``, ``STING1``,
+    ``SYK``, ``TLR8``. Entries annotated ``LOF GOF`` or ``LOF, DN`` do involve loss of function
+    and are kept.
+
+    **Composite entries.** ``C4A+C4B`` is two genes and was silently dropped by the symbol regex.
+
+    **Cytogenetic lesions.** The ``Genetic defect`` column also holds things like ``11q23del``
+    and ``14q32 deletion or mutation``, which are not genes. Those are dropped.
+
+    Note:
+        Membership here is NOT a safety gate. Verified 2026-07-08: the flag is more enriched among
+        approved immunomodulator targets (25.0%, OR 8.31) than among the perturbations a naive
+        reversal ranking calls toxic (14.0%, OR 4.16). A gene whose loss causes immunodeficiency is
+        a gene that matters for immunity, which is what a good immune drug target is. Use this as a
+        reported liability annotation. See ``docs/results/adversarial_audit_2026_07_08.md``.
+
+    Args:
+        lof_only: Drop entries whose stated mechanism is purely gain of function.
 
     Returns:
         Set of gene symbols implicated in human immunodeficiency.
     """
     table = pd.read_csv(PRIORS / "IUIS-IEI-list-July-2024V2.csv")
-    defects = table["Genetic defect"].astype(str).str.strip()
-    symbol_like = defects.str.fullmatch(r"[A-Z][A-Z0-9\-]{1,14}")
-    return set(defects[symbol_like.fillna(False)])
+    table.columns = [c.strip() for c in table.columns]
+
+    defect = table["Genetic defect"].astype(str).str.strip()
+    mechanism = table["GOF/DN"].astype(str).str.strip().str.upper()
+
+    # Some rows carry the mechanism inside the defect string, e.g. "PIK3CD GOF", so the GOF/DN
+    # column alone does not catch them.
+    inline_gof = defect.str.contains(r"\bGOF\b", regex=True)
+    if lof_only:
+        keep = (mechanism != "GOF") & ~inline_gof
+        defect = defect[keep]
+
+    # Drop parenthetical aliases: "CD40 (TNFRSF5)" -> "CD40", "KMT2D (MLL2)" -> "KMT2D".
+    cleaned = defect.str.replace(r"\s*\([^)]*\)", "", regex=True)
+    # Composite and multi-gene entries: "C4A+C4B", "CFHR1 CFHR2. CFHR3 CFHR4 CFHR5".
+    tokens = cleaned.str.split(r"[+,.\s]+", regex=True).explode().str.strip()
+
+    # A symbol is all-caps alphanumeric, or a CNorfNNN open reading frame. Cytogenetic lesions
+    # ("11q23del", "Del10p13-p14", "Large deletion of 22q11.2") and "Unknown" fail both.
+    is_symbol = tokens.str.fullmatch(r"[A-Z][A-Z0-9\-]{1,13}") | tokens.str.fullmatch(r"C\d+orf\d+")
+    mechanism_words = {"GOF", "LOF", "DN", "AR", "AD", "XL"}
+    symbols = {s for s in tokens[is_symbol.fillna(False)] if s not in mechanism_words}
+    return symbols
 
 
 def immune_effector_genes() -> pd.DataFrame:
