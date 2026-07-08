@@ -40,7 +40,7 @@ depresses recall for free. Both are silent failures: the numbers still come out.
 
 ## Positive set
 
-35 genes with `include_as_positive = TRUE`, spanning the mechanisms the field actually uses:
+36 genes with `include_as_positive = TRUE`, spanning the mechanisms the field actually uses:
 
 | Mechanism class | Genes |
 | --- | --- |
@@ -65,11 +65,47 @@ separate, and the benchmark should not hide it.
 approved. They are held out as prospective validation: a good ranking should surface them
 high without ever having been told about them.
 
-## Coverage caveat
+## Coverage: measured, and worse than expected
 
-Positives only count if the gene was perturbed in the library and measured in the 10,282-gene
-transcriptome. `scripts/03_build_benchmark.py` reports the intersection and the genes lost, so
-precision and recall are computed against a stated, reproducible denominator.
+Positives only count if the gene was perturbed in the library, measured in the 10,282-gene
+transcriptome, and able to survive perturbation QC. Measured on 2026-07-08:
+
+| Stage | Positives surviving |
+| --- | --- |
+| Curated | 36 |
+| Perturbed in the library | 32 |
+| Also measured in the transcriptome | 30 |
+| Also surviving QC, therefore rankable | **20** |
+
+Never perturbed at all: `DHFR`, `IL12B`, `JAK1`, `JAK3`. Losing `JAK1` and `JAK3` is painful,
+because tofacitinib is the flagship of the class. Perturbed but failing QC: `CD3D`, `DHODH`,
+`IKZF1`, `IKZF3`, `IL17A`, `IL17F`, `IL5`, `IL6R`, `IMPDH1`, `PDE4A`, `PDE4D`, `TNF`.
+
+Twenty positives against 6,371 rankable perturbations makes AUROC noisy. The standard error is
+roughly 0.5 divided by the square root of 20, near 0.11, so an AUROC of 0.70 and an AUROC of
+0.85 are not distinguishable. Any benchmark built on this must report a confidence interval and
+must not lean on a single headline number.
+
+## Two problems the coverage numbers expose
+
+**The assay cannot see cytokine-signalling targets.** The screen stimulates through the TCR
+without exogenous polarising cytokines. So knocking down `JAK2`, `TYK2`, `IL4R`, `IL6R` or
+`S1PR1` has little to suppress. In the naive suppression ranking they land at 5392, 5618, 6047,
+not rankable, and 5993 out of 6371. This is a property of the dataset, not a failure of the
+score, and it bounds recall from above. It must be stated, not discovered by a judge.
+
+**Some positives are also safety liabilities.** `CD3E` and `CD3G` are approved drug targets
+(teplizumab, muromonab) and they rank 101 and 14 in the naive ranking. They are also inborn
+errors of immunity: loss of function causes severe combined immunodeficiency. Our safety gate
+will therefore demote the very genes the benchmark counts as positives. That is not a bug. Anti
+CD3 is a broad immunosuppressant, muromonab was withdrawn, and a therapeutic-window score is
+supposed to say so. But it means a naive "does the window score recover approved targets better
+than the naive score" comparison is the wrong question, and a score that wins it would be
+suspect.
+
+The consequence is that recovery of approved targets validates the **efficacy axis**, not the
+window score. The window score has to be validated on whether it separates targets by
+therapeutic index. Both are reported separately in `scripts/04_benchmark.py`.
 
 ## Provenance and open work
 

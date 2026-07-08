@@ -34,7 +34,7 @@ PIK3CD,leniolisib,PI3K delta inhibitor,inhibitor,TRUE,TRUE,TRUE,Approved 2023 fo
 IKZF1,lenalidomide;pomalidomide,cereblon molecular glue,degrader,TRUE,TRUE,TRUE,Degraded by IMiDs; the validated degrader archetype in immune cells
 IKZF3,lenalidomide;pomalidomide,cereblon molecular glue,degrader,TRUE,TRUE,TRUE,Degraded by IMiDs alongside IKZF1
 CCR4,mogamulizumab,anti-CCR4 antibody,depleting,TRUE,TRUE,TRUE,Approved for mycosis fungoides and Sezary syndrome
-DHFR,methotrexate,antifolate,inhibitor,TRUE,TRUE,TRUE,Antifolate target; also core essential, so it exemplifies the effective-but-toxic class
+DHFR,methotrexate,antifolate,inhibitor,TRUE,TRUE,TRUE,"Antifolate target; also core essential, so it exemplifies the effective-but-toxic class"
 NR3C1,prednisolone;dexamethasone,glucocorticoid,agonist,TRUE,FALSE,FALSE,EXCLUDED: glucocorticoids are receptor AGONISTS. Knockdown removes the anti-inflammatory signal and does the opposite of the drug
 FKBP1A,tacrolimus;sirolimus,immunophilin,drug-binding chaperone,TRUE,FALSE,FALSE,EXCLUDED: the drug BINDS FKBP1A to form the inhibitory complex. Knockdown abolishes drug efficacy rather than mimicking it
 PPIA,ciclosporin,immunophilin,drug-binding chaperone,TRUE,FALSE,FALSE,EXCLUDED: cyclophilin A is the ciclosporin-binding partner not the effector target
