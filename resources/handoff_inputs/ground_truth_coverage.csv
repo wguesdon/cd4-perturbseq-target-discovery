@@ -1,0 +1,37 @@
+gene_symbol,drug_examples,mechanism,perturbed,measured,rankable,naive_rank
+PPP3CA,ciclosporin;tacrolimus,inhibitor,True,True,True,428.0
+PPP3CB,ciclosporin;tacrolimus,inhibitor,True,True,True,5911.0
+PPP3R1,ciclosporin;tacrolimus,inhibitor,True,True,True,2287.0
+JAK1,tofacitinib;upadacitinib;baricitinib,inhibitor,False,False,False,
+JAK2,baricitinib;ruxolitinib,inhibitor,True,True,True,5392.0
+JAK3,tofacitinib;ritlecitinib,inhibitor,False,False,False,
+TYK2,deucravacitinib,inhibitor,True,True,True,5618.0
+MTOR,sirolimus;everolimus,inhibitor,True,True,True,178.0
+DHODH,teriflunomide;leflunomide,inhibitor,True,False,False,
+IMPDH1,mycophenolate mofetil,inhibitor,True,True,False,
+IMPDH2,mycophenolate mofetil,inhibitor,True,True,True,3522.0
+IL2RA,basiliximab;daclizumab,antagonist,True,True,True,484.0
+PDE4A,apremilast;roflumilast,inhibitor,True,True,False,
+PDE4B,apremilast;roflumilast,inhibitor,True,True,True,5634.0
+PDE4D,apremilast;roflumilast,inhibitor,True,True,False,
+S1PR1,fingolimod;ozanimod;siponimod,functional antagonist,True,True,True,5993.0
+TNF,infliximab;adalimumab;etanercept,neutralising,True,True,False,
+IL17A,secukinumab;ixekizumab,neutralising,True,False,False,
+IL17F,bimekizumab,neutralising,True,True,False,
+IL23A,risankizumab;guselkumab,neutralising,True,True,True,2985.0
+IL12B,ustekinumab,neutralising,False,False,False,
+IL6R,tocilizumab;sarilumab,antagonist,True,True,False,
+IL4R,dupilumab,antagonist,True,True,True,6047.0
+IL13,tralokinumab;lebrikizumab,neutralising,True,True,True,1356.0
+IL5,mepolizumab;reslizumab,neutralising,True,True,False,
+ITGA4,natalizumab;vedolizumab,antagonist,True,True,True,3384.0
+ITGAL,efalizumab,antagonist,True,True,True,660.0
+CD52,alemtuzumab,depleting,True,True,True,2281.0
+CD3E,teplizumab;muromonab,antagonist,True,True,True,101.0
+CD3D,muromonab,antagonist,True,True,False,
+CD3G,muromonab,antagonist,True,True,True,14.0
+PIK3CD,leniolisib,inhibitor,True,True,True,410.0
+IKZF1,lenalidomide;pomalidomide,degrader,True,True,False,
+IKZF3,lenalidomide;pomalidomide,degrader,True,True,False,
+CCR4,mogamulizumab,depleting,True,True,True,5763.0
+DHFR,methotrexate,inhibitor,False,False,False,

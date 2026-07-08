@@ -29,8 +29,20 @@ RESULTS = REPO_ROOT / "results"
 FIGURES = RESULTS / "figures"
 TABLES = RESULTS / "tables"
 
+RESOURCES = REPO_ROOT / "resources"
+GROUND_TRUTH = RESOURCES / "ground_truth"
+
+HANDOFF_INPUTS = RESOURCES / "handoff_inputs"
+"""Small, COMMITTED artifacts for Claude Science handoffs.
+
+Claude Science runs in a browser UI, potentially on a different machine, and will never have
+the 16.8 GB h5ad. Handoff inputs therefore live here rather than under the gitignored
+`data/interim`, so that a `git pull` is enough to run any handoff. They double as the
+reproducibility bundle for a reviewer who does not want to download the effect matrix.
+"""
+
 
 def ensure_dirs() -> None:
     """Create the derived-output directories if they do not already exist."""
-    for path in (INTERIM, PROCESSED, FIGURES, TABLES):
+    for path in (INTERIM, PROCESSED, FIGURES, TABLES, HANDOFF_INPUTS):
         path.mkdir(parents=True, exist_ok=True)
