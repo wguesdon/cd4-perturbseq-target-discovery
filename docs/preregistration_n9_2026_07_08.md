@@ -272,3 +272,82 @@ anticonservative**, so the reader can see the size of the error.
 - IL-2 axis: only 4 of the 8 pre-specified genes are perturbed and QC-passing (`IL2RA`, `IL2RB`,
   `STAT5A`, `STAT5B`), and only 2 reach the naive top-100. **Reported as unavailable, not as null.**
   The exploratory mechanism in §8 cannot be assessed on this screen.
+
+---
+
+# ADDENDUM 2 — 2026-07-08. Final result, and one confound that cannot be closed.
+
+Corrected primary, `scripts/17_tolerance_is_special.py`, seed 0, 200 nulls, 200 null modules.
+
+| quantity | value |
+|---|---|
+| **T = median z among the naive top-100, real module** | **+2.600** |
+| 200 random induction-matched modules | median −0.114, 95th pct +0.539, **max +1.121** |
+| **module-level permutation p** | **0.004975** (the 1/201 floor; **0 of 200** nulls reached T) |
+| control §7.1 recovery, permuted induction | T = +3.948, reproducing `scripts/10`'s +3.87 |
+| **co-induction's share of `scripts/10`'s effect** | **34%** (3.948 → 2.600) |
+| control §7.2 positive, effector module | T = +10.481, module-level p = 0.0196 (0 of 50) |
+| control §7.3 negative, module-level leave-one-out FPR | **4.5%** (nominal 5%; exact by construction) |
+| control §7.3 negative, per-perturbation MWU FPR | 15% → **the MWU is confirmed void** |
+
+**VERDICT: PASS.** The activation-induced co-inhibitory module is reduced in the naive top beyond what
+expression- **and** induction-matched modules predict. Co-induction accounts for about a third of the
+effect `scripts/10` reported. It is not all of it.
+
+## POST-HOC diagnostic, not pre-registered, cannot change the verdict
+
+A reviewer will observe that the real module's nine genes are **co-regulated with each other** while the
+null modules are arbitrary matched gene sets. Measured rather than asserted away:
+
+| quantity | value |
+|---|---|
+| mean pairwise `r` among the 9 real genes' `log_fc` | **+0.105** |
+| same, across the 200 null modules | median +0.011, 95th pct +0.047, **max +0.087** |
+| Spearman(ρ̄, T) across the null modules | **+0.206, p = 0.0035** |
+| p restricted to the most co-regulated quartile of nulls (n = 50) | 0.0196 (0 of 50) |
+| OLS `T_null ~ ρ̄` | slope +4.45, **R² = 0.049**, p = 0.0016 |
+| T predicted at the real module's ρ̄ = 0.105 | +0.343 |
+| T observed | +2.600 |
+| **excess over the co-regulation trend** | **+2.257, i.e. 87% of T is unexplained by it** |
+
+So: **co-regulation is a real, measured confound.** It predicts the statistic among the nulls. The real
+module is more co-regulated than **every one** of 200 matched null modules, so the null cannot be matched
+on it and the prediction at ρ̄ = 0.105 is an **extrapolation beyond the null's support**. It is reported
+as one. The trend explains R² = 4.9% of the null modules' variance and about 13% of the observed T.
+
+**This is a limitation, not a solved confound**, and it is added to §9 as **L8**:
+
+> **L8.** The nine module genes are co-regulated (ρ̄ = 0.105) and no null module reaches that value
+> (max 0.087). Co-regulation predicts the statistic among nulls (Spearman +0.206). Restricting the null
+> to its most co-regulated quartile leaves the observed T above all 50, and a linear extrapolation of the
+> co-regulation trend to ρ̄ = 0.105 predicts T = +0.343 against +2.600 observed. Neither is a control.
+> A null drawn from *other coherent, co-regulated, stimulation-induced programs* would settle it. We did
+> not build one, and we do not claim to have controlled for it.
+
+## The pre-registered secondary (§8), reported whichever way it landed
+
+Co-induction predicted that the two **non-induced** genes show no excess suppression in the naive top-100.
+Observed: **1 of 2** non-induced genes is suppressed (`TIGIT`, p = 8.1e-10), and **1 of 7** induced genes
+is not (`LRRC32`, p = 0.43). The pattern does not follow the co-induction prediction. **n = 2.** These
+per-gene p-values carry the same non-independence caveat as the void MWU. Descriptive. It corroborates the
+primary and cannot override it.
+
+## §8's exploratory mechanism cannot be assessed
+
+Only 4 of the 8 pre-specified IL-2 axis genes are perturbed and QC-passing (`IL2RA`, `IL2RB`, `STAT5A`,
+`STAT5B`), and only 2 reach the naive top-100. `JAK1` and `JAK3` are never perturbed. **Reported as
+unavailable, not as null.** No mechanism is claimed.
+
+## The sentence this licenses, and the one it does not
+
+Licensed:
+> A suppression-ranked shortlist reduces an activation-induced co-inhibitory transcriptional module beyond
+> what expression- and induction-matched gene modules predict (module-level permutation p = 0.005; 0 of 200
+> null modules reached the observed statistic). Roughly a third of the previously reported effect is
+> attributable to co-induction with the effector program. Co-regulation within the module is a measured and
+> unclosed confound.
+
+Not licensed, and not written anywhere:
+> that the module corresponds to functional tolerance, to suppressive capacity, or to regulatory T cell
+> identity; that a patient, a Treg, or an in-vivo outcome was measured; that anything here is specific,
+> revelatory, or a first. §2 governs. It is mRNA.
