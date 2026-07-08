@@ -1,5 +1,34 @@
 # The therapeutic-window score: three failed designs and what the data forced
 
+> ## ⚠ CORRECTION, 2026-07-08 (later the same day). The `immune-essential` reject reason below is DEAD.
+>
+> Every row in this document that says a gene is **"rejected, immune-essential"** was written while the
+> IUIS immunodeficiency list was a gate axis. **It was removed hours later**, because the flag is *more*
+> enriched among approved drug targets (OR 8.31) than among the perturbations a naive ranking calls toxic
+> (OR 4.16). It could not separate a hazard from a target. It is now a reported annotation.
+>
+> Read the tables below with these substitutions, taken from the current `results/tables/window_score.csv`:
+>
+> | Gene | This doc says | The gate actually says now |
+> | --- | --- | --- |
+> | `CD3E` | rejected, immune-essential | **PASSES.** So do `CD28` and `PTPRC`, both IUIS genes and both Schmidt-confirmed IL-2 hits |
+> | `CD3G` | rejected, immune-essential, tolerance | rejected on **tolerance** alone |
+> | `ITK` | "an immunodeficiency gene" | rejected on **tolerance**. The IUIS flag is an annotation, not the reason |
+>
+> The therapeutic-index result moved from **3/3 versus 0/2** to **3/3 versus 1/2** as a direct cost of
+> this correction, and we report the weaker number.
+>
+> Two further corrections landed the same day and are **not** reflected below. See
+> [`magnitude_matched_2026_07_08.md`](./magnitude_matched_2026_07_08.md).
+>
+> 1. The gate's **selectivity/homeostasis** axis does most of the rejecting and carries **no** enrichment
+>    over a shortlist matched on transcriptome-wide effect magnitude: it rejects 14 of our top 20 and 13.6
+>    of a matched 20 (P = 0.53). It is a sound *filter* and a worthless *enrichment signal*. Do not quote it
+>    as evidence about reversal.
+> 2. **Tolerance** is the only axis specific to reversal: 12 of our top 20 against 4.0 matched, P < 0.0001.
+>
+> Everything below is the original document, unedited apart from this banner.
+
 Date: 2026-07-08. Script: [`scripts/04_window_score.py`](../../scripts/04_window_score.py).
 Output: `results/tables/window_score.csv`.
 
