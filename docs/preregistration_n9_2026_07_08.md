@@ -351,3 +351,75 @@ Not licensed, and not written anywhere:
 > that the module corresponds to functional tolerance, to suppressive capacity, or to regulatory T cell
 > identity; that a patient, a Treg, or an in-vivo outcome was measured; that anything here is specific,
 > revelatory, or a first. §2 governs. It is mRNA.
+
+---
+
+# ADDENDUM 3 — 2026-07-08. Two corrections from the source paper, and the IL10 leave-one-out.
+
+## A. §2's description of the assay is wrong in three places. The conclusion is unaffected.
+
+§2 above says *"a 48 h anti-CD3/CD28 stimulation of bulk primary human CD4 conventional T cells"*. Having
+now read the preprint (`docs/source_paper_briefing_2026_07_08.md`):
+
+* **Not "bulk".** The cells are **naive**-isolated (EasySep Human Naive CD4+ T Cell Isolation Kit #19555,
+  Methods p.32). This **strengthens** §2's argument: negative selection depletes thymic Tregs at day 0, so
+  `FOXP3` detected 48 h after restimulation is activation-induced in conventional T cells **by construction**,
+  not carried in by a contaminating Treg fraction. That is the single strongest sentence available to us and
+  it comes from the authors' own Methods.
+* **Not "anti-CD3/CD28".** The activator is a soluble three-antibody tetramer, ImmunoCult human CD3/CD28/CD2
+  (STEMCELL 10990), 25 µL/mL at day 0 and 12.5 µL/mL at day 12 (p.32-33). No beads, no plate-bound antibody.
+* **Not "a 48 h stimulation".** `Stim48hr` is 48 h after **re**-stimulation of a pool expanded for 12 days;
+  `Rest` is an 8 h no-restimulation aliquot of that same day-12 pool (p.33). The Rest arm is **not quiescent**.
+
+The original text is left unedited above. The primary, the null, the decision rule and the verdict are
+untouched: none of them reads the assay description. **Correct wording, to be used everywhere:**
+*mRNA measured 48 h after restimulation of naive-isolated, 12-day expanded primary human CD4 conventional
+T cells (Zhu, Dann et al., Methods pp.32-33).*
+
+## B. The IL10 leave-one-out. Pre-registered §5's null was never run per gene; it is run now.
+
+`IL10` has by far the largest induction (+4.73) and the smallest per-gene p (1.8e-16), and its top-100
+median suppression (2.366) exceeds every other gene's by 2.5×. A reviewer will ask whether the module
+result is an `IL10` result. It is not.
+
+Leave-one-gene-out, each 8-gene sub-module redrawn against 200 nulls matched on **its own** joint
+(expression × induction) decile cells. Seed 0. Fallbacks: 0 for every sub-module.
+
+| dropped | T (8 genes) | | gene alone | T (1 gene) |
+|---|---|---|---|---|
+| — (full module) | **+2.660** | | `TIGIT` | **+2.381** |
+| `PDCD1` | +2.765 | | `IL10` | +2.255 |
+| `LRRC32` | +2.685 | | `CTLA4` | +1.129 |
+| `TGFB1` | +2.647 | | `PDCD1` | +0.494 |
+| `FOXP3` | +2.472 | | `LAG3` | +0.481 |
+| `LAG3` | +2.449 | | `FOXP3` | +0.554 |
+| `IKZF2` | +2.438 | | `IKZF2` | +0.445 |
+| `CTLA4` | +2.373 | | `TGFB1` | +0.140 |
+| `TIGIT` | +2.146 | | `LRRC32` | −0.140 |
+| **`IL10`** | **+1.733** | | | |
+
+**Decisive test.** The 8-gene module **without `IL10`**, against 200 random induction-matched **8-gene**
+modules drawn from the same cells:
+
+| | |
+|---|---|
+| `T_real` (8 genes, no IL10) | **+1.787** |
+| 200 null 8-gene modules | median −0.100, 95th pct +0.614, **max +1.373** |
+| **module-level permutation p** | **0.004975** (0 of 200 reached it) |
+
+**The N9 verdict survives dropping `IL10`.** The module is not an `IL10` proxy.
+
+Two things worth recording, neither of which changes the verdict:
+
+1. **`TIGIT` alone gives the largest single-gene statistic (+2.381), larger than `IL10` alone (+2.255).**
+   `TIGIT` is the gene that is **not stimulation-induced** (log2FC −0.04). Under a pure co-induction
+   account it should show nothing. It is the strongest gene in the module. This corroborates §8's
+   pre-registered prediction failing in the direction of the alternative. It remains n = 1 gene and cannot
+   settle anything.
+2. **`LRRC32` alone gives −0.140 and `TGFB1` alone +0.140.** Two of the nine contribute nothing. The module
+   is carried by `IL10`, `TIGIT` and `CTLA4`. Report the per-gene table; do not present nine genes as if
+   they moved together.
+
+The full-module `T` here is **+2.660**, against **+2.600** in ADDENDUM 2, because this probe consumes the
+random generator in a different order. Both figures are reported; neither is tuned; the null distributions
+are drawn afresh in each run and the permutation p is 0.004975 in both.
