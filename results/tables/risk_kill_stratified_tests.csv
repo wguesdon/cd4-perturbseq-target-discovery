@@ -1,0 +1,11 @@
+test,column,binary,effect,p,strata,top_used,bg_used,p_bh,stratification
+core-essential,is_core_essential,True,0.0,0.5593994772018563,10,100,6271,0.5593994772018563,stratified on n_cells_target decile (sensitivity)
+IEI (immunodeficiency),is_iei,True,3.5015231147991503,3.6956829649425505e-05,10,100,6271,4.619603706178188e-05,stratified on n_cells_target decile (sensitivity)
+stim DE genes (collateral),stim_de_genes,False,10.989666832690915,2.1425245729997496e-28,10,100,6271,5.356311432499374e-28,stratified on n_cells_target decile (sensitivity)
+rest DE genes (homeostasis),rest_de_genes,False,7.306546406043353,1.3704793397636216e-13,10,97,6223,2.2841322329393693e-13,stratified on n_cells_target decile (sensitivity)
+tolerance suppression,tolerance_suppression,False,11.33210216707801,4.5497114623846106e-30,10,100,6271,2.2748557311923054e-29,stratified on n_cells_target decile (sensitivity)
+core-essential,is_core_essential,True,0.0,0.5405075071662873,7,100,4359,0.5405075071662873,stratified on z_l2 decile (PRIMARY stratification)
+IEI (immunodeficiency),is_iei,True,2.768582375478927,0.0013169907757398216,7,100,4359,0.002017023154202954,stratified on z_l2 decile (PRIMARY stratification)
+stim DE genes (collateral),stim_de_genes,False,7.0355148998437,9.92632501598483e-13,7,100,4359,2.4815812539962072e-12,stratified on z_l2 decile (PRIMARY stratification)
+rest DE genes (homeostasis),rest_de_genes,False,2.945221339188254,0.0016136185233623633,7,97,4316,0.002017023154202954,stratified on z_l2 decile (PRIMARY stratification)
+tolerance suppression,tolerance_suppression,False,11.099332113212132,6.319239250262956e-29,7,100,4359,3.159619625131478e-28,stratified on z_l2 decile (PRIMARY stratification)

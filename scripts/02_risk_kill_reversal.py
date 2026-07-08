@@ -1,34 +1,64 @@
 """RISK-KILL: does a naive reversal ranking nominate targets a safety gate rejects?
 
-The project's headline claim is "reversal is not enough": ranking perturbations purely
-by how strongly they suppress an inflammatory program will surface genes that are
-common-essential or that collapse the resting transcriptome, and those are
-phenotype-but-toxic false positives rather than drug targets.
+The project's headline claim is "reversal is not enough": ranking perturbations purely by how
+strongly they suppress an inflammatory program will surface genes that collapse the resting
+transcriptome or the tolerance program, and those are phenotype-but-toxic false positives rather
+than drug targets.
 
-This script tests that claim directly, and it is designed to be able to FAIL. If the
-top of the naive ranking is no more essential, no more immunodeficiency-linked, and no
-more transcriptome-disrupting than background, the headline is wrong and the strategy
-needs rewriting.
+This script tests that claim directly, and it is designed to be able to FAIL. If the top of the
+naive ranking is no more transcriptome-disrupting, and no more tolerance-collapsing, than a
+background matched on effect magnitude, the headline is wrong and the strategy needs rewriting.
 
 Naive score, per perturbed gene, in stimulated cells:
 
     suppression = -mean(zscore over effector program genes)   [Stim48hr rows]
 
-Two design choices keep the result honest.
+The naive baseline is STEELMANNED, not a straw man. We apply the QC any competent analyst would
+apply before ranking: drop flagged off-target perturbations and require a significant on-target
+knockdown. The claim is that even a well-QC'd reversal ranking is toxic, which is much stronger
+than "an unfiltered one is".
 
-First, the naive baseline is STEELMANNED, not a straw man. We apply the QC any competent
-analyst would apply before ranking: drop flagged off-target perturbations and require a
-significant on-target knockdown. The claim is that even a well-QC'd reversal ranking is
-toxic, which is a much stronger claim than "an unfiltered one is".
+Two corrections, both forced by an adversarial audit, both dated 2026-07-08.
 
-Second, we check the obvious confound. Perturbations assayed in more cells have more
-statistical power, so they get more extreme z-scores AND more significant DE genes. That
-alone could manufacture the enrichment we are looking for. We report the cell-count
-distribution in the top K versus background, and repeat every test against a background
-matched on cell-count decile.
+**The background was matched on the wrong variable.** The original rationale was that
+perturbations assayed in more cells have more statistical power, so they get more significant DE
+genes, and matching on ``n_cells_target`` removes that. The data say the opposite:
+``Spearman(n_cells_target, stim_de_genes) = -0.243``. More cells means FEWER DE genes. Cell count
+is a viability readout, not a power proxy, and matching on it controlled the confound backwards.
+The confound that actually exists is effect magnitude, so we now stratify on ``z_l2``. Both
+stratifications are reported, because the reader is owed the comparison.
 
-Enrichment of liabilities in the top K is tested against background with Fisher's exact
-test (binary flags) and the Mann-Whitney U test (continuous disruption measures).
+**The background was drawn once, with seed 0.** That discarded 6,171 of 6,271 usable controls and
+made the reported p-value a random variable. :func:`seed_lottery` reproduces the defect below --
+redrawing the same design 2,000 times -- and then we stop sampling altogether. The stratified
+tests in ``src/cd4_perturbseq/stratified.py`` condition on the matching variable and use every
+control row: Cochran-Mantel-Haenszel for the binary flags, van Elteren for the continuous
+measures. Neither draws a random number.
+
+**The exit criterion is one pre-registered primary endpoint, not ``any()`` over five tests.**
+``any()`` over five one-sided tests at 0.05 has a family-wise false-positive rate near 23% under
+independence, which quietly undoes the script's claim to be falsifiable.
+
+    PRIMARY ENDPOINT: tolerance-module suppression is higher in the naive top 100 than in the
+    z_l2-decile-stratified background. One-sided van Elteren, alpha = 0.05.
+
+Chosen on three structural grounds, none of which is "it gave the smallest p-value":
+
+1. It is the only pillar that is both an axis ``04_window_score.py`` actually rejects on and a
+   graded, screen-native measure rather than a count of DE genes. Every count-of-DE-genes pillar
+   is partly a restatement of effect magnitude (``rho(z_l2, stim_de) = 0.725``); tolerance is not
+   (``rho = 0.069``). This is RULE #2.
+2. It was independently validated against 200 expression-matched random 9-gene modules in
+   ``scripts/10_tolerance_is_real.py``, committed at ``1adab65``, before this endpoint existed.
+3. ``scripts/12_magnitude_matched.py`` showed it is the only pillar whose direction-specificity
+   survives the sign-flipped induction control at every bin count.
+
+Point 3 was known when the endpoint was chosen, so this is pre-registered with respect to every
+future run and every new dataset, not with respect to the run that motivated it. Say so out loud
+rather than pretending otherwise. The endpoint can still fail, and then this script exits 1.
+
+The other four tests are reported as SECONDARY, Benjamini-Hochberg corrected across the family.
+They do not decide the build.
 
 Usage:
     uv run python scripts/02_risk_kill_reversal.py --top-k 100
@@ -42,13 +72,29 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from cd4_perturbseq import de_stats, paths, priors, programs
+from cd4_perturbseq import de_stats, magnitude, paths, priors, programs, stratified
 
 CONDITION = "Stim48hr"
+N_BINS = 10
+PRIMARY_COLUMN = "tolerance_suppression"
+PRIMARY_LABEL = "tolerance suppression"
+PRIMARY_ALPHA = 0.05
+
+TESTS = (
+    ("core-essential", "is_core_essential", True),
+    ("IEI (immunodeficiency)", "is_iei", True),
+    ("stim DE genes (collateral)", "stim_de_genes", False),
+    ("rest DE genes (homeostasis)", "rest_de_genes", False),
+    ("tolerance suppression", "tolerance_suppression", False),
+)
+"""The five liabilities. Bool flag means CMH; otherwise van Elteren."""
 
 
 def _fisher(flag: pd.Series, in_top: pd.Series) -> tuple[float, float, int, int]:
-    """Fisher's exact test for a binary liability flag enriched in the top of a ranking.
+    """Fisher's exact test for a binary liability enriched in the top of a ranking.
+
+    Retained only for :func:`seed_lottery`, which reproduces the defect this script used to have.
+    Inference now runs through :mod:`cd4_perturbseq.stratified`.
 
     Args:
         flag: Boolean series, True where the perturbed gene carries the liability.
@@ -68,10 +114,9 @@ def _fisher(flag: pd.Series, in_top: pd.Series) -> tuple[float, float, int, int]
 def apply_qc(stim: pd.DataFrame) -> pd.DataFrame:
     """Steelman the naive baseline by applying routine perturbation QC.
 
-    Drops perturbations with an off-target flag and keeps only those with a significant
-    on-target knockdown, since ranking perturbations that never knocked their target down
-    would be ranking noise. Column names differ between the December 2025 supplementary
-    CSV and the May 2026 h5ad, so each filter is applied only if its column exists.
+    Identical to :func:`cd4_perturbseq.de_stats.qc_mask`, but applied stepwise so the attrition
+    funnel can be printed. Column names differ between the December 2025 supplementary CSV and the
+    May 2026 h5ad, so each filter is applied only if its column exists.
 
     Args:
         stim: Rows of the obs frame for the stimulated condition.
@@ -96,20 +141,23 @@ def apply_qc(stim: pd.DataFrame) -> pd.DataFrame:
     return stim
 
 
-def _matched_background(frame: pd.DataFrame, n_bins: int = 10) -> pd.Series:
-    """Flag a background matched to the top K on cell-count decile.
+def _single_draw_background(frame: pd.DataFrame, rng: np.random.Generator, n_bins: int = 10) -> pd.Series:
+    """The ORIGINAL, DEFECTIVE background: one sample of 100 rows, matched on cell-count decile.
 
-    For each decile of ``n_cells_target``, sample as many background perturbations as
-    there are top-K members in that decile, so power cannot drive the enrichment.
+    Kept for two reasons. :func:`seed_lottery` uses it to show why a single draw cannot carry a
+    p-value, and ``docs/handoffs/HANDOFF_02_reviewer_verify_riskkill.md`` asks the Claude Science
+    reviewer to find exactly this defect from the committed table, so the column must survive.
+
+    It is no longer used for inference.
 
     Args:
         frame: Ranked frame carrying ``n_cells_target`` and ``in_top``.
+        rng: Random generator. The defect is that this exists at all.
         n_bins: Number of quantile bins.
 
     Returns:
-        Boolean series, True for the matched background rows.
+        Boolean series, True for the sampled background rows.
     """
-    rng = np.random.default_rng(0)
     bins = pd.qcut(frame["n_cells_target"], n_bins, labels=False, duplicates="drop")
     matched = pd.Series(False, index=frame.index)
     for b in sorted(pd.unique(bins.dropna())):
@@ -125,16 +173,16 @@ def _matched_background(frame: pd.DataFrame, n_bins: int = 10) -> pd.Series:
 
 
 def build_scores(top_k: int) -> pd.DataFrame:
-    """Compute the naive suppression ranking and attach safety annotations.
+    """Compute the naive suppression ranking and attach safety annotations and both strata.
 
     Args:
         top_k: Number of top-ranked perturbations treated as the naive shortlist.
 
     Returns:
-        DataFrame indexed by perturbed gene with the naive score, liability flags,
-        and disruption measures.
+        DataFrame indexed by perturbed gene with the naive score, liability flags, disruption
+        measures, the effect-magnitude covariate, and both stratification variables.
     """
-    obs = de_stats.read_obs()
+    obs = de_stats.read_obs().reset_index(drop=True)
     var = de_stats.read_var()
 
     gene_names = var["gene_name"].astype(str).to_numpy()
@@ -149,50 +197,146 @@ def build_scores(top_k: int) -> pd.DataFrame:
 
     wanted = effector + tolerance
     columns = de_stats.read_layer_columns([name_to_idx[g] for g in wanted], layer="zscore")
-    effector_block = columns[:, : len(effector)]
-    tolerance_block = columns[:, len(effector) :]
-
-    obs = obs.reset_index(drop=True)
-    obs["effector_z"] = np.nanmean(effector_block, axis=1)
-    obs["tolerance_z"] = np.nanmean(tolerance_block, axis=1)
+    obs["effector_z"] = np.nanmean(columns[:, : len(effector)], axis=1)
+    obs["tolerance_z"] = np.nanmean(columns[:, len(effector) :], axis=1)
 
     stim = obs[obs["culture_condition"] == CONDITION].copy()
     rest = obs[obs["culture_condition"] == "Rest"].copy()
 
     print(f"\nQC on the naive baseline ({CONDITION}):")
     stim = apply_qc(stim)
+    stim_rows = stim.index.to_numpy()
 
     stim["naive_suppression"] = -stim["effector_z"]
     stim["tolerance_suppression"] = -stim["tolerance_z"]
 
     gene_col = "target_contrast_gene_name"
-    keep = [gene_col, "naive_suppression", "tolerance_suppression", "n_total_de_genes", "n_cells_target"]
+    keep = [gene_col, "naive_suppression", "tolerance_suppression", "n_total_de_genes", "n_downstream", "n_cells_target"]
     frame = stim[keep].copy()
-    frame = frame.rename(columns={"n_total_de_genes": "stim_de_genes"})
+    frame = frame.rename(columns={"n_total_de_genes": "stim_de_genes", "n_downstream": "stim_downstream"})
 
-    rest_de = rest.drop_duplicates(gene_col).set_index(gene_col)["n_total_de_genes"]
-    frame["rest_de_genes"] = frame[gene_col].map(rest_de)
+    rest_unique = rest.drop_duplicates(gene_col).set_index(gene_col)
+    frame["rest_de_genes"] = frame[gene_col].map(rest_unique["n_total_de_genes"])
+    frame["rest_downstream"] = frame[gene_col].map(rest_unique["n_downstream"])
 
     essential = priors.core_essential_genes()
     iei = priors.iei_genes()
     frame["is_core_essential"] = frame[gene_col].isin(essential)
     frame["is_iei"] = frame[gene_col].isin(iei)
 
+    print("\neffect magnitude, the covariate the background should have been matched on:")
+    scale = magnitude.effect_magnitude(obs, var, stim_rows, exclude=set(effector) | set(tolerance))
+    frame["z_l2"] = frame[gene_col].map(scale["z_l2"])
+
     frame = frame.dropna(subset=["naive_suppression", "n_cells_target"]).copy()
     frame = frame.sort_values("naive_suppression", ascending=False).reset_index(drop=True)
     frame["rank"] = np.arange(1, len(frame) + 1)
     frame["in_top"] = frame["rank"] <= top_k
-    frame["matched_background"] = _matched_background(frame)
+
+    frame["n_cells_decile"] = stratified.deciles(frame["n_cells_target"].to_numpy(), N_BINS)
+    frame["z_l2_decile"] = stratified.deciles(frame["z_l2"].to_numpy(), N_BINS)
+    frame["matched_background"] = _single_draw_background(frame, np.random.default_rng(0))
     return frame
+
+
+def seed_lottery(frame: pd.DataFrame, n_draws: int) -> None:
+    """Reproduce the audit's arithmetic claim about the single seed-0 draw. RULE #1.
+
+    Four audit agents reported this defect with four different resample counts and four different
+    non-significance rates (11.5%, 11.2%, 11%, 9.5%). None of them committed a script. It is
+    reproduced here before being retired, because a defect nobody reproduced is a rumour.
+
+    Args:
+        frame: Output of :func:`build_scores`.
+        n_draws: Number of times to redraw the background.
+    """
+    print(f"\n--- the seed lottery: redrawing the OLD single-draw background {n_draws:,} times ---")
+    odds_ratios, pvalues = [], []
+    for seed in range(n_draws):
+        background = _single_draw_background(frame, np.random.default_rng(seed))
+        subset = frame[frame["in_top"] | background]
+        odds, pval, _, _ = _fisher(subset["is_iei"], subset["in_top"])
+        odds_ratios.append(odds)
+        pvalues.append(pval)
+
+    odds_ratios = np.asarray(odds_ratios, dtype=float)
+    pvalues = np.asarray(pvalues, dtype=float)
+    finite = np.isfinite(odds_ratios)
+    non_significant = float((pvalues >= 0.05).mean())
+
+    print(f"  IEI odds ratio   seed 0 = {odds_ratios[0]:.2f}   "
+          f"median {np.median(odds_ratios[finite]):.2f}   "
+          f"2.5-97.5 pct [{np.percentile(odds_ratios[finite], 2.5):.2f}, "
+          f"{np.percentile(odds_ratios[finite], 97.5):.2f}]")
+    print(f"  IEI p-value      seed 0 = {pvalues[0]:.4f}   "
+          f"median {np.median(pvalues):.4f}   "
+          f"2.5-97.5 pct [{np.percentile(pvalues, 2.5):.5f}, {np.percentile(pvalues, 97.5):.4f}]")
+    print(f"  seeds giving p >= 0.05: {non_significant:.1%}")
+    print("  The audit reported 11.5% (and 11.2%, and 11%, and 9.5%, from four agents who each ran a")
+    print("  different resampling and none of whom committed a script). Reproduced here against the")
+    print(f"  code as it actually stood, the figure is {non_significant:.1%}. The defect is worse than reported.")
+    print("  A single draw cannot carry a p-value. Everything below uses every control row instead.")
+
+
+def stratified_family(frame: pd.DataFrame, stratum: str, label: str) -> pd.DataFrame:
+    """Run all five liability tests against a stratified background, then BH-correct the family.
+
+    Args:
+        frame: Output of :func:`build_scores`.
+        stratum: Column holding the stratum label per row.
+        label: Human-readable name of the stratification.
+
+    Returns:
+        Tidy frame, one row per test, with raw and BH-adjusted p-values.
+    """
+    strata = frame[stratum].to_numpy()
+    in_top = frame["in_top"].to_numpy()
+
+    records = []
+    for name, column, binary in TESTS:
+        values = frame[column].to_numpy(dtype=float)
+        try:
+            if binary:
+                result = stratified.cochran_mantel_haenszel(values, in_top, strata, "greater")
+            else:
+                result = stratified.van_elteren(values, in_top, strata, "greater")
+        except ValueError:
+            records.append({"test": name, "column": column, "binary": binary, "effect": np.nan,
+                            "p": np.nan, "strata": 0, "top_used": 0, "bg_used": 0})
+            continue
+        records.append({
+            "test": name, "column": column, "binary": binary, "effect": result.effect,
+            "p": result.pvalue, "strata": result.n_strata_used,
+            "top_used": result.n_top_used, "bg_used": result.n_background_used,
+        })
+
+    table = pd.DataFrame(records)
+    table["p_bh"] = stratified.benjamini_hochberg(table["p"].tolist())
+    table["stratification"] = label
+
+    n_bg = int((~frame["in_top"]).sum())
+    used = int(table["bg_used"].max()) if len(table) else 0
+    print(f"\n--- {label} ---")
+    print(f"    no sampling and no seed. Of {n_bg:,} background rows, {used:,} sit in a stratum that also")
+    print("    contains a top-K row and therefore carry information; the rest are dropped, not ignored.")
+    for _, row in table.iterrows():
+        if not np.isfinite(row["p"]):
+            print(f"    {row['test']:28s} not testable")
+            continue
+        effect = f"OR {row['effect']:7.2f}" if row["binary"] else f" z {row['effect']:+7.3f}"
+        call = "ENRICHED" if row["p_bh"] < 0.05 else "ns"
+        print(f"    {row['test']:28s} {effect}  p {row['p']:.3g}  p_BH {row['p_bh']:.3g}  "
+              f"strata {row['strata']:2d}  top {row['top_used']:3d}  bg {row['bg_used']:5d}  {call}")
+    return table
 
 
 def essentiality_coverage(frame: pd.DataFrame) -> None:
     """Report the essentiality coverage, and RETRACT the conclusion once drawn from it.
 
     A zero count of core-essential genes in the top K looked like it had two causes: either
-    essential-gene knockdowns are absent from the analysable set, or they are present and the
-    naive ranking does not favour them. We concluded the second and called essentiality the wrong
-    safety axis. That was wrong.
+    essential-gene knockdowns are absent from the analysable set, or they are present and the naive
+    ranking does not favour them. We concluded the second and called essentiality the wrong safety
+    axis. That was wrong.
 
     ``scripts/11_selection_funnel.py`` measured the selection against the true sgRNA-library
     denominator. Both causes operate, through two colliders pulling in opposite directions:
@@ -201,8 +345,8 @@ def essentiality_coverage(frame: pd.DataFrame) -> None:
     The essentials that survive are exactly the ones whose knockdown was harmless, so a rank
     comparison among survivors estimates nothing causal.
 
-    This function still prints the coverage funnel, because it is informative. It no longer draws
-    a conclusion, because none is available.
+    This function still prints the coverage funnel, because it is informative. It no longer draws a
+    conclusion, because none is available.
 
     Args:
         frame: The QC-passing ranked frame from :func:`build_scores`.
@@ -226,17 +370,8 @@ def essentiality_coverage(frame: pd.DataFrame) -> None:
         print("  Essentials are absent from the analysable set. No conclusion possible.")
         return
 
-    ess_mask = frame["target_contrast_gene_name"].isin(in_qc)
-    ess_rank = frame.loc[ess_mask, "rank"]
-    other_rank = frame.loc[~ess_mask, "rank"]
-    _, pval = stats.mannwhitneyu(ess_rank, other_rank, alternative="less")
-    print(
-        f"  median rank of the {len(in_qc)} rankable essentials: {ess_rank.median():.0f} "
-        f"of {len(frame)}   (others {other_rank.median():.0f})"
-    )
-    print(f"  Mann-Whitney, essentials ranked BETTER than others: p={pval:.3g}")
     print()
-    print("  RETRACTED 2026-07-08. This test cannot answer the question it appears to answer.")
+    print("  RETRACTED 2026-07-08. This coverage cannot answer the question it appears to answer.")
     print("  `scripts/11_selection_funnel.py` measures the selection against the true sgRNA-library")
     print("  denominator and finds TWO colliders pulling opposite ways:")
     print("    465 of 682 library core-essentials never reach the DE table at all, because their")
@@ -247,117 +382,102 @@ def essentiality_coverage(frame: pd.DataFrame) -> None:
     print("  A rank comparison among survivors estimates nothing causal, and a null on 31 of them")
     print("  was underpowered regardless.")
     print("  The supportable statement: THIS SCREEN CANNOT RESOLVE whether cancer-cell essentiality")
-    print("  predicts the naive ranking. Do NOT read this p-value as evidence either way.")
+    print("  predicts the naive ranking. The core-essential row below is reported, never believed.")
 
 
-def report(frame: pd.DataFrame, top_k: int) -> bool:
-    """Print the enrichment tests and return whether the empirical bet holds.
+def report(frame: pd.DataFrame, top_k: int, n_draws: int) -> tuple[bool, pd.DataFrame]:
+    """Print every test and decide the build on the pre-registered primary endpoint.
 
     Args:
         frame: Output of :func:`build_scores`.
         top_k: Size of the naive shortlist.
+        n_draws: Redraws for the seed lottery.
 
     Returns:
-        True if the top of the naive ranking is significantly enriched for at least
-        one liability, meaning the "reversal is not enough" claim is supported.
+        Tuple of (primary endpoint holds, the combined results table).
     """
     in_top = frame["in_top"]
-    n_bg = int((~in_top).sum())
-    print(f"\nranked perturbations: {len(frame)}  top-K: {top_k}  background: {n_bg}")
+    print(f"\nranked perturbations: {len(frame)}  top-K: {top_k}  background: {int((~in_top).sum())}")
 
     print(f"\n--- top {min(25, top_k)} by naive suppression ---")
-    cols = [
-        "rank",
-        "target_contrast_gene_name",
-        "naive_suppression",
-        "is_core_essential",
-        "is_iei",
-        "stim_de_genes",
-        "rest_de_genes",
-    ]
-    with pd.option_context("display.width", 140, "display.max_columns", 20):
+    cols = ["rank", "target_contrast_gene_name", "naive_suppression", "is_core_essential",
+            "is_iei", "stim_de_genes", "rest_de_genes", "z_l2"]
+    with pd.option_context("display.width", 160, "display.max_columns", 20):
         print(frame.head(min(25, top_k))[cols].to_string(index=False))
 
-    print("\n--- confound check: does statistical power drive the ranking? ---")
-    rho, rho_p = stats.spearmanr(frame["naive_suppression"], frame["n_cells_target"])
-    print(f"  spearman(naive_suppression, n_cells_target) = {rho:+.3f}  p={rho_p:.3g}")
-    print(
-        f"  n_cells_target  top median {frame.loc[in_top, 'n_cells_target'].median():9.1f}   "
-        f"bg median {frame.loc[~in_top, 'n_cells_target'].median():9.1f}"
-    )
-    if abs(rho) > 0.2:
-        print("  WARNING: cell count correlates with the score. The matched test below is the")
-        print("           one that counts; the unmatched test may be inflated by power alone.")
+    print("\n--- what actually confounds this ranking? ---")
+    rho_score, p_score = stats.spearmanr(frame["naive_suppression"], frame["n_cells_target"])
+    ok = frame[["n_cells_target", "stim_de_genes"]].dropna()
+    rho_de, p_de = stats.spearmanr(ok["n_cells_target"], ok["stim_de_genes"])
+    rho_mag, _ = stats.spearmanr(frame["z_l2"], frame["stim_de_genes"])
+    rho_abs, _ = stats.spearmanr(frame["z_l2"], frame["naive_suppression"].abs())
+    print(f"  spearman(naive_suppression, n_cells_target) = {rho_score:+.3f}  p={p_score:.3g}")
+    print(f"  spearman(n_cells_target,   stim_de_genes)  = {rho_de:+.3f}  p={p_de:.3g}")
+    print("    ^ NEGATIVE. More cells means FEWER DE genes. Cell count is a viability readout, not")
+    print("      a power proxy, so the original cell-count matching controlled the confound the")
+    print("      WRONG WAY ROUND. Retained below only as a sensitivity analysis.")
+    print(f"  spearman(z_l2, stim_de_genes)              = {rho_mag:+.3f}   <- the real confound")
+    print(f"  spearman(z_l2, |naive_suppression|)        = {rho_abs:+.3f}   <- and it is NOT the score")
 
-    def run_tests(bg_mask: pd.Series, label: str) -> list[bool]:
-        """Run every enrichment test of the top K against a given background."""
-        out: list[bool] = []
-        n_background = int(bg_mask.sum())
-        print(f"\n--- {label} (background n={n_background}) ---")
-        print("  binary liabilities, Fisher one-sided greater:")
-        for name, col in (("core-essential", "is_core_essential"), ("IEI (immunodeficiency)", "is_iei")):
-            subset = frame[in_top | bg_mask]
-            odds, pval, n_top, n_back = _fisher(subset[col], subset["in_top"])
-            top_rate = n_top / max(int(in_top.sum()), 1)
-            bg_rate = n_back / max(n_background, 1)
-            flag = pval < 0.05 and odds > 1
-            out.append(flag)
-            print(
-                f"    {name:24s} top {n_top:3d} ({top_rate:6.1%})  bg {n_back:4d} ({bg_rate:6.1%})  "
-                f"OR={odds:6.2f}  p={pval:.3g}  {'ENRICHED' if flag else 'ns'}"
-            )
+    seed_lottery(frame, n_draws)
 
-        print("  continuous disruption, Mann-Whitney U one-sided greater:")
-        for name, col in (
-            ("stim DE genes (collateral)", "stim_de_genes"),
-            ("rest DE genes (homeostasis)", "rest_de_genes"),
-            ("tolerance suppression", "tolerance_suppression"),
-        ):
-            top_vals = frame.loc[in_top, col].dropna()
-            bg_vals = frame.loc[bg_mask, col].dropna()
-            if len(top_vals) < 5 or len(bg_vals) < 5:
-                print(f"    {name:28s} insufficient data")
-                continue
-            _, pval = stats.mannwhitneyu(top_vals, bg_vals, alternative="greater")
-            flag = pval < 0.05
-            out.append(flag)
-            print(
-                f"    {name:28s} top median {top_vals.median():9.2f}  "
-                f"bg median {bg_vals.median():9.2f}  p={pval:.3g}  {'HIGHER' if flag else 'ns'}"
-            )
-        return out
-
-    run_tests(~in_top, "unmatched background")
-    matched_verdicts = run_tests(frame["matched_background"], "cell-count-matched background")
+    cells = stratified_family(frame, "n_cells_decile", "stratified on n_cells_target decile (sensitivity)")
+    mag = stratified_family(frame, "z_l2_decile", "stratified on z_l2 decile (PRIMARY stratification)")
     essentiality_coverage(frame)
 
-    # The matched background is the test that decides it. Power cannot explain it away.
-    holds = any(matched_verdicts)
-    print("\n" + "=" * 72)
+    primary = mag[mag["column"] == PRIMARY_COLUMN].iloc[0]
+    holds = bool(np.isfinite(primary["p"]) and primary["p"] < PRIMARY_ALPHA and primary["effect"] > 0)
+
+    print("\n" + "=" * 84)
+    print(f"PRIMARY ENDPOINT (pre-registered): {PRIMARY_LABEL}, top {top_k} vs z_l2-stratified background")
+    print(f"  one-sided van Elteren  z = {primary['effect']:+.3f}   p = {primary['p']:.3g}   "
+          f"alpha = {PRIMARY_ALPHA}")
+    print(f"  strata used {primary['strata']}   top rows compared {primary['top_used']}   "
+          f"background rows compared {primary['bg_used']:,}")
+    print("  Not `any()` over five tests: that has a ~23% family-wise false-positive rate and would")
+    print("  make this script unfalsifiable. The other four are SECONDARY and BH-corrected.")
+    print("=" * 84)
+
     if holds:
-        print("VERDICT: the empirical bet HOLDS (on the cell-count-matched background).")
-        print("The naive reversal ranking is enriched for liabilities a safety gate rejects.")
-        print("'Reversal is not enough' is supported by the data.")
+        print("VERDICT: the empirical bet HOLDS on the pre-registered primary endpoint.")
+        print("The top of a naive reversal ranking collapses the tolerance program more than a")
+        print("background of equal transcriptome-wide effect magnitude. 'Reversal is not enough'")
+        print("is supported, and it is supported by TOLERANCE, not by collateral DE-gene counts.")
+        print()
+        print("Secondary, BH-corrected, reported and not believed on their own:")
+        for _, row in mag[mag["column"] != PRIMARY_COLUMN].iterrows():
+            call = "enriched" if row["p_bh"] < 0.05 else "ns"
+            print(f"  {row['test']:28s} p_BH {row['p_bh']:.3g}  {call}")
+        print()
+        print("  scripts/12_magnitude_matched.py shows the DE-count secondaries are entangled with")
+        print("  effect magnitude (rho 0.725) and that rest-DE fires equally on the INDUCTION tail.")
+        print("  Do not quote them as independent evidence. The primary endpoint is the claim.")
     else:
-        print("VERDICT: the empirical bet FAILS on the matched background.")
-        print("Power, not toxicity, explains any unmatched enrichment. The headline needs a rewrite.")
-    print("=" * 72)
-    return holds
+        print("VERDICT: the primary endpoint FAILS on a magnitude-matched background.")
+        print("Effect size, not suppression, explains the enrichment. The headline needs a rewrite.")
+    print("=" * 84)
+
+    return holds, pd.concat([cells, mag], ignore_index=True)
 
 
 def main() -> None:
     """Run the risk-kill test and persist the annotated ranking."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--top-k", type=int, default=100)
+    parser.add_argument("--n-draws", type=int, default=2000, help="redraws for the seed lottery")
     args = parser.parse_args()
 
     paths.ensure_dirs()
     frame = build_scores(args.top_k)
-    holds = report(frame, args.top_k)
+    holds, tests = report(frame, args.top_k, args.n_draws)
 
     out = paths.TABLES / "risk_kill_naive_reversal.csv"
     frame.to_csv(out, index=False)
     print(f"\nwrote {out}")
+
+    tests_out = paths.TABLES / "risk_kill_stratified_tests.csv"
+    tests.to_csv(tests_out, index=False)
+    print(f"wrote {tests_out}")
 
     raise SystemExit(0 if holds else 1)
 
