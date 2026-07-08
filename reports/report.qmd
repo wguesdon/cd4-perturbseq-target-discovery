@@ -246,10 +246,26 @@ The contaminants are of two kinds. Immune-essential signalling machinery: `STAT5
 transcriptome: `NSD1` (2,175 DE genes in stimulated cells and 1,767 at rest), `TADA2B` (5,260 and
 4,681), `USP22` (1,849 and 1,783), `WDR82` (1,563 and 1,253), `CXXC1` (853 and 536).
 
-Crucially, these are not false positives in the sense of being wrong about efficacy. The held-out
-Schmidt screen confirms that `ZAP70`, `CD3G`, `CD3E`, `CD28`, `CD247`, `ITK`, `PLCG1`, `VAV1` and
-`PTPRC` knockdowns genuinely reduce IL-2 protein. They work. Loss of function of these genes in a
-human being causes immunodeficiency.
+Crucially, these are not false positives in the sense of being wrong about efficacy.
+
+```{python}
+schmidt_rejected = w[w["il2_hit"] & ~w["safe"] & ~w["fail_evidence"]].sort_values("il2_lfc")
+n_tol_only = int((schmidt_rejected["reject_reason"] == "tolerance").sum())
+n_iei_rej = int(schmidt_rejected["is_iei"].sum())
+Markdown(
+    f"The held-out Schmidt screen confirms that **{len(schmidt_rejected)}** of the knockdowns this gate "
+    f"refuses genuinely reduce IL-2 protein: "
+    + ", ".join(f"`{g}`" for g in schmidt_rejected["gene_name"])
+    + f". They work. **{n_tol_only} of them are refused for collapsing tolerance alone.** "
+    f"{n_iei_rej} of the {len(schmidt_rejected)} are IUIS immunodeficiency genes — a reported annotation, "
+    "never a gate, for the reason given in @sec-failures. `VAV1` and `PLCG1` are not IUIS genes at all, and "
+    "`PLCG1` is listed there only as a gain-of-function disease, which loss-of-function CRISPRi cannot mimic."
+)
+```
+
+Note what is *not* here. `CD3E`, `CD28` and `PTPRC` are Schmidt-confirmed IL-2 hits and IUIS
+immunodeficiency genes, and this gate **passes all three**. A gate anchored on the immunodeficiency
+list would have rejected them, and it would have been wrong to.
 
 ## Most of that number is bought by effect size {#sec-magnitude}
 
@@ -265,6 +281,19 @@ column and both module gene sets so that the covariate cannot contain the score.
 shortlists of 20 from the same evidence-passing pool, matched to the naive top 20 on $z_{L2}$
 decile, and asked the gate to judge them.
 
+::: {.panel-tabset}
+
+### The control
+
+::: {.light-content}
+![Our own headline, tested against a shortlist of equal effect magnitude.](../results/figures/fig4_magnitude_matched_light.png){#fig-magnitude}
+:::
+::: {.dark-content}
+![Our own headline, tested against a shortlist of equal effect magnitude.](../results/figures/fig4_magnitude_matched_dark.png){#fig-magnitude-dark}
+:::
+
+### The numbers
+
 ```{python}
 tbl = spec[["quantity", "observed", "matched_mean", "p_matched_ge_observed"]].copy()
 tbl.columns = ["quantity", "naive top 20", "magnitude-matched mean", "P(matched ≥ observed)"]
@@ -272,6 +301,8 @@ tbl["magnitude-matched mean"] = tbl["magnitude-matched mean"].round(1)
 tbl["P(matched ≥ observed)"] = tbl["P(matched ≥ observed)"].map(lambda p: "< 0.0001" if p == 0 else f"{p:.3f}")
 tbl
 ```
+
+:::
 
 ```{python}
 Markdown(
@@ -373,19 +404,41 @@ won those comparisons would be a window score that had stopped gating.
 
 :::
 
-Five approved-drug targets clear the evidence floor. The gate passes `PPP3R1` (ciclosporin,
-tacrolimus) and `IL4R` (dupilumab), both non-depleting. It passes `IMPDH2` (mycophenolate) as
-depleting-at-rest. It rejects `CD3E` and `CD3G`, which are inborn errors of immunity, and
-muromonab was withdrawn.
+```{python}
+# The clinical tolerability classes are OURS, assigned from the label and not present in any
+# committed table. Stated here rather than buried, because the 3-of-3 and 1-of-2 counts below
+# depend on them entirely.
+WELL_TOLERATED = ["PPP3R1", "IL4R", "IMPDH2"]
+NARROW_INDEX = ["CD3E", "CD3G"]
 
-Well-tolerated agents passing the gate: 3 of 3. Narrow-index agents passing: 1 of 2. Five points
-is a direction, not a p-value, and we report it as one.
+gate = w.set_index("gene_name")
+wt_pass = [g for g in WELL_TOLERATED if bool(gate.loc[g, "safe"])]
+ni_pass = [g for g in NARROW_INDEX if bool(gate.loc[g, "safe"])]
+passing_drugs = drugs.loc[drugs["safe"], "gene_name"].tolist()
+rejected_drugs = {r["gene_name"]: r["reject_reason"] for _, r in drugs.loc[~drugs["safe"]].iterrows()}
+
+Markdown(
+    f"Five approved-drug targets clear the evidence floor. The gate passes "
+    + ", ".join(f"`{g}`" for g in passing_drugs)
+    + ". It rejects "
+    + ", ".join(f"`{g}` for {r.replace('homeostasis', 'disrupting the resting transcriptome').replace('tolerance', 'collapsing tolerance')}"
+                for g, r in rejected_drugs.items())
+    + f".\n\nWell-tolerated agents passing the gate: **{len(wt_pass)} of {len(WELL_TOLERATED)}**. "
+    f"Narrow-index agents passing: **{len(ni_pass)} of {len(NARROW_INDEX)}**. "
+    "Five points is a direction, not a p-value, and we report it as one."
+)
+```
+
+`IMPDH2` is depleted at rest, and for mycophenolate that depletion *is* the mechanism. Viability is
+therefore a reported tier and never rejects, because this screen cannot tell antiproliferation from
+toxicity.
 
 That second number was 0 of 2 until 2026-07-08, when the immunodeficiency flag was removed from the
 gate. It had to go: the flag is more enriched among approved drug targets than among the
 perturbations the naive ranking calls toxic, so it could not separate a hazard from a target.
-`CD3E` now passes. The screen-native axes cannot see cytokine release syndrome, which is why
-muromonab was withdrawn. We report the weaker number.
+`CD3E` now passes, and so do `CD28` and `PTPRC`. The screen-native axes cannot see cytokine release
+syndrome, which is why muromonab was withdrawn and why `CD3E` passing is a limitation of the gate
+rather than a triumph of it. We report the weaker number, and the reason it is weaker.
 
 ## Where the designs failed {#sec-failures}
 

@@ -1,16 +1,28 @@
-"""Render the three demo figures, in light and dark, as PNG and SVG.
+"""Render the four demo figures, in light and dark, as PNG and SVG.
 
 Figure 1  The naive ranking's top 20, and what the safety gate does to it. Emphasis form:
           the rejected are gray, the survivor carries the accent. The story is "almost
           nothing at the top survives", so one accent against gray says it, and five
           categorical hues would bury it.
-Figure 2  Twelve knockdowns that an independent lab's protein-level screen proves reduce
+Figure 2  Nine knockdowns that an independent lab's protein-level screen proves reduce
           IL-2, all refused by the gate. One series, therefore one hue. The reject reason
           is a direct label, not a second colour channel.
 Figure 3  The gate's geometry, with five approved-drug targets placed on it. Pass and reject
           are a genuine status, so they use the reserved status colours. Green against red
           is deutan dE 12.4, which sits just over the floor, so the encoding is never colour
           alone: marker shape and a PASS or REJECT label carry it too.
+Figure 4  The magnitude-matched control, and the reason the other three can be trusted at all.
+          Figure 1 says 18 of 20 are rejected. Figure 4 says a shortlist of the same effect
+          magnitude is rejected 15.3 times, so figure 1 is worth 2.7 rejections. The bars are
+          observed against a null, so the null recedes; the gap is the finding, so it is
+          annotated with its p-value rather than left to the reader.
+
+**Every label in figures 2 and 3 is composed from the gate's own output.** They used to be
+hand-written, and on 2026-07-08 they were found asserting that CD3E and CD3G are "rejected on
+the immunodeficiency axis". CD3E passes. CD3G is rejected on tolerance. The immunodeficiency axis
+had been removed from the gate hours earlier. :func:`_assert_no_dead_axis` and the ``KeyError`` in
+:func:`_pretty_reason` exist so that a renamed or removed axis fails the render instead of
+printing a confident falsehood at 200 dpi.
 
 Usage:
     uv run python scripts/05_figures.py
@@ -58,11 +70,24 @@ THEMES = {
 }
 
 REASON_LABEL = {
-    "immune_essential": "immunodeficiency",
     "homeostasis": "disrupts rest",
     "tolerance": "kills tolerance",
     "evidence": "no effect",
 }
+"""The gate has THREE reject axes. ``immune_essential`` was a fourth and was removed on
+2026-07-08, because the IUIS flag is more enriched among approved drug targets (OR 8.31) than
+among the perturbations a naive ranking calls toxic (OR 4.16). :func:`_assert_no_dead_axis`
+fails the build if it ever reappears, because these figures once labelled every rejected drug
+target an "immunodeficiency gene" from a hardcoded string, and it was on camera."""
+
+TIER_LABEL = {
+    "non-depleting": "non-depleting",
+    "depleting-at-rest": "depleted at rest",
+    "unknown": "viability unknown",
+}
+"""Viability is a measurement. Whether depletion at rest is *antiproliferation* or *toxicity* is an
+interpretation of it, true of IMPDH2 and unearned for CD3E, so the figures state the tier and leave
+the interpreting to the footer."""
 
 # Hand-placed label offsets. CD3E and CD3G sit almost on top of one another (resting-cell
 # ratio 0.396 vs 0.389), as do PPP3R1 and IL4R. Automatic placement collides.
@@ -79,14 +104,39 @@ def _pretty_reason(reason: str) -> str:
     """Turn a comma-joined machine reason into readable prose.
 
     Args:
-        reason: The ``reject_reason`` field, e.g. ``"immune_essential,tolerance"``.
+        reason: The ``reject_reason`` field, e.g. ``"homeostasis,tolerance"``.
 
     Returns:
         A short human-readable phrase, or an empty string when nothing failed.
+
+    Raises:
+        KeyError: If the reason names an axis this module does not know about. Silently passing
+            an unknown axis through would let a renamed gate axis reach a figure unlabelled.
     """
     if reason == "-":
         return ""
-    return " · ".join(REASON_LABEL.get(part, part) for part in reason.split(","))
+    parts = reason.split(",")
+    unknown = [p for p in parts if p not in REASON_LABEL]
+    if unknown:
+        raise KeyError(f"unknown reject axis {unknown} in {reason!r}; update REASON_LABEL")
+    return " · ".join(REASON_LABEL[part] for part in parts)
+
+
+def _assert_no_dead_axis(data: pd.DataFrame) -> None:
+    """Fail loudly if a removed gate axis is still rejecting anything.
+
+    Args:
+        data: The window score frame.
+
+    Raises:
+        AssertionError: If ``immune_essential`` appears in any ``reject_reason``, or if the frame
+            still carries a ``fail_immune_essential`` column.
+    """
+    if "fail_immune_essential" in data.columns:
+        raise AssertionError("fail_immune_essential is back in window_score.csv; the IEI gate was removed")
+    offenders = data.loc[data["reject_reason"].str.contains("immune_essential", na=False), "gene_name"]
+    if len(offenders):
+        raise AssertionError(f"immune_essential is still rejecting: {offenders.tolist()[:5]}")
 
 
 def _style(ax, theme: dict[str, str], xgrid: bool = True) -> None:
@@ -195,9 +245,18 @@ def figure_2(data: pd.DataFrame, mode: str) -> None:
         "A separate lab proved it. Our gate refuses every one of them.",
         fontsize=15, color=theme["ink"], loc="left", pad=16, fontweight="bold",
     )
+    # Counted, not asserted. The previous footer said "the TCR signalosome ... loss of function of
+    # these genes causes human immunodeficiency". Two of the genes shown are not IUIS genes at all,
+    # and three are transcriptional machinery rejected on homeostasis rather than TCR components.
+    n_tol = int(rejected["reject_reason"].str.contains("tolerance").sum())
+    n_hom = int(rejected["reject_reason"].str.contains("homeostasis").sum())
+    n_iei = int(rejected["is_iei"].sum())
     fig.text(0.005, -0.04,
-             "The TCR signalosome. Effective, and loss of function of these genes causes human immunodeficiency.\n"
-             "The Schmidt screen was held out: it never entered the score, the gate, or any threshold.",
+             f"{len(rejected)} knockdowns, all confirmed to reduce IL-2 protein. "
+             f"{n_tol} are refused for collapsing tolerance, {n_hom} for disrupting the resting transcriptome.\n"
+             f"{n_iei} of the {len(rejected)} are IUIS immunodeficiency genes. That flag is reported, never gated on: "
+             "it is more enriched among approved\ndrug targets than among the perturbations a naive ranking calls toxic. "
+             "The Schmidt screen was held out. It never entered\nthe score, the gate, or any threshold.",
              fontsize=9, color=theme["muted"])
     _save(fig, "fig2_effective_but_rejected", mode)
 
@@ -240,8 +299,13 @@ def figure_3(data: pd.DataFrame, mode: str) -> None:
                    color=theme["good"] if passes else theme["critical"],
                    edgecolors=theme["surface"], linewidths=2, zorder=4)
         drug = str(positives.loc[gene, "drug_examples"]).split(";")[0]
-        tier = "antiproliferative" if row["viability_tier"] == "depleting-at-rest" else "non-depleting"
-        verdict = f"PASS · {tier}" if passes else "REJECT · immunodeficiency gene"
+        # The tier is a measurement. "Antiproliferative" is an interpretation of that measurement,
+        # true of IMPDH2 and unearned for CD3E, so the label states the tier and the footer does the
+        # interpreting. Likewise the verdict is read off the gate: this line was once a hardcoded
+        # "REJECT · immunodeficiency gene", applied to every rejected drug target, naming an axis
+        # the gate had already stopped using.
+        tier = TIER_LABEL[row["viability_tier"]]
+        verdict = f"PASS · {tier}" if passes else f"REJECT · {_pretty_reason(row['reject_reason'])}"
         ax.annotate(f"{gene}  ({drug})\n{verdict}",
                     (row["rest_cells_ratio"], row["selectivity"]),
                     textcoords="offset points", xytext=DRUG_OFFSETS.get(gene, (14, -4)),
@@ -271,24 +335,123 @@ def figure_3(data: pd.DataFrame, mode: str) -> None:
     for text in leg.get_texts():
         text.set_color(theme["ink2"])
 
+    # Composed from the gate's own output. The previous footer was hand-written and asserted that
+    # CD3E and CD3G are "rejected on the immunodeficiency axis". CD3E passes, CD3G is rejected on
+    # tolerance, and the immunodeficiency axis no longer exists.
+    passing = drugs.loc[drugs["safe"], "gene_name"].tolist()
+    rejected_here = drugs.loc[~drugs["safe"]]
+    reject_phrases = [f"{r['gene_name']} ({_pretty_reason(r['reject_reason'])})" for _, r in rejected_here.iterrows()]
     fig.text(0.005, -0.05,
-             "PPP3R1 (ciclosporin) and IL4R (dupilumab) are non-depleting signalling blockers. IMPDH2 (mycophenolate)\n"
-             "is an antiproliferative and is depleted at rest. CD3E and CD3G are immunodeficiency genes; muromonab was withdrawn.\n"
-             "CD3E and CD3G clear the selectivity gate drawn here. They are rejected on the immunodeficiency axis, which is\n"
-             "annotated rather than plotted, because this figure has only two spatial dimensions and the gate has four.",
+             f"Passes: {', '.join(passing) if passing else 'none'}.   "
+             f"Rejected: {'; '.join(reject_phrases) if reject_phrases else 'none'}.\n"
+             "PPP3R1 (ciclosporin) and IL4R (dupilumab) are non-depleting signalling blockers. IMPDH2 (mycophenolate) is\n"
+             "depleted at rest, and for that drug the depletion IS the mechanism, not a disqualification. Depletion at rest is\n"
+             "reported as a tier and never rejects, because the screen cannot tell antiproliferation from toxicity.\n"
+             "Tolerance is annotated rather than plotted: this figure has two spatial dimensions and the gate has three axes.\n"
+             "The screen-native axes cannot see cytokine release syndrome, which is why muromonab (anti-CD3) was withdrawn.",
              fontsize=9, color=theme["muted"])
     _save(fig, "fig3_gate_geometry", mode)
+
+
+def figure_4(mode: str) -> None:
+    """The magnitude-matched control. The one panel that carries the whole argument.
+
+    "18 of the naive top 20 are rejected" sounds decisive until you ask what a shortlist of the
+    same transcriptome-wide effect magnitude scores. It scores 15.3. The headline is worth 2.7
+    rejections. Everything specific to reversal lives in the tolerance axis, and this figure exists
+    to make that impossible to miss.
+
+    Encoding: two bars per group, observed against a magnitude-matched null. The null is muted
+    because it is the reference, not a series. The gap IS the finding, so it is annotated directly
+    with the Monte-Carlo p-value rather than left to the reader to subtract. Colour is never the
+    only channel: the p-value and the "not specific" / "specific" verdict carry it too.
+
+    Args:
+        mode: ``"light"`` or ``"dark"``.
+    """
+    theme = THEMES[mode]
+    spec = pd.read_csv(paths.TABLES / "reversal_specificity.csv")
+
+    labels, observed, matched, pvals = [], [], [], []
+    for pretty, key in (
+        ("rejected\non any axis", "rejected (any axis)"),
+        ("rejected on\nHOMEOSTASIS", "rejected on homeostasis"),
+        ("rejected on\nTOLERANCE", "rejected on tolerance"),
+    ):
+        row = spec[spec["quantity"].str.startswith(key)].iloc[0]
+        labels.append(pretty)
+        observed.append(float(row["observed"]))
+        matched.append(float(row["matched_mean"]))
+        pvals.append(float(row["p_matched_ge_observed"]))
+
+    n_draws = int(spec["n_draws"].iloc[0])
+    pool = int(spec["pool"].iloc[0])
+
+    fig, ax = plt.subplots(figsize=(11, 6.6), facecolor=theme["surface"])
+    _style(ax, theme, xgrid=False)
+
+    x = np.arange(len(labels))
+    width = 0.34
+    ax.bar(x - width / 2, observed, width, color=theme["series"],
+           edgecolor=theme["surface"], linewidth=1.5, zorder=3, label="naive top 20, ranked by suppression")
+    ax.bar(x + width / 2, matched, width, color=theme["recede"],
+           edgecolor=theme["surface"], linewidth=1.5, zorder=3,
+           label=f"effect-magnitude-matched 20, mean of {n_draws:,} draws")
+
+    # The verdicts sit on a constant baseline rather than floating above each bar. Aligned, they
+    # read as one sentence across the figure; ragged, they read as three unrelated annotations.
+    verdict_y = 19.2
+    for i, (obs, mat, p) in enumerate(zip(observed, matched, pvals, strict=True)):
+        ax.text(i - width / 2, obs + 0.35, f"{obs:.0f}", ha="center", va="bottom",
+                fontsize=12, fontweight="bold", color=theme["ink"], zorder=4)
+        ax.text(i + width / 2, mat + 0.35, f"{mat:.1f}", ha="center", va="bottom",
+                fontsize=12, color=theme["muted"], zorder=4)
+
+        specific = p < 0.01
+        verdict = "SPECIFIC TO REVERSAL" if specific else "not specific"
+        p_text = "P < 0.0001" if p == 0 else f"P = {p:.2f}"
+        ax.text(i, verdict_y, f"{p_text}\n{verdict}", ha="center", va="bottom",
+                fontsize=10, linespacing=1.4, zorder=4, fontweight="bold" if specific else "normal",
+                color=theme["critical"] if specific else theme["muted"])
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=11, color=theme["ink2"], linespacing=1.4)
+    ax.set_ylabel("perturbations rejected, of 20", fontsize=11, color=theme["ink2"])
+    ax.set_ylim(0, 26)
+    ax.set_yticks(np.arange(0, 21, 5))
+
+    ax.set_title(
+        "We tested our own headline. Most of it was bought by effect size.\n"
+        "One axis was not.",
+        fontsize=15, color=theme["ink"], loc="left", pad=16, fontweight="bold",
+    )
+
+    # Above the verdict band, clear of every bar. ylim 26 against a tallest bar of 18 buys the room.
+    leg = ax.legend(loc="upper left", frameon=False, fontsize=10, bbox_to_anchor=(0.0, 1.0),
+                    handlelength=1.4, handleheight=0.9)
+    for text in leg.get_texts():
+        text.set_color(theme["ink2"])
+
+    fig.text(0.005, -0.06,
+             f"Both groups are drawn from the same {pool} evidence-passing perturbations, matched on decile of z_L2, the\n"
+             "transcriptome-wide effect magnitude, computed off-module and off-target. Homeostasis does most of the rejecting\n"
+             "and explains none of it: a shortlist of equal effect size is rejected just as often. Tolerance collapse is what\n"
+             "ranking by reversal specifically brings in. It is also the axis a 127-agent adversarial audit attacked hardest.",
+             fontsize=9, color=theme["muted"])
+    _save(fig, "fig4_magnitude_matched", mode)
 
 
 def main() -> None:
     """Render every figure in both modes."""
     argparse.ArgumentParser(description=__doc__).parse_args()
     data = load()
+    _assert_no_dead_axis(data)
     for mode in ("light", "dark"):
         print(f"{mode}:")
         figure_1(data, mode)
         figure_2(data, mode)
         figure_3(data, mode)
+        figure_4(mode)
 
 
 if __name__ == "__main__":
