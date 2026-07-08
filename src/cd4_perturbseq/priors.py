@@ -9,7 +9,15 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .paths import PRIORS
+from .paths import EXTERNAL, PRIORS
+
+SAFETY = EXTERNAL / "safety_priors"
+"""Organism-level safety priors, fetched by ``scripts/06_fetch_safety_priors.sh``."""
+
+IMMUNE_TISSUES = frozenset(
+    {"appendix", "bone marrow", "lymph node", "spleen", "thymus", "tonsil"}
+)
+"""HPA consensus tissues that are lymphoid. Expression here is on-target, not a liability."""
 
 
 def _read_symbol_list(filename: str) -> set[str]:
@@ -101,6 +109,92 @@ def arce_stim_vs_rest() -> pd.DataFrame:
     )
     table["gene_name"] = table["gene_name"].astype(str).str.strip()
     return table[["gene_name", "log2FoldChange", "padj"]].dropna(subset=["padj"])
+
+
+def gnomad_constraint() -> pd.DataFrame:
+    """Human loss-of-function intolerance from gnomAD v4.0.
+
+    LOEUF is the upper bound of the 90% confidence interval on the observed-over-expected ratio
+    of loss-of-function variants. A low value means living humans carry far fewer LoF variants in
+    this gene than chance would give, so selection is removing them. It is the clearest
+    organism-level warning that exists, and it is orthogonal to anything measurable in a CD4 T
+    cell screen.
+
+    The file carries one row per transcript. We keep MANE Select transcripts and take the first
+    row per gene, since duplicates within a gene carry identical constraint values.
+
+    Returns:
+        DataFrame with columns ``gene_name``, ``loeuf``, ``pli``.
+    """
+    table = pd.read_csv(
+        SAFETY / "gnomad.v4.0.constraint_metrics.tsv",
+        sep="\t",
+        usecols=["gene", "mane_select", "lof.oe_ci.upper", "lof.pLI"],
+        low_memory=False,
+    )
+    table = table[table["mane_select"].astype(str).str.lower() == "true"]
+    table = table.rename(
+        columns={"gene": "gene_name", "lof.oe_ci.upper": "loeuf", "lof.pLI": "pli"}
+    )
+    table = table.dropna(subset=["gene_name"]).drop_duplicates("gene_name")
+    return table[["gene_name", "loeuf", "pli"]]
+
+
+def hpa_tissue_breadth() -> pd.DataFrame:
+    """Expression breadth across the 51 Human Protein Atlas consensus tissues.
+
+    A gene expressed in every tissue has no therapeutic window outside its target tissue: an
+    inhibitor cannot be told to spare the gut. Expression in lymphoid tissue is on-target and is
+    therefore excluded from the liability measure.
+
+    Returns:
+        DataFrame with ``gene_name``, ``n_tissues_expressed`` (nTPM >= 1, all 51 tissues),
+        ``n_nonimmune_tissues`` (of 45), and ``max_nonimmune_ntpm``.
+    """
+    table = pd.read_csv(
+        SAFETY / "rna_tissue_consensus.tsv",
+        sep="\t",
+        usecols=["Gene name", "Tissue", "nTPM"],
+    )
+    table = table.rename(columns={"Gene name": "gene_name", "Tissue": "tissue", "nTPM": "ntpm"})
+    expressed = table[table["ntpm"] >= 1.0]
+
+    total = expressed.groupby("gene_name")["tissue"].nunique().rename("n_tissues_expressed")
+
+    nonimmune = table[~table["tissue"].isin(IMMUNE_TISSUES)]
+    nonimmune_expressed = nonimmune[nonimmune["ntpm"] >= 1.0]
+    n_nonimmune = nonimmune_expressed.groupby("gene_name")["tissue"].nunique().rename("n_nonimmune_tissues")
+    max_nonimmune = nonimmune.groupby("gene_name")["ntpm"].max().rename("max_nonimmune_ntpm")
+
+    return pd.concat([total, n_nonimmune, max_nonimmune], axis=1).reset_index()
+
+
+def hart_core_essentials_full() -> set[str]:
+    """The complete Hart CEGv2 core-essential set, 684 genes.
+
+    The copy bundled by the source paper's analysis repo is a 283-symbol subset with only 68
+    genes perturbed in this library, so it could never adjudicate essentiality. This is the
+    original.
+
+    Returns:
+        Set of gene symbols.
+    """
+    table = pd.read_csv(SAFETY / "hart_CEGv2.txt", sep="\t")
+    return set(table["GENE"].astype(str).str.strip())
+
+
+def hart_nonessentials() -> set[str]:
+    """Hart NEGv1, 927 genes believed nonessential in every cell line tested.
+
+    The negative control our data-native viability axis has never had. Core essentials should be
+    depleted at rest; these should not be. If both deplete, the axis is measuring something other
+    than essentiality.
+
+    Returns:
+        Set of gene symbols.
+    """
+    table = pd.read_csv(SAFETY / "hart_NEGv1.txt", sep="\t")
+    return set(table["GENE"].astype(str).str.strip())
 
 
 def schmidt_cd4_il2_screen() -> pd.DataFrame:

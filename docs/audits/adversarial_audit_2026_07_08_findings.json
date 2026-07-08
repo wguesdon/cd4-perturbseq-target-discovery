@@ -1,0 +1,394 @@
+[
+  {
+    "severity": "critical",
+    "lens": "statistics",
+    "title": "The IUIS/IEI flag \u2014 the only liability marker that survives scrutiny \u2014 is MORE enriched in the project's own validated-drug-target positives (OR 8.65) than in the naive top-100 (OR 4.22), so the Fisher test cannot distinguish 'toxic' from 'on-pathway'.",
+    "file": "scripts/02_risk_kill_reversal.py:281 (is_iei Fisher) and docs/results/risk_kill_2026_07_08.md:33",
+    "fix": "Do not report the IEI Fisher test as evidence of toxicity without reporting the same statistic on the positive class. Either (a) report both rates side by side and reframe the result as 'the naive ranking is enriched for on-pathway immune signalling, which includes both real targets and immunodeficiency genes, so IEI membership alone is not a gate', or (b) replace the binary IEI flag with a marker that is actually depleted in approved targets (e.g. restrict to IUIS entries causing combined immunodeficiency/SCID with no approved modulator, and pre-register that IL2RA, CD3E, CD3G, JAK1, JAK3, TYK2, IL6R, PIK3CD are exclusions). Remove the IL2RA-vs-IL2RB sentence, or restate it as 'both are IUIS genes; the distinction is severity, not category', which is a much weaker claim. Fix the CD3G contradiction: it cannot be both a positive and a named contaminant.",
+    "invalidates_headline": true
+  },
+  {
+    "severity": "critical",
+    "lens": "statistics",
+    "title": "The 'collateral DE' and 'Rest DE' pillars are an effect-magnitude artifact, and the direction is backwards: at matched |score|, suppressors have ~66% FEWER stim DE genes than inducers.",
+    "file": "scripts/02_risk_kill_reversal.py:293-310 (MWU on stim_de_genes / rest_de_genes) and docs/results/risk_kill_2026_07_08.md:34-35",
+    "fix": "Replace the cell-count-matched background with an effect-magnitude-matched one (match on |naive_suppression| decile, or on stim_de_genes decile, or on a transcriptome-wide ||z||_2 computed over a random 500-gene panel), and add the sign-flipped control (top-100 by INDUCTION) to every table. Report the regression coefficient of is_suppressor conditional on |score| as the actual test of direction-specificity. If Rest-DE survives none of these, drop it as a gate axis or re-motivate it as a heuristic rather than a result.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "statistics",
+    "title": "The essentiality null (p=0.611) is produced by survivorship/collider bias: 73 of 124 measured Hart essentials were removed BEFORE ranking. Conditioning on QC removes exactly the genes whose knockdown kills cells.",
+    "file": "scripts/02_risk_kill_reversal.py:189-233 (essentiality_coverage) and docs/results/risk_kill_2026_07_08.md:42-62",
+    "fix": "Report the pre-QC and pre-DE-eligibility funnel as a selection diagnostic, not as list under-coverage: 124 measured -> 51 DE-eligible -> 31 rankable, with the Fisher tests above. State explicitly that the essentiality test is conditional on survival and therefore cannot estimate the marginal effect of essentiality on the naive score. If the claim matters, test it on the unconditioned population: rank all Stim48hr perturbations without QC (or use the guide-level h5mu) and check where essentials fall; or use the cell-count / DE-eligibility dropout itself as the essentiality readout. Do not present 'zero essentials in the top 100' as evidence that essentiality is the wrong axis when essentials were 2.5x less likely to reach the ranking at all.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "statistics",
+    "title": "The tolerance-module test is a tautology: naive_suppression and tolerance_suppression have Spearman rho = +0.438, and a meaningless surrogate score with the same correlation reproduces 'tolerance HIGHER in top-100' in 200/200 simulations. The honest residual effect is 6x smaller than reported.",
+    "file": "scripts/02_risk_kill_reversal.py:296-310 (MWU on tolerance_suppression) and docs/results/risk_kill_2026_07_08.md:36,81-83",
+    "fix": "Test the residual of tolerance_suppression regressed on naive_suppression (top vs background), or the tolerance/effector ratio, and report both effect sizes with CIs. Report the surrogate-score null explicitly so readers can see what the raw MWU is worth. Rewrite md:81-83 to say the excess co-suppression is small (+0.14 z residual, p=0.0018) rather than 'the window failure in its purest form'.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "statistics",
+    "title": "The 'cell-count-matched background' controls a confound that runs the opposite way in this data (Spearman(n_cells, stim_de) = -0.243), so the doc's Spearman -0.109 reassurance is a non sequitur.",
+    "file": "scripts/02_risk_kill_reversal.py:24-28 (docstring), 264-273 (confound check) and docs/results/risk_kill_2026_07_08.md:23-25,38-40",
+    "fix": "Correct the docstring and the doc paragraph to state the empirical direction. Keep the cell-count-matched background as a secondary sensitivity analysis, but promote an effect-magnitude-matched background to primary, and re-run the four headline rows against it (see finding 2, where the Rest-DE row collapses to median p=0.058).",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "statistics",
+    "title": "The reported OR 3.91 / p = 0.012 is a single seed-0 draw of a 100-row background. Redrawing the same design 2,000 times gives a 95% Monte-Carlo interval of OR 1.87-16.12 and p 0.00032-0.129; 11.5% of seeds are non-significant. A fully-efficient CMH on all 6,371 rows gives OR 3.78, p = 1.1e-05.",
+    "file": "scripts/02_risk_kill_reversal.py:99-124 (_matched_background, rng seed 0 at line 112; single call at line 185)",
+    "fix": "Replace the 100-row subsample with a stratified test that uses all controls: CMH / exact conditional logistic regression for the binary flags, and a stratified van Elteren test (or a decile-blocked permutation) for the continuous measures. If the subsample is kept for illustration, run it over >=1,000 seeds and report the median OR with the 2.5-97.5th percentile Monte-Carlo interval. Correct the five (or ten) p-values with Bonferroni or Benjamini-Hochberg and say which correction. Change the exit criterion from any() to a pre-registered primary endpoint.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "statistics",
+    "title": "p = 0.611 is a ONE-SIDED p reported as evidence of no effect; the study had 80% power only for AUC >= 0.629, and the bootstrap 95% CI on the observed AUC is 0.388-0.580.",
+    "file": "scripts/02_risk_kill_reversal.py:223,229-231 (mannwhitneyu alternative='less'; if pval > 0.05: 'the naive score does not favour them') and docs/results/risk_kill_2026_07_08.md:53-56",
+    "fix": "Report the two-sided p (0.778), the AUC with its bootstrap CI (0.485, 95% CI 0.388-0.580), and the minimum detectable effect (AUC 0.629 at 80% power). If the equivalence claim is load-bearing, run a TOST on the AUC with a pre-specified margin and report that it does not pass. Downgrade md:87-104 from 'the gate must not be anchored on cancer-cell essentiality' to 'this screen cannot resolve whether it should be', and keep the Hart/DepMap penalty in the strategy pending a properly powered test.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "statistics",
+    "title": "The doc's stated DE-count ranges for the 'global transcriptional machinery' class are wrong for 5 of the 10 genes it names; MED13 has 43 Rest DE genes, not 1,700-4,700.",
+    "file": "docs/results/risk_kill_2026_07_08.md:76-79",
+    "fix": "Replace the quoted ranges with the observed ones (stim 136-5,260; rest 43-4,681) and either drop MED13 and BRD1 from the 'collapses the transcriptome' class or state the class is heterogeneous. Better: define the class by a threshold (e.g. rest_de >= 500) and list whichever top-25 genes satisfy it, so the prose is generated from the table rather than written alongside it. Separately, tighten the IUIS symbol regex at src/cd4_perturbseq/priors.py:72, which silently drops 7 real genes (CD40, CD40LG, KMT2D, MOGS, C2orf69, C4A+C4B, PIK3CD) and admits 9 gain-of-function-only entries (including PLCG1, which is inside the top-100) as loss-of-function liabilities.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "biology-self-effect",
+    "title": "The naive suppression score is circular for 31 of the 32 effector-core genes: a perturbed gene that is itself a module member has its QC-mandated on-target knockdown z-score averaged into its own module mean, buying up to 0.97 score units (rank 3,186 -> rank 95) with zero trans-effect.",
+    "file": "src/cd4_perturbseq/programs.py:54-68 (effector_core) and scripts/02_risk_kill_reversal.py:151-156,165 (nanmean over the 32 columns, then negated); the leak is *guaranteed* by scripts/02_risk_kill_reversal.py:88-90, which requires ontarget_significant",
+    "fix": "Use a leave-one-out module mean: for perturbed gene G, effector_z_G = nanmean(z over M \\ {G}). Concretely, mask the diagonal before np.nanmean at scripts/02_risk_kill_reversal.py:156 by setting effector_block[i, j] = np.nan wherever obs['target_contrast_gene_name'][i] == effector[j] (31 rows affected in Stim48hr). Cheap: no extra layer reads. Then re-run and re-write the top-25 table. Report in the results doc that 31/32 module genes are perturbable and that LOO is applied -- a judge will look for exactly this and finding it handled is a credibility win.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "biology-self-effect",
+    "title": "The drug-target recovery benchmark is contaminated by the same self-effect: 3 of the 20 rankable positives and the held-out prospective-validation gene TNFRSF4 are members of the 32-gene scoring module, and the naive score's entire above-chance AUROC (0.5415 -> 0.4961) is the self term.",
+    "file": "resources/ground_truth/immunomodulator_targets.csv (rows IL2RA, IL13, IL23A, IL17F, IL5, TNF, IL2, TNFRSF4) against src/cd4_perturbseq/programs.py:54-68; claim asserted at docs/ground_truth_immunomodulators.md:64-66",
+    "fix": "Two independent fixes, apply both. (1) Leave-one-out the module mean (see previous finding), which mechanically removes the leak for all 21 members. (2) Report the benchmark twice: once on all rankable positives and once on the 17 positives that are NOT module members, and drop TNFRSF4 from prospective validation or replace it with a held-out gene outside the module (STAT6 is clean -- it is not in the effector core, rank 5916). Also state the module-membership overlap explicitly in docs/ground_truth_immunomodulators.md next to the coverage table.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "biology-self-effect",
+    "title": "Tolerance-module suppression is not an independent safety axis: it is 44% rank-correlated with the objective it is supposed to constrain, and 69% of the reported top-100 excess is mechanically implied by conditioning on high naive_suppression.",
+    "file": "scripts/02_risk_kill_reversal.py:166 and 296-310; claim reported at docs/results/risk_kill_2026_07_08.md:36 and elevated to safety axis 3 at docs/results/risk_kill_2026_07_08.md:96-98",
+    "fix": "Report the residual of tolerance_suppression regressed on naive_suppression (or a selectivity ratio tolerance_z / effector_z), not the raw value, and state Spearman = +0.438 openly. For the gate, use the residual. Additionally, benchmark the 9-gene tolerance module against random 9-gene draws from the broad stim-induced program (effector_broad, 1,608 measured genes) to show the tolerance genes are specifically suppressed rather than just being 9 stim-induced genes carried along by global collapse -- that null costs one extra column read and would turn a soft claim into a hard one.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "biology-self-effect",
+    "title": "Proposed safety axis 2 (Rest DE-gene count) cannot score IL2RB, the single gene the results doc uses to motivate the entire safety gate: its rest_de_genes is NaN and it is silently dropped from the Mann-Whitney test.",
+    "file": "scripts/02_risk_kill_reversal.py:173-174 (rest_de mapping) and 299-300 (.dropna() before the MWU); results/tables/risk_kill_naive_reversal.csv row rank=4",
+    "fix": "Treat NaN rest_de_genes as 'unmeasurable at Rest' and make it an explicit third category rather than a silent drop -- for a gene not expressed at Rest, the homeostasis liability is undefined, not zero. Report n_used for each MWU. In the gate, fall back to Stim8hr DE count or to `n_downstream` when the Rest contrast is missing, and hard-fail rather than pass any gene whose axis value is NaN. Add the counts (top 97/100, bg 98/100) to the results table.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "biology-self-effect",
+    "title": "stim_de_genes and rest_de_genes are n_total_de_genes, which includes the on-target gene itself; the schema provides n_downstream for precisely the 'collateral' quantity the doc claims to report.",
+    "file": "scripts/02_risk_kill_reversal.py:169-174 (keep list and rename to stim_de_genes / rest_de_genes)",
+    "fix": "Swap `n_total_de_genes` for `n_downstream` in the keep list at scripts/02_risk_kill_reversal.py:169 for both the Stim and Rest columns, and apply the same off-target QC to the Rest frame before drop_duplicates at line 173. Re-report the two medians. Expect no qualitative change; the point is that the number matches its label.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "biology-self-effect",
+    "title": "The headline IEI enrichment 'OR 3.91, p=0.012' is a single draw from a seeded random resample; 11.2% of seeds give p >= 0.05 and the 95th percentile is p = 0.083.",
+    "file": "scripts/02_risk_kill_reversal.py:112 (rng = np.random.default_rng(0)) feeding _matched_background, reported at docs/results/risk_kill_2026_07_08.md:33",
+    "fix": "Replace the single draw with a resampled p-value: repeat _matched_background over >=1000 seeds, report the median OR and median p plus the 5th-95th interval, or better, use a stratified exact conditional test (Cochran-Mantel-Haenszel across the 10 cell-count deciles) which uses all 6,271 background rows and needs no seed at all. Report the unmatched p = 3.07e-05 alongside it.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "biology-self-effect",
+    "title": "The stated reason for retaining Hart CEG2 as a reported column -- 'DHFR is both a real methotrexate target and core-essential' -- is vacuous: DHFR is neither perturbed nor measured in this screen, so it can never appear in any ranking.",
+    "file": "docs/results/risk_kill_2026_07_08.md:102-104, contradicted by data/interim/perturbed_genes.txt and data/interim/measured_genes.txt",
+    "fix": "Either delete the DHFR sentence from docs/results/risk_kill_2026_07_08.md:102-104 and justify keeping the Hart column on its actual merit (it is a free, pre-registered negative control that came out null, which is worth reporting), or replace DHFR with a core-essential gene that IS rankable. There are 31 rankable Hart essentials in the CSV (is_core_essential sums to 31, matching the doc); pick one of those as the illustration.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "baseline-fairness",
+    "title": "The risk-kill test has no specificity to reversal: non-reversal null rankings pass the paper's own verdict function with equal or stronger effect sizes.",
+    "file": "scripts/02_risk_kill_reversal.py:318 (holds = any(matched_verdicts)); docs/results/risk_kill_2026_07_08.md:27-40",
+    "fix": "Make the risk-kill test a CONTRAST, not an absolute. Report the reversal ranking's liability enrichment against (a) the cell-count-matched background AND (b) an effect-size-matched background AND (c) at least two null rankings (raw stim_de_genes; |score|). The claim must become \"reversal adds toxicity beyond what any equally strong perturbation shows,\" and the verdict rule must test that delta, not any(). Also replace holds = any(matched_verdicts) with a pre-registered primary endpoint plus Holm correction across the 5 tests.",
+    "invalidates_headline": true
+  },
+  {
+    "severity": "critical",
+    "lens": "baseline-fairness",
+    "title": "The IUIS/IEI enrichment -- the sole novel positive claim and the only motivation for re-anchoring the safety gate -- does not survive matching on total effect size, and the reversal score is a worse IEI classifier than raw DE-gene count.",
+    "file": "docs/results/risk_kill_2026_07_08.md:33 (IUIS row, 14% vs 4%, OR 3.91, p=0.012); scripts/02_risk_kill_reversal.py:99-124",
+    "fix": "Either (a) drop the IUIS claim and the gate re-anchoring, or (b) restate it honestly as \"IEI genes are enriched among high-effect perturbations, and the reversal score selects high-effect perturbations,\" or (c) rerun with a magnitude-normalised score (see next finding) where a magnitude-matched background is unnecessary because the score is already magnitude-invariant. Report AUROC(naive_suppression -> is_iei) = 0.521 alongside AUROC(stim_de_genes -> is_iei) = 0.586 in the results doc.",
+    "invalidates_headline": true
+  },
+  {
+    "severity": "critical",
+    "lens": "baseline-fairness",
+    "title": "The \"steelmanned\" baseline is the one scoring function, among those the project's own strategy promised, that is maximally vulnerable to the contaminant class the paper then reports. Every promised alternative is by construction blind to that contaminant.",
+    "file": "scripts/02_risk_kill_reversal.py:18-23 (steelman docstring), 144-165 (mean of raw zscore, no normalisation); docs/results/risk_kill_2026_07_08.md:18-21",
+    "fix": "Before the headline can be asserted, show a toxic top-100 for the MINIMUM set: (1) rank/KS connectivity (CMap WTCS or GSEA NES) of the 32-gene core against each perturbation's genome-wide signature -- the precedent sec.11 says to cite; (2) decoupler ULM (and MLM) on the log_fc layer, for both the 32-gene core and the 1,211-gene broad program; (3) per-perturbation standardised mean-z, i.e. (mean_z_program - mean_z_genomewide) / sd_z_genomewide -- the sec.7.2 within-condition null. Secondary but cheap: (4) log_fc instead of zscore; (5) the 1,211-gene broad program; (6) pert2state. If (1)-(3) produce a clean top-100, retitle to \"unnormalised mean-z reversal is not enough; rank-based and intercept-adjusted reversal is\" -- still publishable and far more honest. All of these need only the same read_layer_columns() call plus one genome-wide mean/sd per perturbation, which can be streamed row-block-wise without materialising a layer.",
+    "invalidates_headline": true
+  },
+  {
+    "severity": "major",
+    "lens": "baseline-fairness",
+    "title": "The confound the paper controls for runs backwards in this dataset: n_cells_target is a mediator of toxicity, not a power proxy, and the real shared cause (total effect magnitude) is left uncontrolled.",
+    "file": "scripts/02_risk_kill_reversal.py:24-28 and 99-124 (_matched_background); docs/results/risk_kill_2026_07_08.md:23-25, 38-40",
+    "fix": "Delete the power narrative from lines 23-25 and 38-40 of the results doc. Replace n_cells_target matching with matching on log1p(stim_de_genes), or on the perturbation's genome-wide sd of z (the magnitude term the score should have been divided by in the first place). Report spearman(n_cells_target, stim_de_genes) = -0.243 explicitly and state that cell count is a proliferation readout, not a power readout. If you want a power control, use target_baseMean and lfcSE, not cell count.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "baseline-fairness",
+    "title": "Tolerance-module suppression is not an independent safety axis: it is 0.44-correlated with the ranking score, the two modules share the IL-2/STAT5 axis by construction, and the effect vanishes on residualisation.",
+    "file": "src/cd4_perturbseq/programs.py:15-32 and 54-68; scripts/02_risk_kill_reversal.py:150-166; docs/results/risk_kill_2026_07_08.md:36, 95-98",
+    "fix": "Report the partial statistic, not the marginal one: tolerance suppression residualised on effector suppression (p=0.318, ns). Rebuild the modules so they are biologically as well as set-theoretically disjoint -- move IL2RA, TNFRSF18, TNFRSF4, ICOS out of the effector core, or state in the doc that the effector core contains canonical Treg genes. Replace the \"tolerance preservation\" gate with an orthogonalised contrast (e.g. tolerance_z - effector_z) and show that it RE-ORDERS the top-100 rather than merely truncating it.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "baseline-fairness",
+    "title": "On-target self-inclusion: the perturbed gene is never masked from its own signature score, and 6 of the 36 gold-standard drug targets are members of the 32-gene scoring signature -- pre-contaminating the promised drug-target-recovery benchmark.",
+    "file": "scripts/02_risk_kill_reversal.py:144-166 (no mask of target_contrast_gene_name from the effector block); src/cd4_perturbseq/programs.py:54-68",
+    "fix": "In build_scores(), NaN out the perturbed gene's own column before np.nanmean: for each obs row i with target_contrast_gene_name g, set effector_block[i, j] = np.nan where wanted[j] == g. Re-run and confirm BATF leaves the top-25. For the sec.7.3 benchmark, additionally hold the entire gold-standard positive set out of the scoring signature (leave-one-out, or build the signature only from non-positive genes), and report AUROC with and without masking so the inflation is visible. Add a unit test asserting no gold-standard positive appears unmasked in programs.effector_core().",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "baseline-fairness",
+    "title": "The reported IEI p-value is one draw of a random n=100 background; the matched-background design discards 98% of the comparison pool and makes the headline p a random variable spanning 5x.",
+    "file": "scripts/02_risk_kill_reversal.py:112-124 (rng = np.random.default_rng(0), one draw); docs/results/risk_kill_2026_07_08.md:33",
+    "fix": "Either (a) draw the matched background B >= 1000 times and report the median OR with a 2.5-97.5 percentile interval, or (b) keep all 6,271 background perturbations and control for the matching variable with a stratified Cochran-Mantel-Haenszel test or a logistic model is_iei ~ in_top + decile, which uses the full pool. Combine with the fix for the effect-size confound (match on magnitude, not cell count) and report the resulting interval, which will straddle 1.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "baseline-fairness",
+    "title": "apply_qc() silently skips filters when a column is absent, so the load-bearing \"steelmanned\" claim can degrade to a strawman with no warning; and the promised guide/donor concordance gate is absent entirely.",
+    "file": "scripts/02_risk_kill_reversal.py:68-96",
+    "fix": "Make the required columns explicit and assert their presence: REQUIRED = (\"distal_offtarget_flag\", \"neighboring_gene_KD\", \"low_target_gex\", \"ontarget_significant\"); raise KeyError on any missing, and drop the dead \"offtarget_flag\" entry. Add the concordance gate promised by sec.7.2 -- drop single_guide_estimate rows, require guide_correlation_signif and donor_correlation_all_min above stated thresholds -- then re-report the 11,281 -> N attrition. Assert the final row count in a test.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "data-qc-selection",
+    "title": "The \"core-essentiality is flat\" conclusion is a survivorship artifact: 189 of the 257 Hart essentials present in the sgRNA library never reach DE_stats at all, because their knockdown depletes cells and fails the authors' DE-eligibility gates.",
+    "file": "scripts/02_risk_kill_reversal.py:230 (essentiality_coverage); asserted in docs/results/risk_kill_2026_07_08.md:42-62",
+    "fix": "(1) Fix the coverage denominator: read the library from data/raw/suppl/sgrna_library_metadata.suppl_table.csv, not from obs. Report 257 -> 68 -> 31 with the Fisher OR=0.033 dropout. (2) Replace the `if not in_qc` guard with a representativeness test: compare n_cells_target and ontarget_significant rate for surviving vs non-surviving essentials before drawing any conclusion. (3) Rewrite docs/results/risk_kill_2026_07_08.md:42-62 and 106-113. The correct claim is the opposite and it is stronger: essentiality is such a severe liability that essential perturbations do not survive to produce an analysable transcriptome, so this screen CANNOT be used to argue essentiality is the wrong safety axis; keep DepMap/Hart in the gate, because a real nomination pipeline scores the whole druggable genome, not only the DE-eligible subset. (4) Optionally, use n_cells_target itself (or the Stim48hr/Rest cell ratio) as the in-screen viability readout, which is the only viability signal that survives.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "data-qc-selection",
+    "title": "`n_cells_target` is a viability readout, not a statistical-power nuisance: more cells means FEWER DE genes, so the \"confound check\" and the cell-count-matched background control for a collider/mediator, and the doc's exculpatory reading of Spearman = -0.109 is a non-sequitur.",
+    "file": "scripts/02_risk_kill_reversal.py:24-28 and :99-124, :271; docs/results/risk_kill_2026_07_08.md:38-40",
+    "fix": "Rewrite the confound section. State that n_cells_target is a fitness readout (rho = -0.20 with DE-gene count pre-QC) and therefore a mediator, and that matching on it is a deliberately conservative choice, not a power correction. Report the unmatched Fisher (OR 4.16, p=3.07e-05) as the primary IEI test and the matched one as a stress test. Add the baseMean-matched and stim_de_genes-matched replications (OR 3.91 and 3.09) since they are the controls a reviewer will actually ask for. Delete or invert the `if abs(rho) > 0.2` warning, which is testing the wrong hypothesis.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "data-qc-selection",
+    "title": "`ontarget_significant` is False for essentially every perturbation whose target gene is not on the 10,282-gene measured panel, so 1,952 of the 4,910 QC drops (39.8%) are a data-availability artifact, not a knockdown-quality filter -- and this independently removes the ribosome/translation core.",
+    "file": "scripts/02_risk_kill_reversal.py:88-90 (apply_qc)",
+    "fix": "Split the filter and report the three arms separately: (i) target not measured (n=1,965, no on-target test possible -- these should be reported as 'not assessable', not 'failed QC'); (ii) target measured but lowly expressed / low_target_gex; (iii) target measured and well expressed but on-target KD not significant (the only arm that means what the docstring says). Print the three counts in apply_qc, and state in the doc that the rankable universe is 6,371 / 11,281 = 56% of DE-eligible perturbations, itself 11,526 / 12,779 = 90% of the library.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "data-qc-selection",
+    "title": "The suppression score leaks each perturbation's own on-target knockdown: 21 QC-passing perturbations target one of the 32 effector-core genes, and the `ontarget_significant` filter GUARANTEES that self z-score is significantly negative.",
+    "file": "scripts/02_risk_kill_reversal.py:156 (`obs[\"effector_z\"] = np.nanmean(effector_block, axis=1)`)",
+    "fix": "Mask the diagonal: when averaging the program z-scores for perturbation g, exclude column g from both the effector and tolerance means (and recompute nanmean over the remaining 31 / 8 genes). Equivalently, drop the 21 self-effector and 6 self-tolerance rows from the ranking and say so. Then re-report the top-25 table. Add a one-line assertion in build_scores that no perturbation's own target index is included in `wanted` for that row.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "data-qc-selection",
+    "title": "`rest_de_genes` is missing-not-at-random -- it is absent for exactly the cell-depleting, high-DE, high-suppression perturbations -- and `run_tests` silently `.dropna()`s them, so the reported \"top 100\" Rest comparison is n=97 and the proposed safety axis #2 gives a free pass to the very targets it is meant to reject.",
+    "file": "scripts/02_risk_kill_reversal.py:173-174 (rest merge) and :299-303 (dropna in run_tests); docs/results/risk_kill_2026_07_08.md:35, 92-96",
+    "fix": "(1) Print the NaN counts and report the effective n in the results table (\"top 97 vs matched background 98\"). (2) Treat 'absent from Rest' as a distinct, explicitly-flagged category rather than NaN, and in the safety gate make missing Rest data a REJECT (or an 'unassessable, needs the Stim8hr row / n_cells_target') rather than an implicit pass. (3) Note in the doc that IL2RB has no Rest measurement, so it is caught by axis #1 (IUIS) and by low n_cells, not by axis #2.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "data-qc-selection",
+    "title": "`rest_de_genes` is read from Rest rows that were never QC-filtered, while the Stim side is, so a low Rest DE count conflates \"spares homeostasis\" with \"the guide never knocked the gene down at Rest\".",
+    "file": "scripts/02_risk_kill_reversal.py:160 and :173-174",
+    "fix": "Apply the same QC to the Rest slice before taking `n_total_de_genes` (drop offtarget flags, require Rest ontarget_significant), and report the restricted comparison (top 107 vs bg 5, p=6.6e-08) as the headline Rest number. Keep the unrestricted one as a sensitivity check.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "data-qc-selection",
+    "title": "The IUIS symbol regex in `iei_genes()` silently discards real inborn-error-of-immunity genes, mislabelling at least CD40LG, MOGS and C2orf69 as `is_iei=False` inside the ranked frame.",
+    "file": "src/cd4_perturbseq/priors.py:72",
+    "fix": "Parse the parenthetical alias and suffix forms before matching: strip a trailing ' GOF'/' LOF', take the token before ' (' , split on '+' and whitespace-separated gene runs, then apply the symbol test to each token. Assert that the recovered set contains CD40, CD40LG, KMT2D, PIK3CD, MOGS, C4A, C4B. Log the entries that are still discarded so the loss is visible rather than silent.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "code-correctness",
+    "title": "essentiality_coverage() concludes \"cancer-cell essentiality is the wrong safety axis\" from a set that already deleted 89% of Hart essentials because their knockdown was lethal \u2014 conditioning on a collider, and `in_library` is mislabeled so the funnel hides it.",
+    "file": "scripts/02_risk_kill_reversal.py:206 (`in_library = essential & perturbed`), :216 (`if not in_qc:`), :229-231 (hard-coded verdict)",
+    "fix": "Load target_gene_name from data/raw/suppl/sgrna_library_metadata.suppl_table.csv as the true library denominator and rename `in_library` accordingly. Add a dropout-rate guard before the MWU: compute P(reaches obs | in library) for essentials vs all, and if essentials are significantly depleted (they are, OR=0.033), refuse to draw the negative conclusion. Report the dropout itself as the essentiality result: 189/257 library-targeted essentials are unrankable, which is a viability signal, not an absence of one. Restore the Hart/DepMap penalty in docs/results/risk_kill_2026_07_08.md, or restate its role as \"applies to the genes the screen could not measure\".",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "code-correctness",
+    "title": "The perturbed gene's own z-score is included in its own program score: naive_suppression and tolerance_suppression are contaminated by the on-target knockdown, which QC guarantees is strongly negative.",
+    "file": "scripts/02_risk_kill_reversal.py:150-157 (`wanted = effector + tolerance`; nanmean over fixed columns) and :165-166",
+    "fix": "Before the nanmean, mask the perturbed gene's own column: for each obs row, set effector_block[i, j] = NaN where var gene j == obs['target_contrast_gene_name'][i] (same for tolerance_block). Record n_nonnan per row so scores stay comparable, or renormalise. Alternatively exclude program members from the ranking entirely and report them separately. Re-emit results/tables/risk_kill_naive_reversal.csv. Note: I verified the top-100 composition does NOT change (BATF is the only self-included member in the top 100 and its leave-self-out score 1.537 still clears the 1.163 cutoff), so the headline survives \u2014 but every rank below 12 is wrong.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "code-correctness",
+    "title": "priors.iei_genes() ignores the IUIS `GOF/DN` column despite a docstring that says \"whose loss of function causes an inborn error of immunity\", so gain-of-function disease genes are counted as knockdown liabilities.",
+    "file": "src/cd4_perturbseq/priors.py:61-73",
+    "fix": "In iei_genes(), read `GOF/DN` alongside `Genetic defect` and keep a symbol only if it has at least one row whose GOF/DN is blank, 'DN', 'LOF, DN', 'LOF GOF', or matches /haplo/i (case-insensitive; the file contains both 'haplosufficiency' and 'Haplosufficiency'). Return the LOF-like set (477 symbols). Better: return a DataFrame with a `mechanism` column so the safety gate can weight LOF evidence and ignore or invert pure-GOF evidence. Update the table in docs/results/risk_kill_2026_07_08.md to OR 3.59 / p 0.020 (matched) or OR 3.96 / p 8.9e-5 (full background).",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "code-correctness",
+    "title": "The reported \"OR 3.91, p 0.012\" is a single rng seed-0 draw of a 100-row background; 11% of seeds give p>0.05, and the matching throws away 6,171 usable background rows for no reason.",
+    "file": "scripts/02_risk_kill_reversal.py:99-124 (_matched_background, `rng = np.random.default_rng(0)`) and :314",
+    "fix": "Replace the single draw with either (a) a Cochran\u2013Mantel\u2013Haenszel / conditional-logistic test stratified on the n_cells_target decile, which uses all 6,271 background rows and needs no sampling, or (b) B>=1000 resamples reporting the median p and its 5th/95th percentiles. Also replace `holds = any(matched_verdicts)` with a pre-registered primary endpoint (the IEI Fisher) plus Holm correction over the 5 one-sided tests \u2014 as written the family-wise false-positive rate of `any()` is ~23% under independence, which undercuts the script's own \"designed to be able to FAIL\" claim.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "code-correctness",
+    "title": "No magnitude control: two of the four headline liabilities (stim DE genes, Rest DE genes) also fire on the OPPOSITE tail of the ranking, so they measure |effect size|, not suppression.",
+    "file": "scripts/02_risk_kill_reversal.py:275-314 (run_tests only ever tests `in_top`; no bottom-K or |score| control)",
+    "fix": "Add a symmetric control to report(): run the identical matched-background tests on the bottom K and on a |naive_suppression|-matched set, and print all three columns. Report the DE-count liabilities as effect-magnitude confounded unless the top-vs-bottom contrast is itself significant. In docs/results/risk_kill_2026_07_08.md, note explicitly that IEI is the only one of the four that is direction-specific \u2014 this strengthens rather than weakens the entry, because it shows the axis was stress-tested.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "code-correctness",
+    "title": "priors.iei_genes() regex `[A-Z][A-Z0-9\\-]{1,14}` silently discards 12 real gene symbols, including CD40, CD40LG and KMT2D, because of parenthetical aliases and ORF-style lowercase.",
+    "file": "src/cd4_perturbseq/priors.py:72",
+    "fix": "Parse the field rather than fullmatch it: split on /[+,;]|\\s+/ , strip a trailing parenthesised alias, drop tokens matching a cytogenetic-lesion pattern (/^\\d|del|deletion|Unknown/i), then validate each remaining token against a permissive HGNC pattern `^[A-Z][A-Za-z0-9\\-\\.@]{1,20}$` (allow lowercase so C2orf69 survives). Recover both members of 'C4A+C4B' and all five CFHR genes. Assert the resulting count and log every discarded string, so a silent parse regression cannot pass unnoticed.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "code-correctness",
+    "title": "51 perturbations have no Rest measurement at all; mannwhitneyu(...).dropna() silently drops them, including IL2RB \u2014 the doc's flagship example \u2014 so the \"Rest DE genes\" test is 97 vs 98, not 100 vs 100.",
+    "file": "scripts/02_risk_kill_reversal.py:173-174 and :299-304",
+    "fix": "Emit `rest_tested` (bool) alongside rest_de_genes, print the dropped n in run_tests, and treat missing Rest data as a gate failure (or as censored, e.g. impute the condition-specific max) rather than as a silent absence. State the n=97/98 in the results table. Separately, note in the doc that IL2RB is not measurable at Rest, since it is the example the argument leans on.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "benchmark-integrity",
+    "title": "TNFRSF4, the flagship held-out \"prospective validation\" target, is a member of the 32-gene objective function the score maximises",
+    "file": "docs/ground_truth_immunomodulators.md:62-66 (claim); data/interim/activation_program.csv:38 (TNFRSF4,True,True,3.21195,both); scripts/02_risk_kill_reversal.py:156",
+    "fix": "Either (a) drop TNFRSF4 from effector_core and rebuild the program, or (b) score with leave-one-out and re-report TNFRSF4's rank, or (c) delete the prospective-validation claim. Also add held-out genes to 02b_check_circularity.py's membership check. STAT6's rank 5916/6371 should be reported alongside whatever TNFRSF4 number is quoted.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "critical",
+    "lens": "benchmark-integrity",
+    "title": "The suppression score has no leave-one-out: a perturbed gene that is one of the 32 module genes contributes its own on-target knockdown z-score to its own score",
+    "file": "scripts/02_risk_kill_reversal.py:156 (obs[\"effector_z\"] = np.nanmean(effector_block, axis=1)); QC at :88-90 requires ontarget_significant",
+    "fix": "Leave-one-out the self column before averaging, in build_scores(): build self_idx = {g: j for j, g in enumerate(effector)}, then for each obs row set effector_block[i, self_idx[target]] = np.nan when the target is in the module, before np.nanmean. Recompute the ranking, the top-25 table, and TNFRSF4's rank. Report the rank change for all 21 module members as a sensitivity table.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "benchmark-integrity",
+    "title": "The AUROC standard error stated in the doc (0.11) is not the AUROC standard error; the correct value is 0.065, and the stated significance bar is 0.09 AUROC units too high",
+    "file": "docs/ground_truth_immunomodulators.md:84-87",
+    "fix": "Replace with the Hanley-McNeil SE, or better, bootstrap the AUROC over the positive set and report a percentile CI. State the null bar explicitly: at n_pos=20 an AUROC must exceed 0.627 to be significant at alpha=0.05 two-sided. Note the naive score's own AUROC on the positives is 0.5415 [0.412, 0.671], i.e. at chance.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "benchmark-integrity",
+    "title": "CD52 and CCR4 are `depleting` antibody targets and violate the doc's own exclusion principle, which already removed FKBP1A and PPIA for exactly this reason",
+    "file": "resources/ground_truth/immunomodulator_targets.csv:29 (CD52), :36 (CCR4); principle stated at docs/ground_truth_immunomodulators.md:13",
+    "fix": "Set include_as_positive=FALSE for CD52 and CCR4 with the rationale \"drug effect is Fc-mediated depletion and requires the antigen to be present; knockdown confers resistance.\" This drops the rankable positive count from 20 to 18 (SE(AUROC|null) 0.0647 -> 0.0682). Alternatively add an explicit `mechanism_visible_in_assay` column and report AUROC on the visible subset.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "benchmark-integrity",
+    "title": "The safety gate's primary axis (IUIS immune essentiality) rejects 25% of the benchmark's own rankable positives; the doc names only 2 of the 5",
+    "file": "docs/results/risk_kill_2026_07_08.md:92-94 (gate axis 1); docs/ground_truth_immunomodulators.md:97-104 (names only CD3E, CD3G); results/tables/risk_kill_naive_reversal.csv (is_iei column)",
+    "fix": "Enumerate all 5 gate-rejected positives, not 2. Report drug-target recovery on the gate-compatible subset (n=15, SE 0.0746, bar 0.646) as a separate row, and state the recall ceiling of 0.75 up front. The doc's own framing (\"recovery of approved targets validates the efficacy axis, not the window score\") is right but the numbers behind it need to be printed.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "benchmark-integrity",
+    "title": "The risk-kill doc's \"sharpest case\" is factually wrong: IL2RA carries is_iei=True in the very CSV that script produced",
+    "file": "docs/results/risk_kill_2026_07_08.md:72-74; contradicted by results/tables/risk_kill_naive_reversal.csv",
+    "fix": "Rewrite the paragraph. IUIS membership does not discriminate IL2RA from IL2RB. If a discriminator is needed, use severity/inheritance from the IUIS Inheritance and T-cell-count columns, or drop the example and rest the axis on the aggregate 12-14% vs 4% enrichment, disclosing that IL2RA and CD3G are IUIS *and* approved targets.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "benchmark-integrity",
+    "title": "IL2RA is simultaneously a member of the effector objective (suppressing it scores as benefit), a ground-truth positive, and an IUIS liability gene; TNFRSF4 and TNFRSF18 have the same module-assignment problem",
+    "file": "src/cd4_perturbseq/programs.py:15-30 (TOLERANCE_GENES), :54-69 (effector_core); resources/ground_truth/immunomodulator_targets.csv:13",
+    "fix": "Move IL2RA to TOLERANCE_GENES, or add a third `treg_identity` module (IL2RA, TNFRSF18, TNFRSF4, FOXP3, IKZF2, CTLA4) scored as a separate penalty and excluded from effector_core. Rebuild activation_program.csv and rerun 02. Document why a stimulation-induced gene can still be a tolerance gene, which is the same argument the doc already makes for FOXP3.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "benchmark-integrity",
+    "title": "IKZF1 and IKZF3 are direction-of-effect errors: IMiDs are approved for oncology, and degrading Ikaros/Aiolos in T cells derepresses IL2 and augments activation",
+    "file": "resources/ground_truth/immunomodulator_targets.csv:34-35",
+    "fix": "Set include_as_positive=FALSE for IKZF1 and IKZF3 with rationale \"IMiD indications are oncology; Ikaros/Aiolos degradation increases T cell IL-2, opposite to effector suppression; LoF causes immunodeficiency.\" If the degrader archetype must be retained for narrative reasons, keep it as a held-out mechanism note rather than a scored positive. This does not change any current number (both are already unrankable).",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "major",
+    "lens": "benchmark-integrity",
+    "title": "The benchmark's usable dynamic range is only 3.8 null standard errors: 5 of the 20 rankable positives have mechanisms no cell-intrinsic transcriptome score can recover, capping a perfect ranker at AUROC 0.875",
+    "file": "docs/ground_truth_immunomodulators.md:84-95; resources/ground_truth/immunomodulator_targets.csv:17,27,28,29,36",
+    "fix": "State the ceiling (0.875) and the null bar (0.627) next to any reported AUROC. Add a `mechanism_visible_in_assay` boolean to the CSV and report a primary AUROC on the visible subset plus a secondary one on all rankable positives. Disclose that the 12 QC-dropped positives are not a random sample: the entire neutralising-cytokine class except IL13 and IL23A is gone.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "benchmark-integrity",
+    "title": "priors.iei_genes() ignores the IUIS `GOF/DN` column, so 20 gain-of-function / dominant-negative genes are treated as loss-of-function toxicity flags; correcting it moves the headline from p=0.012 to p=0.033",
+    "file": "src/cd4_perturbseq/priors.py:61-73; data/external/gwt_priors/IUIS-IEI-list-July-2024V2.csv (column `GOF/DN`)",
+    "fix": "In iei_genes(), add a `lof_only: bool = True` parameter that drops rows whose `GOF/DN` value is non-blank and not LOF-containing, then return only genes with at least one LoF entry. Re-run 02 and update the table in docs/results/risk_kill_2026_07_08.md to 12.0% / OR 3.27 / p=0.033. Report both numbers.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "benchmark-integrity",
+    "title": "The IUIS enrichment p=0.012 is a single random draw of a 100-gene matched background; 9.5% of seeds give a non-significant result",
+    "file": "scripts/02_risk_kill_reversal.py:_matched_background (np.random.default_rng(0)); docs/results/risk_kill_2026_07_08.md:33",
+    "fix": "Replace the single matched draw with either (a) a Cochran-Mantel-Haenszel test stratified on the cell-count decile, which uses the full background and needs no sampling, or (b) 1000 matched draws with the median p and the 5th-95th percentile range reported. Print the range in the results table: 'IUIS OR 3.91, p=0.012 (median over 200 matched draws; 5th-95th pct p = [<0.001, 0.14])'.",
+    "invalidates_headline": false
+  },
+  {
+    "severity": "minor",
+    "lens": "benchmark-integrity",
+    "title": "The `approved` column conflates currently-approved with approved-then-withdrawn, and three of the drugs named as evidence for positives were withdrawn",
+    "file": "resources/ground_truth/immunomodulator_targets.csv:13 (daclizumab), :28 (efalizumab), :31 (muromonab); docs/ground_truth_immunomodulators.md:108 (dead link)",
+    "fix": "Add a `withdrawn` column and a `withdrawal_reason` column; complete the Open Targets max_phase handoff before submission. Remove or create scripts/04_benchmark.py. Add the supporting null to the results doc: naive AUROC 0.5415 [0.412, 0.671] on 20 positives, P@100 = 1/100 versus 0.31 expected, i.e. the naive ranking is at chance on approved drug targets while being strongly enriched for transcriptome collapse.",
+    "invalidates_headline": false
+  }
+]
