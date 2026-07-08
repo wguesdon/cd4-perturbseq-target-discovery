@@ -164,21 +164,27 @@ def gnomad_constraint() -> pd.DataFrame:
     The file carries one row per transcript. We keep MANE Select transcripts and take the first
     row per gene, since duplicates within a gene carry identical constraint values.
 
+    ``prec`` is gnomAD's posterior probability that the gene is recessive: heterozygous LoF is
+    tolerated, homozygous LoF is not. It is the statistic LOEUF and pLI are blind to, and it is the
+    one that matters here, because a potent inhibitor phenocopies BIALLELIC loss, not the
+    heterozygous loss LOEUF measures. Several Tier A mitochondrial genes (POLG, VARS2, ACAD9) have
+    LOEUF near 1 (so LOEUF calls them safe to inhibit) yet ``prec`` above 0.99.
+
     Returns:
-        DataFrame with columns ``gene_name``, ``loeuf``, ``pli``.
+        DataFrame with columns ``gene_name``, ``loeuf``, ``pli``, ``prec``.
     """
     table = pd.read_csv(
         SAFETY / "gnomad.v4.0.constraint_metrics.tsv",
         sep="\t",
-        usecols=["gene", "mane_select", "lof.oe_ci.upper", "lof.pLI"],
+        usecols=["gene", "mane_select", "lof.oe_ci.upper", "lof.pLI", "lof.pRec"],
         low_memory=False,
     )
     table = table[table["mane_select"].astype(str).str.lower() == "true"]
     table = table.rename(
-        columns={"gene": "gene_name", "lof.oe_ci.upper": "loeuf", "lof.pLI": "pli"}
+        columns={"gene": "gene_name", "lof.oe_ci.upper": "loeuf", "lof.pLI": "pli", "lof.pRec": "prec"}
     )
     table = table.dropna(subset=["gene_name"]).drop_duplicates("gene_name")
-    return table[["gene_name", "loeuf", "pli"]]
+    return table[["gene_name", "loeuf", "pli", "prec"]]
 
 
 def hpa_tissue_breadth() -> pd.DataFrame:

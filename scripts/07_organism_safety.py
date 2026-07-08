@@ -34,7 +34,22 @@ from scipy import stats
 from cd4_perturbseq import paths, priors
 
 LOEUF_INTOLERANT = 0.60
+"""Dominant LoF-intolerance cut. gnomAD's own convention is ~0.35 for strong constraint; 0.60 is a
+more permissive "flag for review" bar. Documented, fixed a priori, never tuned against the shortlist.
+This annotates; it does not gate."""
+
+RECESSIVE_PREC = 0.90
+"""gnomAD posterior of recessive constraint above which a potent inhibitor, which phenocopies
+biallelic loss, is flagged. 0.90 is a strong-recessive bar. Documented, fixed a priori."""
+
+BROAD_NTPM = 25.0
+"""A meaningful transcript level in at least one non-immune tissue (nTPM). "Expressed" is usually
+nTPM >= 1; 25 is a "substantially expressed" bar. Documented, fixed a priori, replaces the degenerate
+tissue-count flag."""
+
 UBIQUITOUS_TISSUES = 40
+"""Legacy. The n_nonimmune_tissues >= 40 flag had no information (5,716 of 6,371; IQR all at 45).
+Kept only so the legacy `ubiquitous` column still exists; it is out of systemic_risk."""
 
 
 def _mwu(label: str, a: pd.Series, b: pd.Series, alternative: str, expect: str) -> bool | None:
@@ -124,32 +139,67 @@ def main() -> None:
         print("  See docs/results/adversarial_audit_2026_07_08.md, finding 2.")
 
     # ---------------------------------------------------------------- the organism-level layer
-    frame["lof_intolerant"] = frame["loeuf"] < LOEUF_INTOLERANT
-    frame["ubiquitous"] = frame["n_nonimmune_tissues"] >= UBIQUITOUS_TISSUES
-    frame["systemic_risk"] = frame["lof_intolerant"] | frame["ubiquitous"]
+    # Three organism-level warnings, and NaN means UNKNOWN, never SAFE. The previous version wrote
+    # `loeuf < 0.60`, and `NaN < 0.60` is False, so 365 genes with no LOEUF were silently filed as
+    # LoF-tolerant. `pd.NA`-typed comparisons keep the unknowns unknown.
+    frame["lof_intolerant"] = (frame["loeuf"] < LOEUF_INTOLERANT).where(frame["loeuf"].notna(), other=pd.NA).astype("boolean")
 
-    known = frame["loeuf"].notna() & frame["n_nonimmune_tissues"].notna()
-    print(f"\ngenes with both annotations: {int(known.sum()):,} of {len(frame):,}")
-    print(f"  LoF-intolerant (LOEUF < {LOEUF_INTOLERANT}): {int(frame['lof_intolerant'].sum()):,}")
-    print(f"  ubiquitous (expressed in >= {UBIQUITOUS_TISSUES} of 45 non-immune tissues): {int(frame['ubiquitous'].sum()):,}")
+    # The recessive axis. LOEUF and pLI measure HAPLOinsufficiency. A potent inhibitor phenocopies
+    # BIALLELIC loss, which is what gnomAD's prec captures. This is the axis that catches the
+    # recessive mitochondrial-disease genes in Tier A that LOEUF waves through (POLG prec 0.9996,
+    # VARS2 0.9999, ACAD9 0.9933, IMPDH2 0.9988, all with LOEUF that reads as tolerant).
+    frame["recessive_intolerant"] = (frame["prec"] > RECESSIVE_PREC).where(frame["prec"].notna(), other=pd.NA).astype("boolean")
+
+    # Breadth, on the continuous measure. `n_nonimmune_tissues >= 40` flagged 5,716 of 6,371 and
+    # carried no information: its 25th, 50th and 75th percentiles are all 45.0. max_nonimmune_ntpm
+    # spans 0.1 to 34,000 and actually separates. "Broadly expressed" here means a meaningful
+    # transcript level (>= 25 nTPM) in at least one non-immune tissue, a documented a-priori cut.
+    frame["broadly_expressed"] = (frame["max_nonimmune_ntpm"] >= BROAD_NTPM).where(
+        frame["max_nonimmune_ntpm"].notna(), other=pd.NA).astype("boolean")
+    # Legacy column, kept so nothing downstream breaks, but no longer part of systemic_risk.
+    frame["ubiquitous"] = frame["n_nonimmune_tissues"] >= UBIQUITOUS_TISSUES
+
+    # systemic_risk fires if ANY axis fires; it is UNKNOWN only when every axis is unknown.
+    flags = frame[["lof_intolerant", "recessive_intolerant", "broadly_expressed"]]
+    frame["systemic_risk"] = np.where(
+        flags.eq(True).any(axis=1), True,
+        np.where(flags.isna().all(axis=1), pd.NA, False),
+    )
+    frame["systemic_risk"] = frame["systemic_risk"].astype("boolean")
+
+    print(f"\norganism-level annotation (REPORTED, never a gate; the gate is in 04):")
+    print(f"  LoF-intolerant, dominant  (LOEUF < {LOEUF_INTOLERANT}): {int(frame['lof_intolerant'].eq(True).sum()):,}")
+    print(f"  LoF-intolerant, recessive (prec > {RECESSIVE_PREC}):   {int(frame['recessive_intolerant'].eq(True).sum()):,}")
+    print(f"  broadly expressed         (max non-immune nTPM >= {BROAD_NTPM}): {int(frame['broadly_expressed'].eq(True).sum()):,}")
+    print(f"  any systemic-risk flag: {int(frame['systemic_risk'].eq(True).sum()):,}   "
+          f"unknown (no annotation at all): {int(frame['systemic_risk'].isna().sum()):,}")
 
     # ---------------------------------------------------------------- apply to the shortlist
     tier_a = frame[frame["safe"] & (frame["viability_tier"] == "non-depleting")].nlargest(20, "window_score")
-    cols = ["gene_name", "window_score", "loeuf", "pli", "n_nonimmune_tissues",
-            "max_nonimmune_ntpm", "lof_intolerant", "ubiquitous", "systemic_risk"]
+    cols = ["gene_name", "window_score", "loeuf", "prec", "max_nonimmune_ntpm",
+            "lof_intolerant", "recessive_intolerant", "broadly_expressed", "systemic_risk"]
     print("\n=== TIER A SHORTLIST, now judged at the level of a whole human ===")
     print(tier_a[cols].round(3).to_string(index=False))
 
-    n_flagged = int(tier_a["systemic_risk"].sum())
-    print(f"\n  {n_flagged} of {len(tier_a)} Tier A hits carry a systemic-risk flag.")
-    survivors = tier_a[~tier_a["systemic_risk"]]["gene_name"].tolist()
-    print(f"  Survive organism-level safety: {', '.join(survivors) if survivors else 'NONE'}")
+    n_flagged = int(tier_a["systemic_risk"].eq(True).sum())
+    n_recessive = int(tier_a["recessive_intolerant"].eq(True).sum())
+    print(f"\n  {n_flagged} of {len(tier_a)} Tier A hits carry a systemic-risk flag; "
+          f"{n_recessive} are recessive-intolerant (a potent inhibitor phenocopies biallelic loss).")
+    survivors = tier_a[tier_a["systemic_risk"].eq(False)]["gene_name"].tolist()
+    print(f"  Clear ALL organism-level axes: {', '.join(survivors) if survivors else 'NONE'}")
+    print("  systemic_risk saturates because a T-cell-intrinsic screen surfaces core cellular")
+    print("  machinery; the informative content is the per-axis resolution, above all the recessive")
+    print("  axis, which LOEUF and pLI are blind to. Nobody may act on Tier A on this screen alone.")
 
     print("\n=== approved-drug targets, for calibration ===")
     truth = pd.read_csv(paths.GROUND_TRUTH / "immunomodulator_targets.csv")
     positives = set(truth.loc[truth["include_as_positive"], "gene_symbol"])
     drugs = frame[frame["gene_name"].isin(positives) & ~frame["fail_evidence"]]
-    print(drugs[["gene_name", "loeuf", "pli", "n_nonimmune_tissues", "lof_intolerant", "ubiquitous", "safe"]].round(3).to_string(index=False))
+    print(drugs[["gene_name", "loeuf", "prec", "max_nonimmune_ntpm",
+                 "lof_intolerant", "recessive_intolerant", "safe"]].round(3).to_string(index=False))
+    print("  IMPDH2 (mycophenolate) is recessive-intolerant (prec 0.999): the gate already files it")
+    print("  as antiproliferative, and mycophenolate does need monitoring. PPP3R1 (ciclosporin) is")
+    print("  not (prec 0.28). The recessive axis tracks the clinical distinction, on n=few.")
 
     out = paths.TABLES / "window_score_organism_safety.csv"
     frame.to_csv(out, index=False)
