@@ -186,6 +186,53 @@ def build_scores(top_k: int) -> pd.DataFrame:
     return frame
 
 
+def essentiality_coverage(frame: pd.DataFrame) -> None:
+    """Explain a null core-essential enrichment: absent, or present but not toxic?
+
+    A zero count of core-essential genes in the top K has two very different causes.
+    Either essential-gene knockdowns are simply not in the analysable set, because they
+    deplete cells and fail DE eligibility, or they are analysable and the naive ranking
+    genuinely does not favour them. Only the second licenses the claim that essentiality
+    is the wrong safety axis for this screen.
+
+    Args:
+        frame: The QC-passing ranked frame from :func:`build_scores`.
+    """
+    essential = priors.core_essential_genes()
+    obs = de_stats.read_obs()
+    stim_all = obs[obs["culture_condition"] == CONDITION]
+    perturbed = set(obs["target_contrast_gene_name"].astype(str))
+
+    in_library = essential & perturbed
+    in_stim = essential & set(stim_all["target_contrast_gene_name"].astype(str))
+    in_qc = essential & set(frame["target_contrast_gene_name"].astype(str))
+
+    print("\n--- why zero core-essential genes in the top K? ---")
+    print(f"  core-essential list (authors' filtered Hart subset): {len(essential)}")
+    print(f"  ... perturbed anywhere in the library:               {len(in_library)}")
+    print(f"  ... tested in {CONDITION}:                            {len(in_stim)}")
+    print(f"  ... surviving QC and thus rankable:                  {len(in_qc)}")
+
+    if not in_qc:
+        print("  Essentials are absent from the analysable set. No conclusion possible.")
+        return
+
+    ess_mask = frame["target_contrast_gene_name"].isin(in_qc)
+    ess_rank = frame.loc[ess_mask, "rank"]
+    other_rank = frame.loc[~ess_mask, "rank"]
+    _, pval = stats.mannwhitneyu(ess_rank, other_rank, alternative="less")
+    print(
+        f"  median rank of the {len(in_qc)} rankable essentials: {ess_rank.median():.0f} "
+        f"of {len(frame)}   (others {other_rank.median():.0f})"
+    )
+    print(f"  Mann-Whitney, essentials ranked BETTER than others: p={pval:.3g}")
+    if pval > 0.05:
+        print("  Essentials ARE rankable and the naive score does not favour them.")
+        print("  Cancer-cell essentiality is therefore the wrong safety axis for this screen.")
+    else:
+        print("  Essentials are rankable AND favoured. Essentiality remains a live safety axis.")
+
+
 def report(frame: pd.DataFrame, top_k: int) -> bool:
     """Print the enrichment tests and return whether the empirical bet holds.
 
@@ -265,6 +312,7 @@ def report(frame: pd.DataFrame, top_k: int) -> bool:
 
     run_tests(~in_top, "unmatched background")
     matched_verdicts = run_tests(frame["matched_background"], "cell-count-matched background")
+    essentiality_coverage(frame)
 
     # The matched background is the test that decides it. Power cannot explain it away.
     holds = any(matched_verdicts)
