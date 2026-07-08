@@ -48,6 +48,31 @@ def read_var(path: Path = DE_STATS_H5AD) -> pd.DataFrame:
         return read_elem(handle["var"])
 
 
+def qc_mask(obs: pd.DataFrame) -> pd.Series:
+    """Routine perturbation QC, the filter every ranking in this project is built on.
+
+    Drops perturbations with an off-target flag or a knocked-down neighbouring gene, and keeps
+    only those with a significant on-target knockdown against an expressed target. Ranking a
+    perturbation that never knocked its target down would be ranking noise.
+
+    This was copy-pasted into ``scripts/04_window_score.py`` and ``scripts/10_tolerance_is_real.py``
+    and lives here so the three agree by construction. Note that it conditions on a collider:
+    ``ontarget_significant`` requires the target to be measured and expressed, which removes
+    nonessential genes preferentially. See ``scripts/11_selection_funnel.py``.
+
+    Args:
+        obs: The perturbation-condition annotation frame, or any subset of its rows.
+
+    Returns:
+        Boolean series, True where the perturbation passes QC.
+    """
+    keep = ~obs["distal_offtarget_flag"].astype(bool)
+    keep &= ~obs["neighboring_gene_KD"].astype(bool)
+    keep &= obs["ontarget_significant"].astype(bool)
+    keep &= ~obs["low_target_gex"].astype(bool)
+    return keep
+
+
 def describe(path: Path = DE_STATS_H5AD) -> dict[str, object]:
     """Summarise the on-disk structure without loading any layer.
 

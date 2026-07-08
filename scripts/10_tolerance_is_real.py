@@ -39,13 +39,8 @@ FDR = 0.10
 RNG = np.random.default_rng(0)
 
 
-def qc_mask(obs: pd.DataFrame) -> pd.Series:
-    """Routine perturbation QC, identical to the window score."""
-    keep = ~obs["distal_offtarget_flag"].astype(bool)
-    keep &= ~obs["neighboring_gene_KD"].astype(bool)
-    keep &= obs["ontarget_significant"].astype(bool)
-    keep &= ~obs["low_target_gex"].astype(bool)
-    return keep
+qc_mask = de_stats.qc_mask
+"""Routine perturbation QC. Single definition in :mod:`cd4_perturbseq.de_stats`."""
 
 
 def _expression_matched_sets(
