@@ -69,10 +69,28 @@ is used.
    that **this screen cannot resolve the question**, which we independently rediscovered when only
    3 of 927 Hart nonessential control genes survived the same QC.
 
-3. **The tolerance test is close to tautological.** `naive_suppression` and
-   `tolerance_suppression` correlate at Spearman 0.438, and a surrogate score with the same
-   correlation reproduces "tolerance higher in the top 100" in 200 of 200 simulations. The honest
-   residual is roughly six times smaller than reported.
+3. ~~**The tolerance test is close to tautological.**~~ **TESTED 2026-07-08. THE AUDIT IS WRONG
+   HERE.** The audit reported that `naive_suppression` and `tolerance_suppression` correlate at
+   Spearman 0.438 and that a surrogate score reproduces the effect, so the axis merely re-encodes
+   suppression strength. Correlation is expected and is not the objection.
+   `scripts/10_tolerance_is_real.py` runs the two tests that are:
+
+   - **Residual.** Regress tolerance suppression on effector suppression. The residual is still
+     elevated in the naive top 100, median +0.1173 versus −0.0106 in background, MWU p = 5.6e-4.
+   - **Random-module null.** Draw 200 random 9-gene sets matched to the tolerance module on
+     baseline-expression decile, and score every perturbation against each. The real tolerance
+     module is suppressed far beyond its own null: z median +3.870 in the top 100 versus +1.258 in
+     background, MWU p = 3.5e-13.
+
+   Expression matching matters. The tolerance genes are cytokines and checkpoints, which are lowly
+   expressed; an unmatched random set would be housekeeping-dominated and the module would look
+   special for the wrong reason.
+
+   The tolerance axis is real and stays in the gate. This matters, because after `is_iei` was
+   demoted, six of the nine knockdowns the gate refuses are refused on tolerance alone.
+
+   Recording this because an audit that is only ever right is not an audit. Its claim about the raw
+   Mann-Whitney was fair; its conclusion did not follow.
 
 And one that is arithmetic rather than inference: the single seed-0 matched background gives
 OR 3.91, p = 0.012, but redrawing it 2,000 times gives a Monte-Carlo interval of OR 1.87–16.12 and
