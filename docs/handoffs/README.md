@@ -54,8 +54,25 @@ No handoff requires the effect matrix. These are the inputs, all small:
 | --- | --- | --- | --- | --- |
 | CS1 | [Open Targets: can the benchmark be salvaged?](./HANDOFF_01_open_targets_ground_truth.md) | **yes**, needs `socat` + Open Targets MCP | the entire benchmark design | **READY, do this first** |
 | CS2 | [Reviewer agent: independently verify the risk-kill result](./HANDOFF_02_reviewer_verify_riskkill.md) | no | nothing, run in parallel with CS1 | **READY** |
-| CS3 | Evidence cards for the safety-passing shortlist | yes | needs the null model on the um890 first | blocked |
-| CS4 | Tractability and degrader handle for the final shortlist | yes | needs CS3 | blocked |
+| CS3 | Evidence cards for the safety-passing shortlist, every citation verified | yes | needs the null model on the um890 first | blocked |
+| CS4 | Figures rendered from the committed tables, with provenance artifacts | no | needs the final ranking | blocked |
+| CS5 | **Head to head: rerun a Claude Code analysis in Claude Science and compare** | no | needs a finished analysis to rerun | candidate, see below |
+
+### CS5 — the controlled comparison
+
+Take one analysis that Claude Code already ran, hand Claude Science the same committed inputs and
+the same question, and let it work independently. Then compare. Not "both tools are great", but a
+real diff: what did each catch, what did each miss, where did they disagree, and which was right.
+
+The risk kill analysis is the natural candidate, because CS2 already sets it up. Claude Code drew
+the matched background once. If Claude Science resamples and the conclusion shifts, that is a
+concrete, filmable finding about the two tools, not a marketing line.
+
+This is a strong answer to the Claude Use criterion, which is 25% of the score and asks for
+creative use that surfaces surprising capabilities. Nobody scores points for using two tools. They
+score points for showing what one tool caught that the other did not.
+
+Decide the scope over the weekend. Do not let it displace CS1, which gates the benchmark.
 
 ### CS1 — the one that matters
 

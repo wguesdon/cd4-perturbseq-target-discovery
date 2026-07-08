@@ -108,3 +108,51 @@ def read_layer_columns(
     inverse = np.empty_like(order)
     inverse[order] = np.arange(order.size)
     return block[:, inverse]
+
+
+def read_layer_rows(
+    obs_indices: Sequence[int],
+    layer: str = "zscore",
+    path: Path = DE_STATS_H5AD,
+    block_size: int = 512,
+    dtype: str = "float32",
+) -> np.ndarray:
+    """Read whole rows of a layer for selected perturbations, downcast to save memory.
+
+    The dataset is contiguous and float64, so a full row is 10,282 * 8 bytes of adjacent
+    storage and row selection is efficient. Rows are read in blocks and downcast, because
+    holding 6,371 rows as float64 costs 524 MB against 262 MB as float32, and the z-scores
+    carry nowhere near float64 precision.
+
+    Args:
+        obs_indices: Positional indices into ``.obs`` of the perturbations to read.
+        layer: Layer name, one of :data:`LAYERS`.
+        path: Path to the DE stats h5ad.
+        block_size: Number of rows to pull from HDF5 per read.
+        dtype: Output dtype.
+
+    Returns:
+        Array of shape ``(len(obs_indices), n_vars)`` in the caller's row order.
+
+    Raises:
+        ValueError: If ``layer`` is unknown or ``obs_indices`` is empty.
+    """
+    if layer not in LAYERS:
+        raise ValueError(f"unknown layer {layer!r}; expected one of {LAYERS}")
+    rows = np.asarray(obs_indices, dtype=np.int64)
+    if rows.size == 0:
+        raise ValueError("obs_indices must be non-empty")
+
+    order = np.argsort(rows)
+    ascending = rows[order]
+
+    with h5py.File(path, "r") as handle:
+        dataset = handle["layers"][layer]
+        out = np.empty((rows.size, dataset.shape[1]), dtype=dtype)
+        for start in range(0, ascending.size, block_size):
+            chunk = ascending[start : start + block_size]
+            out[start : start + chunk.size] = dataset[chunk, :].astype(dtype, copy=False)
+
+    inverse = np.empty_like(order)
+    inverse[order] = np.arange(order.size)
+    return out[inverse]
