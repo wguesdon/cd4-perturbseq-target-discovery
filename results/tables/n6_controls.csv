@@ -1,0 +1,7 @@
+id,what,requirement,z,p,fires,note
+C2a,loeuf ~ fail_tolerance among homeostasis survivors,|z| < 1.0,,,True,no tolerance-failers among survivors by construction
+C2b,loeuf ~ fail_evidence over all rows,p_less > 0.05,2.5063007267355024,0.9938999097093397,True,
+C3,same design on evidence-FAILERS,|z| < 2.0,-4.008070372043013,3.060844044869119e-05,False,n=4841
+C4,exposure = 1[n_cells_target < within-stratum median],|z| < 2.0,0.7068458206521826,0.7601688518858816,True,
+C5,500 size-matched random within-stratum splits,"P(p<0.05) in [0.02, 0.09]",,0.07,True,empirical FPR 0.070
+C7,within-stratum permutation (software calibration only),"reported, non-decisive",-0.027827171198157395,0.002,True,"null mean -0.028, sd 0.994"
