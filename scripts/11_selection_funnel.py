@@ -38,23 +38,65 @@ STIM = "Stim48hr"
 LIBRARY = paths.RAW / "suppl" / "sgrna_library_metadata.suppl_table.csv"
 
 
+def _clean(values: pd.Series) -> pd.Series:
+    """Drop NA before ``astype(str)``; pandas 3 keeps NA through it."""
+    out = values.dropna().astype(str).str.strip()
+    return out[~out.str.lower().isin({"nan", "none", ""})]
+
+
+def alias_map() -> dict[str, str]:
+    """Legacy sgRNA-derived gene symbol to the canonical symbol, learned from the library file.
+
+    The library carries two gene-symbol vocabularies for the same guides.
+    ``target_gene_name_from_sgRNA`` is derived from where the guide aligns and uses an older
+    annotation (``AARS``, ``AES``, ``ADPRHL2``, ``ICK``); ``designed_target_gene_name`` is the
+    canonical symbol (``AARS1``, ``TLE5``, ``ADPRS``, ``CILK1``). They disagree on 350 genes.
+
+    This matters twice, and the shipped code got it wrong both times. Taking the **union** of the two
+    columns as "the library" counted 475 aliases as distinct genes and produced a denominator of
+    13,129 for a library the paper reports as 12,748 genes. And the Hart CEGv2/NEGv1 sets use the
+    legacy vocabulary, while ``DE_stats`` uses the canonical one (11,526 of 11,526 of its genes are
+    canonical, only 11,203 are legacy) — so intersecting Hart directly against ``DE_stats`` silently
+    dropped 13 core-essentials.
+
+    Returns:
+        Mapping from legacy symbol to canonical symbol. Identity where they agree.
+    """
+    table = pd.read_csv(LIBRARY, low_memory=False)
+    pair = table[["target_gene_name_from_sgRNA", "designed_target_gene_name"]].dropna()
+    legacy = _clean(pair["target_gene_name_from_sgRNA"])
+    canonical = _clean(pair["designed_target_gene_name"])
+    common = legacy.index.intersection(canonical.index)
+    return dict(zip(legacy.loc[common], canonical.loc[common]))
+
+
 def library_targets() -> set[str]:
-    """Every gene the sgRNA library actually targets.
+    """Every gene the sgRNA library targets, in one vocabulary.
 
     This is the denominator. The DE table is already a filtered view of it, so counting
     "essentials in the library" from the DE table hides exactly the dropout we are testing for.
 
+    Uses ``designed_target_gene_name`` alone: 12,779 genes, against the 12,748 the preprint reports.
+    Never union the two symbol columns. See :func:`alias_map`.
+
     Returns:
-        Set of gene symbols targeted by at least one guide.
+        Set of canonical gene symbols targeted by at least one guide.
     """
     table = pd.read_csv(LIBRARY, low_memory=False)
-    cols = [c for c in ("target_gene_name_from_sgRNA", "designed_target_gene_name") if c in table.columns]
-    targets: set[str] = set()
-    for col in cols:
-        # pandas 3 keeps NA through astype(str), so drop before converting.
-        values = table[col].dropna().astype(str).str.strip()
-        targets |= {s for s in values if s and s.lower() not in {"nan", "none"}}
-    return targets
+    return set(_clean(table["designed_target_gene_name"]))
+
+
+def lift(genes: set[str], alias: dict[str, str]) -> set[str]:
+    """Map a legacy-vocabulary gene set into the canonical vocabulary.
+
+    Args:
+        genes: Symbols in the legacy vocabulary, e.g. a Hart gene set.
+        alias: Output of :func:`alias_map`.
+
+    Returns:
+        The same genes, canonicalised. Symbols with no alias entry pass through unchanged.
+    """
+    return {alias.get(g, g) for g in genes}
 
 
 def _fisher(a_hit: int, a_tot: int, b_hit: int, b_tot: int) -> tuple[float, float]:
@@ -75,11 +117,15 @@ def main() -> None:
     """Print the stage-by-stage funnel for essentials versus nonessentials."""
     argparse.ArgumentParser(description=__doc__).parse_args()
 
-    ceg = priors.hart_core_essentials_full()
-    neg = priors.hart_nonessentials()
+    alias = alias_map()
+    ceg = lift(priors.hart_core_essentials_full(), alias)
+    neg = lift(priors.hart_nonessentials(), alias)
     lib = library_targets()
-    print(f"sgRNA library targets: {len(lib):,} genes")
-    print(f"Hart CEGv2 core-essentials: {len(ceg)}   Hart NEGv1 nonessentials: {len(neg)}")
+    n_renamed = sum(1 for k, v in alias.items() if k != v)
+    print(f"sgRNA library targets: {len(lib):,} genes (canonical vocabulary; the preprint says 12,748)")
+    print(f"  {n_renamed} genes carry a legacy alias in the library's other symbol column.")
+    print(f"  Unioning the two columns, as this script used to, inflates the denominator to 13,129.")
+    print(f"Hart CEGv2 core-essentials: {len(ceg)}   Hart NEGv1 nonessentials: {len(neg)}  (alias-lifted)")
 
     obs = de_stats.read_obs().reset_index(drop=True)
     obs["gene_name"] = obs["target_contrast_gene_name"].astype(str)

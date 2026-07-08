@@ -62,6 +62,16 @@ pillars = pd.read_csv(REPO / "results/tables/magnitude_matched_pillars.csv")
 strat = pd.read_csv(REPO / "results/tables/risk_kill_stratified_tests.csv")
 spec = pd.read_csv(REPO / "results/tables/reversal_specificity.csv")
 rivals = pd.read_csv(REPO / "results/tables/reversal_rival_rankings.csv")
+funnel = pd.read_csv(REPO / "results/tables/selection_funnel.csv").set_index("stage")
+
+# Never restate these as literals. The prose used to say "only 217 of 682"; that went stale the day
+# 11_selection_funnel.py stopped unioning two gene-symbol vocabularies to build its denominator, and
+# nothing failed. Every count below is read from the committed table.
+LIB_CEG = int(funnel.loc["in sgRNA library", "essentials"])
+DE_CEG = int(funnel.loc["reaches DE_stats", "essentials"])
+LIB_NEG = int(funnel.loc["in sgRNA library", "nonessentials"])
+QC_NEG = int(funnel.loc["+ not low_target_gex", "nonessentials"])
+N_LIBRARY = int(funnel.loc["in sgRNA library", "all_library"])
 
 schmidt = priors.schmidt_cd4_il2_screen()
 w = window.merge(schmidt, on="gene_name", how="left")
@@ -497,10 +507,12 @@ Our safety gate is not the one we planned, and neither is our explanation of why
 The original design anchored viability on DepMap and Hart core-essential genes. We first reported
 that axis as inert, on the grounds that the 31 rankable Hart essentials sit at median rank 3,148 of
 6,371, Mann-Whitney p = 0.611. **That inference is withdrawn.** Measured against the true sgRNA
-library denominator rather than the DE table, two colliders operate in opposite directions: only 217
-of 682 library core-essentials ever reach the DE table, because their knockdown depletes cells and
-fails differential-expression eligibility, and the `ontarget_significant` filter then removes the
-nonessential controls instead, because it requires an expressed target, leaving 3 of 141. The
+library denominator of `{python} f"{N_LIBRARY:,}"` genes rather than the DE table, two colliders
+operate in opposite directions: only `{python} f"{DE_CEG}"`
+of `{python} f"{LIB_CEG}"` library core-essentials ever reach the DE table, because their knockdown
+depletes cells and fails differential-expression eligibility, and the `ontarget_significant` filter
+then removes the nonessential controls instead, because it requires an expressed target, leaving
+`{python} f"{QC_NEG}"` of `{python} f"{LIB_NEG}"`. The
 essentials that survive are precisely the ones whose knockdown did not kill the cell. A rank
 comparison among survivors estimates nothing causal. The supportable statement is that **this screen
 cannot resolve** whether cancer-cell essentiality predicts the naive ranking.

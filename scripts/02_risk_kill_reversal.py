@@ -374,10 +374,22 @@ def essentiality_coverage(frame: pd.DataFrame) -> None:
     print("  RETRACTED 2026-07-08. This coverage cannot answer the question it appears to answer.")
     print("  `scripts/11_selection_funnel.py` measures the selection against the true sgRNA-library")
     print("  denominator and finds TWO colliders pulling opposite ways:")
-    print("    465 of 682 library core-essentials never reach the DE table at all, because their")
-    print("    knockdown depletes cells and fails DE-eligibility (OR 0.024, p=5.6e-48); and then")
-    print("    ontarget_significant destroys the nonessentials instead, because it needs an")
-    print("    expressed target (OR 38.5, p=9.4e-22).")
+    # Never restate another script's numbers as literals. This block used to print "465 of 682" and
+    # "OR 0.024, p=5.6e-48"; both went stale the day 11's gene-symbol vocabulary was corrected, and
+    # nothing failed. Read the committed table, or say nothing.
+    funnel = paths.TABLES / "selection_funnel.csv"
+    if funnel.exists():
+        table = pd.read_csv(funnel).set_index("stage")
+        lib_e = int(table.loc["in sgRNA library", "essentials"])
+        de_e = int(table.loc["reaches DE_stats", "essentials"])
+        lib_n = int(table.loc["in sgRNA library", "nonessentials"])
+        qc_n = int(table.loc["+ not low_target_gex", "nonessentials"])
+        print(f"    {lib_e - de_e} of {lib_e} library core-essentials never reach the DE table at all,")
+        print("    because their knockdown depletes cells and fails DE-eligibility; and then")
+        print("    ontarget_significant destroys the nonessentials instead, because it needs an")
+        print(f"    expressed target, leaving {qc_n} of {lib_n}.")
+    else:
+        print("    (run `scripts/11_selection_funnel.py` for the counts; they are not restated here)")
     print("  The surviving essentials are precisely the ones whose knockdown did NOT kill the cell.")
     print("  A rank comparison among survivors estimates nothing causal, and a null on 31 of them")
     print("  was underpowered regardless.")
