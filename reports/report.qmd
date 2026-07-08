@@ -9,11 +9,16 @@ abstract: |
   it nominates targets that work and would leave a patient immunodeficient. Eighteen of the top
   twenty perturbations in a naive suppression ranking fail a safety gate, and an independent
   lab's protein-level CRISPRi screen confirms that many of them genuinely do shut IL-2
-  production down. We build a therapeutic-window score with an evidence floor, a context
-  selectivity requirement and a tolerance-preservation penalty,
-  and we read viability directly off the screen. Without being told which drugs are well
-  tolerated, the score sorts five approved immunomodulators into the three mechanism classes
-  the clinic uses. We report where it fails as carefully as where it succeeds.
+  production down. We then tested that headline number against itself, and most of it turned out
+  to be bought by effect size: a shortlist matched on transcriptome-wide effect magnitude is
+  rejected 15.3 times out of 20. What reversal ranking *specifically* brings in is collapse of the
+  regulatory tolerance program, rejected 12 times in our top 20 against 4.0 in a magnitude-matched
+  one. We build a therapeutic-window score with an evidence floor, a context selectivity
+  requirement and a tolerance-preservation penalty, and we read viability directly off the screen.
+  Without being told which drugs are well tolerated, the score sorts five approved immunomodulators
+  into the three mechanism classes the clinic uses. Three mechanisms we asserted were refuted in the
+  course of this work, and one the adversarial audit asserted against us was refuted in turn. We
+  report all four.
 format:
   html:
     theme:
@@ -53,15 +58,34 @@ FIG = "../results/figures"
 window = pd.read_csv(REPO / "results/tables/window_score.csv")
 naive = pd.read_csv(REPO / "results/tables/risk_kill_naive_reversal.csv")
 truth = pd.read_csv(REPO / "resources/ground_truth/immunomodulator_targets.csv")
+pillars = pd.read_csv(REPO / "results/tables/magnitude_matched_pillars.csv")
+strat = pd.read_csv(REPO / "results/tables/risk_kill_stratified_tests.csv")
+spec = pd.read_csv(REPO / "results/tables/reversal_specificity.csv")
+rivals = pd.read_csv(REPO / "results/tables/reversal_rival_rankings.csv")
 
 schmidt = priors.schmidt_cd4_il2_screen()
 w = window.merge(schmidt, on="gene_name", how="left")
 w["il2_hit"] = (w["il2_neg_fdr"] < 0.05) & (w["il2_lfc"] < 0)
 w["naive_rank"] = (-w["eff_mean_z"]).rank(ascending=False, method="first")
+assert w.loc[w["naive_rank"].idxmin(), "eff_mean_z"] == w["eff_mean_z"].min(), "rank direction inverted"
 
 N_RANKABLE = len(window)
 N_TOP20_REJECTED = int((~w.nsmallest(20, "naive_rank")["safe"]).sum())
 POSITIVES = truth[truth["include_as_positive"]]["gene_symbol"]
+
+
+def spec_row(quantity: str) -> pd.Series:
+    """Pull one row of the reversal-specificity table by its `quantity` label."""
+    return spec[spec["quantity"].str.startswith(quantity)].iloc[0]
+
+
+PRIMARY = strat[
+    (strat["stratification"].str.startswith("stratified on z_l2"))
+    & (strat["test"] == "tolerance suppression")
+].iloc[0]
+TOL = spec_row("rejected on tolerance")
+HOM = spec_row("rejected on homeostasis")
+ANY = spec_row("rejected (any axis)")
 ```
 
 # Introduction
@@ -78,9 +102,14 @@ a gene at the heart of the T cell receptor, whose loss in a human being causes s
 immunodeficiency rather than remission. **Reversal is not enough.** The interesting object is not
 the ranking; it is the gate that separates a drug target from a gene you must not touch.
 
+Saying so is cheap. The hard part, and the part we spend @sec-magnitude on, is showing that the gate
+is catching something a reversal ranking *specifically* brings in, rather than something any ranking
+by effect size would bring in. Most of it turns out to be the latter. One axis is not.
+
 Our contribution is the decision layer: a therapeutic-window score, a set of safety axes chosen
-because the data supports them rather than because a database exists, and an honest account of
-what the assay cannot see.
+because the data supports them rather than because a database exists, a test of whether each axis is
+about the direction of a perturbation or merely its size, and an honest account of what the assay
+cannot see.
 
 # Methods
 
@@ -131,6 +160,35 @@ cell cannot live without are simply absent. Hart core-essential genes are measur
 rest in this data, so resting cell count is the context-free viability signal. Depletion *only*
 under stimulation is antiproliferation, which is mycophenolate's mechanism rather than a
 disqualification, so viability is reported as a tier and does not reject.
+
+## Stratified inference, and one pre-registered endpoint
+
+Enrichment of a liability in the top of a ranking is tested against a background **stratified** on
+the confounding covariate, using every control row. Binary flags use the Cochran-Mantel-Haenszel
+test; continuous measures use van Elteren's stratified rank-sum with $1/(n+1)$ weights. Neither
+draws a random number. Both are hand-rolled in `src/cd4_perturbseq/stratified.py` and validated
+against scipy, against a 20,000-draw within-stratum permutation null, and against 400 simulated
+nulls for type-I calibration.
+
+This replaces an earlier design that sampled one 100-row matched background with `seed=0`,
+discarding 6,171 of 6,271 usable controls. Redrawing that design 2,000 times moves the odds ratio
+over [1.72, 14.79] and the p-value over [0.00064, 0.178], with 22.4% of seeds landing above 0.05.
+
+The confounder is **not** cell count. `Spearman(n_cells_target, stim_de_genes) = -0.243`: more cells
+means *fewer* differentially expressed genes, so cell count is a viability readout and matching on it
+controlled the confound backwards. The confounder is transcriptome-wide effect magnitude, and the
+background is stratified on its decile.
+
+The risk-kill script decides on **one pre-registered primary endpoint**, not on `any()` of five
+one-sided tests, which would carry a family-wise false-positive rate near 23%:
+
+> Tolerance-module suppression is higher in the naive top 100 than in the $z_{L2}$-decile-stratified
+> background. One-sided van Elteren, $\alpha = 0.05$.
+
+It is chosen structurally rather than by p-value: it is the only pillar that is both an axis the gate
+rejects on and a graded screen-native measure rather than a count of DE genes. Permuting the
+tolerance column, or flipping its sign, makes the script exit 1. The remaining four tests are
+secondary and Benjamini-Hochberg corrected, and they decide nothing.
 
 ## Validation discipline
 
@@ -185,12 +243,89 @@ show.round(2)
 
 The contaminants are of two kinds. Immune-essential signalling machinery: `STAT5B`, `VAV1`,
 `IL2RB`, `CD3G`, `CD247`, `LCK`. And global transcription machinery that collapses the resting
-transcriptome: `NSD1`, `TADA2B`, `CXXC1`, `WDR82`, `USP22`.
+transcriptome: `NSD1` (2,175 DE genes in stimulated cells and 1,767 at rest), `TADA2B` (5,260 and
+4,681), `USP22` (1,849 and 1,783), `WDR82` (1,563 and 1,253), `CXXC1` (853 and 536).
 
 Crucially, these are not false positives in the sense of being wrong about efficacy. The held-out
 Schmidt screen confirms that `ZAP70`, `CD3G`, `CD3E`, `CD28`, `CD247`, `ITK`, `PLCG1`, `VAV1` and
 `PTPRC` knockdowns genuinely reduce IL-2 protein. They work. Loss of function of these genes in a
 human being causes immunodeficiency.
+
+## Most of that number is bought by effect size {#sec-magnitude}
+
+The sentence above is the one a reader remembers, so it is the one that deserves the hardest test.
+A perturbation that moves the whole transcriptome gets a large mean z-score over *any* gene set,
+the effector module included, and it crosses the differential-expression threshold on many genes
+for the same reason. If that is all that is happening, "reversal is not enough" reduces to
+"large-effect knockdowns are toxic", which is neither new nor about reversal.
+
+So we measured transcriptome-wide effect magnitude directly, as
+$z_{L2} = \sqrt{\sum_g z_g^2}$ over all 10,282 measured genes, excluding the perturbed gene's own
+column and both module gene sets so that the covariate cannot contain the score. Then we drew 5,000
+shortlists of 20 from the same evidence-passing pool, matched to the naive top 20 on $z_{L2}$
+decile, and asked the gate to judge them.
+
+```{python}
+tbl = spec[["quantity", "observed", "matched_mean", "p_matched_ge_observed"]].copy()
+tbl.columns = ["quantity", "naive top 20", "magnitude-matched mean", "P(matched ≥ observed)"]
+tbl["magnitude-matched mean"] = tbl["magnitude-matched mean"].round(1)
+tbl["P(matched ≥ observed)"] = tbl["P(matched ≥ observed)"].map(lambda p: "< 0.0001" if p == 0 else f"{p:.3f}")
+tbl
+```
+
+```{python}
+Markdown(
+    f"The aggregate count is not specific to reversal. A shortlist of the same effect magnitude is "
+    f"rejected **{ANY['matched_mean']:.1f}** times out of 20 against our **{int(ANY['observed'])}**, "
+    f"P = {ANY['p_matched_ge_observed']:.3f}. Our headline number buys about "
+    f"{ANY['observed'] - ANY['matched_mean']:.1f} rejections over effect size alone."
+)
+```
+
+Decomposed by axis, the picture is unambiguous and it is not the one we expected.
+**Homeostasis**, which does most of the rejecting, rejects
+`{python} f"{int(HOM['observed'])}"` of our top 20 and
+`{python} f"{HOM['matched_mean']:.1f}"` of a magnitude-matched 20
+(P = `{python} f"{HOM['p_matched_ge_observed']:.2f}"`). It is a magnitude readout.
+**Tolerance** rejects `{python} f"{int(TOL['observed'])}"` of ours against
+`{python} f"{TOL['matched_mean']:.1f}"` matched, P < 0.0001. It is the axis that is about the
+*direction* of a perturbation rather than its *size*.
+
+The pillar-level statistics say the same thing. Against a background stratified on $z_{L2}$
+decile, using every control row rather than one sampled draw:
+
+```{python}
+p = pillars[pillars["registered"]][["pillar", "rho_with_z_l2", "A_effect", "A_p_bh", "B_effect", "B_p_bh", "B_stable"]].copy()
+p.columns = ["pillar", "ρ with z_L2", "A: vs matched bg", "A p (BH)", "B: vs induction", "B p (BH)", "B stable?"]
+p["B stable?"] = np.where(p["B stable?"], "yes", "**fragile**")
+p.round(3)
+```
+
+Test A compares the top 100 to a magnitude-matched background. Test B compares it to the top 100
+ranked by *induction* of the same module: the sign-flipped control. A pillar that fires on both
+tails measures magnitude, not suppression. Collateral DE is 0.72 rank-correlated with $z_{L2}$ and
+its direction-specificity is fragile, surviving at ten strata and dying at twenty. Resting DE does
+not survive test B at all. Tolerance is 0.07 correlated with magnitude, and perturbations that
+*induce* the effector program *induce* tolerance rather than suppressing it.
+
+Finally, rankings that never mention the effector program:
+
+```{python}
+r = rivals.copy()
+r.columns = ["ranking", "median tolerance loss", "median z_L2", "rejected on tolerance", "rejected on homeostasis", "pass gate"]
+r.round(3)
+```
+
+Our ranking finds *more* tolerance collapse (0.54) at *lower* transcriptome disruption (z_L2 141)
+than a pure-magnitude ranking does (0.29 at 179). The sign-blind ranking is identical to ours
+because the evidence floor already removes inducers; it is a weak null and we report it as one.
+
+**What survives.** "Reversal is not enough" stands: a practitioner who ranks by reversal and acts
+on the top 20 will act on 18 targets this gate refuses. But the *mechanism* we asserted, collateral
+transcriptional damage, is largely a restatement of effect size. The mechanism that survives every
+control is tolerance collapse. That is the claim, and it is the one the pre-registered primary
+endpoint of `scripts/02_risk_kill_reversal.py` tests: one-sided van Elteren,
+z = `{python} f"{PRIMARY['effect']:.2f}"`, p = `{python} f"{PRIMARY['p']:.1e}"`.
 
 ## The score sorts approved drugs it was never told about {#sec-drugs}
 
@@ -254,7 +389,21 @@ muromonab was withdrawn. We report the weaker number.
 
 ## Where the designs failed {#sec-failures}
 
-Three designs failed before this one worked, and the failures are more informative than the pass.
+Four designs failed before this one worked, and the failures are more informative than the pass.
+The fourth is not a design failure but an explanation failure, and it is the most instructive.
+
+**We asserted a mechanism and it was wrong.** We said a naive reversal ranking is toxic because it
+nominates perturbations that cause collateral transcriptional damage. Collateral DE-gene count is
+0.72 rank-correlated with transcriptome-wide effect magnitude, and a magnitude-matched shortlist is
+rejected almost as often as ours (@sec-magnitude). The claim was true and the reason was not.
+
+That is the third mechanism this project asserted and then refuted. The first was that cancer-cell
+essentiality is the wrong safety axis for this screen, withdrawn once the selection was measured
+against the true library denominator. The second was that immunodeficiency-gene membership marks a
+hazard, withdrawn once we noticed the flag is *more* enriched among approved drug targets than among
+the perturbations the naive ranking calls toxic. A fourth mechanism, the audit's claim that the
+tolerance axis is tautological, was refuted against 200 expression-matched random modules and stands
+rejected. Each refutation cost a number we liked.
 
 **No evidence floor.** Of the `{python} f"{N_RANKABLE:,}"` QC-passing perturbations,
 `{python} f"{int((window['stim_de_genes'] <= 5).sum()):,}"` have five or fewer significant DE
@@ -290,14 +439,31 @@ The value of a perturbation atlas for drug discovery is not the regulator list. 
 defensible, ranked, annotated shortlist that a laboratory can act on, together with an explicit
 statement of what would have to be true for each entry to be wrong.
 
-Our safety gate is not the one we planned. The original design anchored viability on DepMap and
-Hart core-essential genes. In this screen that axis is inert: the 31 rankable Hart essentials sit
-at median rank 3,148 of 6,371 in the naive ranking, Mann-Whitney p = 0.611. The axes that
-actually separate the false positives are context selectivity, resting-transcriptome disruption,
-and tolerance preservation. All three are computed from the knockdown transcriptome itself. Every
-gate axis that was a database membership test has failed here: first DepMap and Hart essentiality,
-then the IUIS immunodeficiency list. That is not a coincidence, and it is the project's actual
-contribution.
+Our safety gate is not the one we planned, and neither is our explanation of why it works.
+
+The original design anchored viability on DepMap and Hart core-essential genes. We first reported
+that axis as inert, on the grounds that the 31 rankable Hart essentials sit at median rank 3,148 of
+6,371, Mann-Whitney p = 0.611. **That inference is withdrawn.** Measured against the true sgRNA
+library denominator rather than the DE table, two colliders operate in opposite directions: only 217
+of 682 library core-essentials ever reach the DE table, because their knockdown depletes cells and
+fails differential-expression eligibility, and the `ontarget_significant` filter then removes the
+nonessential controls instead, because it requires an expressed target, leaving 3 of 141. The
+essentials that survive are precisely the ones whose knockdown did not kill the cell. A rank
+comparison among survivors estimates nothing causal. The supportable statement is that **this screen
+cannot resolve** whether cancer-cell essentiality predicts the naive ranking.
+
+Every gate axis that was a database membership test has failed here: first DepMap and Hart
+essentiality, then the IUIS immunodeficiency list. Every axis computed from the screen itself has
+held. That is not a coincidence, and it is the project's actual contribution.
+
+But @sec-magnitude sharpens it one level further, and against us. Among the screen-native axes, the
+ones that are *counts of differentially expressed genes* are largely proxies for effect magnitude:
+context selectivity rejects a magnitude-matched shortlist just as often as it rejects ours
+(P = `{python} f"{HOM['p_matched_ge_observed']:.2f}"`). The axis that survives every control is the
+one built from a *graded module score* rather than a count: tolerance-module suppression, ρ = 0.07
+with transcriptome-wide effect magnitude. The lesson is not "use the screen instead of a database".
+It is "use a graded, screen-native measure of the thing you actually care about", and the thing we
+actually care about turned out to be the regulatory program, not the collateral damage.
 
 The shortlist that survives is dominated by immunometabolism: mitochondrial biogenesis, OXPHOS
 assembly, one-carbon metabolism, and `RRAGC`, the Rag GTPase through which mTORC1 senses amino
@@ -325,28 +491,51 @@ it, and that query is pending.
   perturbed. AUROC on the 20 rankable positives is 0.542, 95% CI [0.373, 0.707], which covers
   chance.
 - **`n` = 5** for the therapeutic-index result.
+- **The context-selectivity axis has never been shown to be enriched in the naive top.** It rejects
+  a magnitude-matched shortlist as often as it rejects ours. That does not make it a bad *filter* —
+  `NSD1`, with 2,175 stimulated and 1,767 resting DE genes, really should be rejected — but a filter
+  that works and an enrichment that is real are different claims, and only the second is evidence
+  about reversal. We report it as a filter.
+- **The resting arm is not comparable to the stimulated arm.** Resting rows were never subjected to
+  the QC the stimulated rows had to pass: 802 of `{python} f"{N_RANKABLE:,}"` have a resting row that
+  would fail it, and 51 have no resting row at all, including `IL2RB` at naive rank 4. A low resting
+  DE count therefore conflates "spares homeostasis" with "the guide never knocked the gene down".
+  `04_window_score.py` median-imputes the missing values straight into the selectivity ratio.
 - **Single-gene library.** No combinatorial perturbations, and no visibility into redundant
   targets, as calcineurin demonstrates.
 - **Pseudobulk differential expression**, inherited from the released matrices. Not distribution
   aware.
 - **Cell count is confounded with guide representation.** We have no time-zero library
-  measurement, so the viability tier is a strong signal rather than a clean measurement.
+  measurement, so the viability tier is a strong signal rather than a clean measurement. It is also
+  *not* a statistical-power proxy: `Spearman(n_cells_target, stim_de_genes) = -0.243`, so more cells
+  means fewer differentially expressed genes.
+- **The shortlist has not been shown to replicate across donors.** The per-donor matrices exist and
+  are unused.
 
 # Reproducibility
 
-Every number in this report is computed from two committed tables,
-`results/tables/window_score.csv` and `results/tables/risk_kill_naive_reversal.csv`, neither of
-which exceeds 600 KB. The 16.8 GB effect matrix is needed only to regenerate them.
+Every number in this report is computed from committed tables under `results/tables/`, none of which
+exceeds 600 KB. The 16.8 GB effect matrix is needed only to regenerate them.
 
 ```bash
 uv sync
 bash scripts/fetch_priors.sh
 uv run python scripts/01_build_activation_program.py
-uv run python scripts/02_risk_kill_reversal.py   # exits non-zero if the headline claim fails
+uv run python scripts/02_risk_kill_reversal.py     # exits non-zero if the primary endpoint fails
 uv run python scripts/04_window_score.py
 uv run python scripts/05_figures.py
+uv run python scripts/12a_validate_stratified.py   # the stratified tests, checked against scipy,
+                                                   # a permutation null, and 400 simulated nulls
+uv run python scripts/12_magnitude_matched.py      # is the result an effect-magnitude artifact?
+uv run python scripts/14_reversal_specificity.py   # is any of it specific to reversal?
 quarto render reports/report.qmd
 ```
+
+Four scripts are written so that they can fail, and each has been checked to actually fail when it
+should. `12a` exits non-zero if the hand-rolled Cochran-Mantel-Haenszel and van Elteren tests
+disagree with scipy, with a 20,000-draw within-stratum permutation null, or with their nominal
+type-I error. `14` exits non-zero if tolerance ever stops separating from a magnitude-matched
+shortlist.
 
 `scripts/02_risk_kill_reversal.py` is written so that it can fail, on one pre-registered primary
 endpoint: the naive top 100 must collapse the tolerance module more than a background matched on
@@ -362,10 +551,30 @@ controlled the confound backwards; a single draw made the p-value a random varia
 # How Claude was used
 
 Claude Code planned the work, wrote and ran the pipeline, and then attacked its own results with a
-six-lens adversarial audit, each finding independently refuted or reproduced by two further
-agents. The failures in @sec-failures were caught that way, or by rendering a figure and looking
-at it: the first version of @fig-naive ranked ascending and crowned the perturbations that
-*raised* the inflammatory program.
+six-lens adversarial audit across 127 agents, each finding independently refuted or reproduced by two
+further agents. The audit's bar was recorded as a caveat rather than a boast: findings were marked
+"confirmed" when neither verifier refuted them, which is not adversarial, so only findings reproduced
+by a committed script are treated as established here.
+
+That discipline earned its keep. The audit was right that the cell-count-matched background
+controlled its confound backwards, right that a single seeded draw cannot carry a p-value, and right
+that the DE-count pillars are entangled with effect size. It was wrong that the tolerance axis is
+tautological, and its central "66% fewer DE genes at matched score" turned out to be one decile of
+ten reported as though it were the pooled effect, which is 12%. Its proposed fix offered "match on
+|score| decile, or on transcriptome-wide ‖z‖₂" as interchangeable controls; those two variables
+correlate at ρ = 0.198, and the pillars' fate depends entirely on which is used.
+
+Claude Code also caught itself three times, which is the part worth watching. It added a measure
+mid-analysis, watched it fail, and was one step from removing a gate axis on the strength of a rule
+invented after seeing the data; the measure now reports and decides nothing. Its first check of the
+hand-rolled Mantel-Haenszel statistic against scipy failed by 0.1%, and the *check* was wrong, not
+the code: Mantel-Haenszel uses the hypergeometric variance with denominator $n^2(n-1)$ where the
+Yates-corrected Pearson statistic uses $n^3$. And it wrote a rank-direction bug into the rival-ranking
+table of `14_reversal_specificity.py`, sorting ascending so that the *least* suppressed perturbations
+were crowned, exactly the error it had already made once in @fig-naive and flattering its own result
+both times. An assertion now pins the rank direction in three places.
+
+The failures in @sec-failures were caught that way, or by rendering a figure and looking at it.
 
 Claude Science was given the tasks that could break the result rather than decorate it. It
 independently recomputes the risk-kill statistics from the committed table, including resampling the
