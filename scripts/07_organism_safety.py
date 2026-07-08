@@ -37,8 +37,13 @@ LOEUF_INTOLERANT = 0.60
 UBIQUITOUS_TISSUES = 40
 
 
-def _mwu(label: str, a: pd.Series, b: pd.Series, alternative: str, expect: str) -> bool:
+def _mwu(label: str, a: pd.Series, b: pd.Series, alternative: str, expect: str) -> bool | None:
     """Run a one-sided Mann-Whitney U test and print a verdict line.
+
+    Returns None, never False, when a control arm is too small to test. An untested axis is not a
+    failed axis, and conflating the two is how this project already reached one wrong conclusion:
+    "zero essentials in the top 100" was read as evidence against essentiality when in truth the
+    essentials had been removed by QC before ranking.
 
     Args:
         label: What is being compared.
@@ -48,12 +53,12 @@ def _mwu(label: str, a: pd.Series, b: pd.Series, alternative: str, expect: str) 
         expect: Human-readable statement of the expected direction.
 
     Returns:
-        True if the control pair separates in the expected direction at p < 0.05.
+        True if the controls separate as expected, False if they do not, None if untestable.
     """
     a, b = a.dropna(), b.dropna()
     if len(a) < 5 or len(b) < 5:
-        print(f"  {label:34s} insufficient data (n={len(a)}, {len(b)})")
-        return False
+        print(f"  {label:34s} NOT TESTABLE: n={len(a)} essential, {len(b)} nonessential")
+        return None
     _, p = stats.mannwhitneyu(a, b, alternative=alternative)
     ok = p < 0.05
     print(
@@ -106,9 +111,17 @@ def main() -> None:
     }
     print()
     for name, ok in verdicts.items():
-        print(f"  {name:22s} {'validated on controls' if ok else 'DID NOT SEPARATE THE CONTROLS'}")
-    if not verdicts["our viability axis"]:
-        print("\n  Our data-native viability tier is not measuring essentiality. Do not use it.")
+        state = {True: "validated on controls", False: "DID NOT SEPARATE THE CONTROLS",
+                 None: "UNTESTED, control arm too small"}[ok]
+        print(f"  {name:22s} {state}")
+
+    if any(v is None for v in verdicts.values()):
+        print(f"\n  Only {int(frame['is_neg'].sum())} of {len(neg)} Hart nonessential controls survive")
+        print("  perturbation QC. Nonessential genes are lowly expressed, so they fail the")
+        print("  ontarget_significant filter. This is a SELECTION problem, not a failed test:")
+        print("  conditioning on QC conditions on a collider. Run the controls on the full obs")
+        print("  (all genes with a resting row) before concluding anything about essentiality.")
+        print("  See docs/results/adversarial_audit_2026_07_08.md, finding 2.")
 
     # ---------------------------------------------------------------- the organism-level layer
     frame["lof_intolerant"] = frame["loeuf"] < LOEUF_INTOLERANT
