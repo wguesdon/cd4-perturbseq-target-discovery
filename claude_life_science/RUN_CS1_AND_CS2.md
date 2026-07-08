@@ -36,31 +36,56 @@ for CS1 and irrelevant to CS2.
 | | CS1 | CS2 |
 | --- | --- | --- |
 | Network | **yes**, Open Targets MCP connector | **no**, runs offline |
-| Blocks | the entire benchmark design | nothing |
+| Role | independent **replication** of a committed number | **blind** adversarial re-analysis |
+| Blocks | nothing; the benchmark decision is already made | nothing |
 | Attachments | 3 files | 1 file |
-| Do it | **first** | in parallel, any time |
+| Do it | either order | either order |
 
 Enable the Open Targets connector under **Customize → Permissions**. That is a UI action; there is
 no CLI for it.
 
 ---
 
-## CS1 — Open Targets: can the drug-recovery benchmark be salvaged?
+## CS1 — Open Targets: an independent REPLICATION, not a first pass
 
-**Unchanged since it was written. Paste it as it stands.** Nothing in the 2026-07-08 corrections
-touched the benchmark.
+**Changed 2026-07-08.** Claude Code has already answered this, offline, from the pinned Open Targets
+26.06 bulk release: `scripts/16_open_targets_benchmark.py`, committed at `4f8fb4e`. So CS1 is now a
+contemporaneous A/B: the same question, a different tool, a different route to the data, against a
+number that is already in git and cannot be quietly adjusted afterwards.
 
-### Why
+That is a much better use of the run. Nobody scores points for querying a database. They score for
+showing that two independent tools agree, or for showing exactly where they do not.
 
-The benchmark is failing, and not because the ranking is bad. Of 36 hand-curated positives, 32 are
-perturbed, 30 are measured, and only **20** survive QC. `JAK1` and `JAK3` were never perturbed.
-AUROC is 0.542 with a bootstrap 95% CI of [0.373, 0.707], which covers chance.
+### What Claude Code found, and where it nearly went wrong
 
-CS1 asks Open Targets for the ceiling. **Above roughly 60 rankable phase-4 immune inhibitory
-targets and the benchmark is powered. Near 20 and we retire it as the headline, honestly, and
-validate the efficacy axis on the held-out Schmidt IL-2 screen instead.**
+**Count 3 = 38** under the primary definition, **53** at the upper bound. The threshold, 60, was fixed
+before counting. The benchmark stays retired.
 
-That single number, "count 3", is what you are going for. Everything else in CS1 is secondary.
+The first run returned **173** and declared the benchmark powered. Three separate traps:
+
+1. MONDO classifies multiple myeloma, AML, DLBCL and CLL as descendants of *immune system disorder*,
+   because they are malignancies of immune cells. Bortezomib therefore counted as an approved immune
+   drug, and `PSMB5`, the HDACs and beta-tubulin became immunomodulator targets.
+2. Open Targets annotates metformin's mechanism against all forty subunits of mitochondrial complex
+   I, making `NDUFA4` an approved drug target for type 1 diabetes.
+3. **The real error.** `clinical_target.maxClinicalStage` is the maximum stage a *drug-target pair*
+   reached across all indications. Vorinostat is approved for cutaneous T-cell lymphoma and merely
+   *trialled* in Crohn's disease, so joining that approval to an immune indication made `HDAC1` a
+   benchmark positive. `clinical_indication` carries the stage per indication.
+
+A validation harness (five positive controls, four negative) refused to print the ceiling until the
+filters passed. It caught trap 3 by itself.
+
+### The question for Claude Science
+
+**Do not tell it any of the above.** Ask it the original question and see whether it walks into the
+same three traps, or into different ones. If it returns a number near 173, you have a filmable
+finding about how easy it is to get this wrong. If it returns 38–53 independently, the ceiling is
+solid and the benchmark is retired on two independent authorities.
+
+The prompt below asks for `maximumClinicalTrialPhase = 4`. **Leave that wording in.** In the 26.06
+schema there is no phase 4; approval is encoded as the string `APPROVAL`. Whether Claude Science
+notices, or silently returns nothing, is itself the test.
 
 ### Attach
 
@@ -86,12 +111,15 @@ it.
 ### Save the answer to
 
 ```
-docs/handoffs/results/CS1_open_targets.md                            narrative + the three counts
-resources/ground_truth/immunomodulator_targets.open_targets.csv      Task A output
-resources/ground_truth/open_targets_additional_positives.csv         Task B output
+docs/handoffs/results/CS1_open_targets.md    narrative, the three counts, and the DIFF vs Claude Code
 ```
 
-Record the **Open Targets release version** and the **provenance artifact id**.
+Record the **Open Targets release version** it used and the **provenance artifact id**. Then diff its
+counts against `results/tables/open_targets_benchmark_ceiling.csv`, and write the disagreement up.
+
+Do **not** overwrite `resources/ground_truth/immunomodulator_targets.open_targets.csv` or
+`open_targets_additional_positives.csv`. Claude Code already wrote those, and they are the artifact
+being replicated. If Claude Science produces different ones, save them beside with a `.cs1` suffix.
 
 ---
 
@@ -279,8 +307,10 @@ right and how you decided. If there are none, say that too, and say it as a weak
    That is what keeps the rebase clean.
 2. Fill the **disagreements column** in `docs/claude_tooling_log.md`. It is a submission-checklist
    item and it is currently empty.
-3. If CS1's count 3 lands near 20, retire drug-target recovery as the headline in
-   `reports/report.qmd` and lean on the Schmidt IL-2 validation instead. Do not torture the number.
+3. CS1's count 3 is a **replication**. Claude Code got 38 primary / 53 upper bound and the benchmark
+   is already retired in `reports/report.qmd` @sec-ceiling. If Claude Science lands near 173, note
+   which of the three traps it fell into. If it lands near 38–53, say so: two tools, two routes, one
+   ceiling.
 4. If CS2 disagrees with us anywhere that matters, **put the disagreement in the demo video**. A
    project that shows two Claude tools reaching different conclusions, and then shows which was
    right and why, is making the exact argument the Demo criterion asks for. Nobody scores points

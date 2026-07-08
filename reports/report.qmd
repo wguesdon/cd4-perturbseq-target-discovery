@@ -527,9 +527,45 @@ which is the internal control that the class is real.
 
 `CD2` ranks second on the shortlist, is confirmed by the held-out screen, and is the target of
 alefacept, an approved drug. It is not in our curated ground truth. We did not add it. Adding a
-positive to the gold standard after watching it rank second is tuning the benchmark to the
-result. An independent Open Targets query is the appropriate way to establish whether we missed
-it, and that query is pending.
+positive to the gold standard after watching it rank second is tuning the benchmark to the result.
+Instead we asked Open Targets, which returns `CD2` **independently**, as an approved
+immune-indication inhibitory target, without being asked about it. It may now enter the positive
+set sourced to Open Targets rather than to us watching it rank.
+
+## The benchmark cannot be rebuilt, and that is a fact about the library {#sec-ceiling}
+
+Before torturing an AUROC of 0.542, we asked how large the positive set could possibly be. Open
+Targets 26.06, taken from the pinned bulk release rather than a live query, gives every human target
+with a drug **approved for** an autoimmune, inflammatory or allergic indication whose mechanism a
+knockdown can phenocopy.
+
+```{python}
+ceil = pd.read_csv(REPO / "results/tables/open_targets_benchmark_ceiling.csv")
+show = ceil[["disease_set", "moa_set", "specificity", "count1_targets", "count2_measured", "count3_rankable"]]
+show.columns = ["immune diseases", "mechanisms", "target specificity", "targets", "of which measured", "of which rankable"]
+show
+```
+
+Every row makes a different judgement call, and the last column is the one that matters: the maximum
+number of true positives our ranking could ever recover. The threshold, **60**, was fixed before any
+count was computed. The most generous row reaches **53**. **The drug-recovery benchmark cannot be
+rebuilt into a powered test on this dataset**, so we retire it as the headline and validate the
+efficacy axis on the held-out Schmidt IL-2 screen instead. The ceiling is a property of the
+perturbation library, not of our ranking: `JAK1` and `JAK3` are approved tofacitinib targets and
+were simply never perturbed.
+
+Getting that number wrong was easy, and we did, three times. The first run returned 173 and declared
+the benchmark powered. MONDO classifies multiple myeloma, acute myeloid leukaemia and diffuse large
+B-cell lymphoma as descendants of "immune system disorder", because they are malignancies of immune
+cells, so bortezomib counted as an approved immunomodulator and the proteasome became a target. Open
+Targets annotates metformin's mechanism against all forty subunits of mitochondrial complex I, so
+`NDUFA4` became an approved drug target for type 1 diabetes. And `clinical_target.maxClinicalStage`
+is the maximum stage a drug-target pair reached across *all* indications, so vorinostat, approved for
+a lymphoma and merely trialled in Crohn's disease, made `HDAC1` a positive.
+
+A validation harness now runs five textbook positive controls and four known-bad negative controls
+before the count is printed, and refuses to print it if any fails. It caught the third error on its
+own.
 
 # Limitations
 
@@ -539,10 +575,12 @@ it, and that query is pending.
 - **The assay is blind to cytokine-signalling targets.** The screen stimulates through the T cell
   receptor with no exogenous polarising cytokines, so `JAK2`, `TYK2`, `IL4R` and `S1PR1` have
   little to suppress. This bounds recall from above and is a property of the dataset.
-- **The drug-recovery benchmark is underpowered.** Of 36 curated positives, 32 are perturbed, 30
-  are measured, 20 survive QC and only 5 clear the evidence floor. `JAK1` and `JAK3` were never
-  perturbed. AUROC on the 20 rankable positives is 0.542, 95% CI [0.373, 0.707], which covers
-  chance.
+- **The drug-recovery benchmark is underpowered, and cannot be fixed.** Of 36 curated positives, 32
+  are perturbed, 30 are measured, 20 survive QC and only 5 clear the evidence floor. `JAK1` and
+  `JAK3` were never perturbed. AUROC on the 20 rankable positives is 0.542, 95% CI [0.373, 0.707],
+  which covers chance. Open Targets puts the ceiling at 38 rankable approved immune inhibitory
+  targets, and 53 if every judgement call is made in the benchmark's favour (@sec-ceiling). Growing
+  the positive set is not an option, so the benchmark is retired rather than tuned.
 - **`n` = 5** for the therapeutic-index result.
 - **The context-selectivity axis has never been shown to be enriched in the naive top.** It rejects
   a magnitude-matched shortlist as often as it rejects ours. That does not make it a bad *filter* —
