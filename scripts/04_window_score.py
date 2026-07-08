@@ -226,11 +226,15 @@ def apply_gate(frame: pd.DataFrame) -> pd.DataFrame:
     passing = frame[~frame["fail_evidence"]]
     tol_max = passing["tolerance_loss"].quantile(0.75)
 
-    frame["fail_immune_essential"] = frame["is_iei"]
     frame["fail_homeostasis"] = frame["selectivity"] < MIN_SELECTIVITY
     frame["fail_tolerance"] = frame["tolerance_loss"] > tol_max
 
-    fails = ["fail_evidence", "fail_immune_essential", "fail_homeostasis", "fail_tolerance"]
+    # `is_iei` is NOT a gate. Verified 2026-07-08: the IUIS flag is more enriched among approved
+    # immunomodulator targets (25.0%, OR 8.31) than among the perturbations a naive reversal
+    # ranking calls toxic (14.0%, OR 4.16). It cannot separate a dangerous knockdown from a gene
+    # that is load-bearing in immunity, and a good immune drug target is the latter. Gating on it
+    # rejected CD3E, CD3G, IL2RA, PIK3CD and TYK2, which are five approved drugs. It is reported.
+    fails = ["fail_evidence", "fail_homeostasis", "fail_tolerance"]
     frame["safe"] = ~frame[fails].any(axis=1)
     frame["reject_reason"] = frame.apply(
         lambda r: ",".join(c.replace("fail_", "") for c in fails if r[c]) or "-", axis=1
@@ -249,7 +253,49 @@ def apply_gate(frame: pd.DataFrame) -> pd.DataFrame:
     print(f"  fully safety-passing: {int(frame['safe'].sum())}")
     print("  NOTE: there is deliberately no cap on Stim DE-gene count. Capping it rejects the")
     print("  context-selective targets (CD3G 1374/5, ITK 2566/2) this project exists to find.")
+    print("  NOTE: is_iei is an ANNOTATION, not a gate. See _iei_is_not_a_gate() below.")
     return frame
+
+
+def _iei_is_not_a_gate(frame: pd.DataFrame) -> None:
+    """Show, every run, why the immunodeficiency flag cannot be a safety gate.
+
+    RULE: before believing any enrichment, run it on the POSITIVE class too. This project asserted
+    two mechanisms in one day and had both refuted. The first was common-essentiality. The second
+    was this flag. Printing the refutation on every run means nobody can quietly re-promote it.
+
+    Args:
+        frame: The gated frame, carrying ``is_iei``.
+    """
+    truth = pd.read_csv(paths.GROUND_TRUTH / "immunomodulator_targets.csv")
+    positives = set(truth.loc[truth["include_as_positive"], "gene_symbol"])
+
+    frame = frame.copy()
+    frame["naive_rank"] = (-frame["eff_mean_z"]).rank(ascending=False, method="first")
+    frame["in_top100"] = frame["naive_rank"] <= 100
+    frame["is_positive"] = frame["gene_name"].isin(positives)
+
+    def _or(group: pd.Series) -> tuple[float, float, float]:
+        a = int((frame["is_iei"] & group).sum())
+        b = int((~frame["is_iei"] & group).sum())
+        c = int((frame["is_iei"] & ~group).sum())
+        d = int((~frame["is_iei"] & ~group).sum())
+        odds, p = stats.fisher_exact([[a, b], [c, d]], alternative="greater")
+        return a / max(a + b, 1), odds, p
+
+    print("\n=== WHY is_iei IS NOT A GATE (printed every run, on purpose) ===")
+    rate_t, or_t, p_t = _or(frame["in_top100"])
+    rate_p, or_p, p_p = _or(frame["is_positive"])
+    print(f"  naive top-100          IEI rate {rate_t:6.1%}   OR {or_t:5.2f}   p={p_t:.3g}")
+    print(f"  approved drug targets  IEI rate {rate_p:6.1%}   OR {or_p:5.2f}   p={p_p:.3g}")
+    if or_p >= or_t:
+        rejected = sorted(frame.loc[frame["is_positive"] & frame["is_iei"], "gene_name"])
+        print("  The flag is MORE enriched among approved drugs than among the 'toxic' top 100.")
+        print(f"  Gating on it would reject these approved targets: {', '.join(rejected)}")
+        print("  A gene whose loss causes immunodeficiency is a gene that matters for immunity,")
+        print("  which is exactly what a good immune drug target is. Annotation only.")
+    else:
+        print("  The flag separates them. Re-examine whether it should be a gate.")
 
 
 def validate(frame: pd.DataFrame) -> None:
@@ -262,12 +308,19 @@ def validate(frame: pd.DataFrame) -> None:
     print("\n=== HEAD-TO-HEAD: the naive top 20, judged by the gate ===")
     top = merged.nsmallest(20, "naive_rank")[
         ["naive_rank", "gene_name", "stim_de_genes", "rest_de_genes", "n_module_down",
-         "safe", "reject_reason", "il2_hit"]
+         "safe", "reject_reason", "il2_hit", "is_iei"]
     ]
     print(top.to_string(index=False))
-    print(f"\n  survive the gate: {int(top['safe'].sum())} of 20")
-    print(f"  independently confirmed IL-2 reducers (Schmidt): {int(top['il2_hit'].sum())} of 20")
-    print("  they work, and they would leave a patient immunodeficient. That is the argument.")
+    n_safe = int(top["safe"].sum())
+    n_hit = int(top["il2_hit"].sum())
+    n_iei = int(top["is_iei"].sum())
+    print(f"\n  survive the gate: {n_safe} of 20")
+    print(f"  independently confirmed IL-2 reducers (Schmidt): {n_hit} of 20")
+    print(f"  loss of function causes human immunodeficiency: {n_iei} of 20 (annotation, not a gate)")
+    print(f"  -> {20 - n_safe} of the top 20 are rejected on screen-native axes alone.")
+    if n_safe:
+        survivors = ", ".join(top.loc[top["safe"], "gene_name"])
+        print(f"  survivors: {survivors}. Check each by hand; the gate is not a proof.")
 
     print("\n=== EFFECTIVE BUT REJECTED: proven IL-2 reducers the gate refuses ===")
     rejected = merged[merged["il2_hit"] & ~merged["safe"] & ~merged["fail_evidence"]]
@@ -342,11 +395,16 @@ def validate(frame: pd.DataFrame) -> None:
         print(f"\n  well-tolerated agents passing the gate: {tolerated_safe}/{n_tol}")
         print(f"  narrow-index agents passing the gate:   {narrow_safe}/{n_nar}")
         print("  n is small. This is a direction, not a p-value, and it is reported as such.")
-    print("\n  The viability tier adds a third stratum, and it matches the clinic:")
-    print("    non-depleting signalling blockade  -> calcineurin (PPP3R1), IL4R. Best tolerated.")
-    print("    antiproliferative, depleting        -> IMPDH2. Mycophenolate. Works, needs monitoring.")
-    print("    depleting AND immune-essential      -> CD3E, CD3G. Muromonab was withdrawn.")
-    print("  Nothing in the score or the gate was told which drug is tolerated. The tiers fell out.")
+    # Generate this from the table, never alongside it. The previous hardcoded version kept
+    # asserting that CD3E was rejected after CD3E had started passing.
+    print("\n  Viability tiers, as observed:")
+    for tier, block in graded.groupby("viability_tier", observed=True):
+        members = ", ".join(f"{r.gene_name}({'pass' if r.safe else 'reject'})" for r in block.itertuples())
+        print(f"    {tier:20s} {members}")
+    print("\n  HONEST NOTE. Removing the immunodeficiency gate cost us this result. With it, the")
+    print("  separation was 3/3 tolerated versus 0/2 narrow. Without it, CD3E passes. The gate")
+    print("  now rests on screen-native axes only, and those axes cannot see cytokine release")
+    print("  syndrome, which is why muromonab was withdrawn. We report the weaker number.")
 
 
 def main() -> None:
@@ -362,6 +420,7 @@ def main() -> None:
     out = paths.TABLES / "window_score.csv"
     frame.to_csv(out, index=False)
     print(f"\nwrote {out}")
+    _iei_is_not_a_gate(frame)
     validate(frame)
 
 
