@@ -44,7 +44,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from cd4_perturbseq import paths
+from cd4_perturbseq import matched, paths
 
 N_BINS = 10
 TOP_N = 20
@@ -81,8 +81,12 @@ def load() -> pd.DataFrame:
 def _matched_draws(frame: pd.DataFrame, top: pd.DataFrame, n_draws: int, rng: np.random.Generator) -> pd.DataFrame:
     """Draw shortlists matched to the top on z_l2 decile, from the non-top pool.
 
+    Thin wrapper over :func:`cd4_perturbseq.matched.count_matched`, which honours the per-stratum
+    count rather than truncating a stratum whose pool is small. Exact-token matching on the split
+    reject_reason, never a substring, so an axis name that contains another cannot double-count.
+
     Args:
-        frame: All evidence-passing perturbations.
+        frame: All evidence-passing perturbations, index 0..n-1.
         top: The naive shortlist.
         n_draws: Number of shortlists.
         rng: Random generator. Sampling is the null here, not the estimate, so a seed is correct.
@@ -90,30 +94,21 @@ def _matched_draws(frame: pd.DataFrame, top: pd.DataFrame, n_draws: int, rng: np
     Returns:
         One row per draw, with the rejection count and per-axis counts.
     """
-    wanted = top["z_decile"].value_counts()
-    pools = {
-        decile: frame.index[(frame["z_decile"] == decile) & ~frame.index.isin(top.index)].to_numpy()
-        for decile in wanted.index
-    }
-
-    records = []
-    for _ in range(n_draws):
-        picked: list[int] = []
-        for decile, count in wanted.items():
-            pool = pools[decile]
-            if pool.size:
-                picked.extend(rng.choice(pool, size=min(int(count), pool.size), replace=False))
-        sample = frame.loc[picked]
-        row = {"n": len(sample), "rejected": int(sample["rejected"].sum())}
-        for axis in AXES:
-            # Exact-token match on the split reject_reason, never a substring, so a future axis name
-            # that contains another cannot double-count. reject_reason is comma-joined.
-            row[axis] = int(sample["reject_reason"].str.split(",").apply(lambda parts: axis in parts).sum())
+    tokens = frame["reject_reason"].str.split(",")
+    predicates = {
+        "rejected": frame["rejected"],
+        **{axis: tokens.apply(lambda parts, a=axis: a in parts) for axis in AXES},
         # The demoted selectivity axis, reported so the figure can show WHY it was demoted: it
         # rejects a magnitude-matched shortlist as often as ours. It is not part of the gate.
-        row["selectivity_annotation"] = int(sample["fail_homeostasis"].sum())
-        records.append(row)
-    return pd.DataFrame(records)
+        "selectivity_annotation": frame["fail_homeostasis"],
+    }
+    draws, shortfall = matched.count_matched(
+        frame, frame["z_decile"], top.index, predicates, n_draws, rng
+    )
+    if shortfall:
+        print(f"    NOTE: {shortfall} stratum-slots drawn with replacement (thin decile pool)")
+    assert (draws["n"] == len(top)).all(), "matched draw returned a shortlist of the wrong size"
+    return draws
 
 
 def gate_specificity(frame: pd.DataFrame, n_draws: int) -> tuple[bool, pd.DataFrame]:
