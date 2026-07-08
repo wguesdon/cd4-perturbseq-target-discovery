@@ -178,3 +178,97 @@ document in git unedited whichever fires.
 fails. It writes `results/tables/tolerance_induction_matched.csv`. `scripts/10_tolerance_is_real.py` is **not
 edited**; it is a load-bearing self-test and its expression-matched result stands as a separate, weaker claim.
 The report gains a subsection reporting both nulls side by side, and the verdict from §6.
+
+---
+
+# ADDENDUM 1 — 2026-07-08, after the first run. The negative control fired.
+
+**The original text above is unedited and stands. This addendum records that the pre-registered
+falsification control §7.3 failed, what it caught, and the machinery fix. The decision rule of §6 is
+NOT changed. Only the null distribution of the primary's p-value is corrected.**
+
+## What happened
+
+First run of `scripts/17_tolerance_is_special.py`, 200 nulls, 20 negative-control modules:
+
+| quantity | value |
+|---|---|
+| primary: `z` top-100 median, induction-matched | **+2.600** |
+| primary: `z` background median | +0.916 |
+| primary: one-sided MWU p | 5.57e-11 |
+| control §7.1 recovery, permuted induction: `z` top-100 median | +3.745 (reproduces `scripts/10`'s +3.87) |
+| control §7.2 positive, effector module: `z` top-100 median | +10.093 |
+| control §7.3 negative: median of 20 random modules' top-100 median `z` | +0.091 |
+| **control §7.3 negative: false-positive rate at α = 0.05** | **25.0% (5 of 20)** |
+
+§7.3 requires that rate to be "≈ 5%". It is 25%. The control **failed**.
+
+(The script's coded gate was `fpr <= 0.25`, which is looser than the criterion registered in §7.3 and
+wrongly returned PASS. The registered criterion binds, not the code. The gate has been tightened to
+`fpr <= 0.10` so the code and this document agree. That the code was more permissive than its own
+pre-registration is itself the kind of defect this project exists to catch, and it is recorded here
+rather than quietly fixed.)
+
+## What the control caught
+
+The primary applies a Mann–Whitney U across 6,371 perturbations. Those 6,371 `z` values are **not
+independent**. The real module is a *single fixed nine-gene set*. If that set happens to covary with
+effector suppression, every top-100 `z` shifts together. **The effective unit of resampling is the
+module, not the perturbation**, so the effective n is 1, not 100. The MWU p-value is anticonservative
+by orders of magnitude. A 25% false-positive rate on random modules is the direct measurement of that.
+
+This is not a defect of the induction matching. It is a defect of the inference placed on top of it,
+and it was present in the same form in `scripts/10_tolerance_is_real.py`'s test 2, whose p = 3.5e-13
+is anticonservative for exactly the same reason. **`scripts/10`'s verdict is not retracted — its
+statistic is still the right statistic — but its p-value should not be quoted.**
+
+## The machinery fix (does not change §6)
+
+Same statistic. Valid null.
+
+- **Statistic:** `T = median(z[in_top100])`, computed exactly as in §5.
+- **Null:** draw `N = 200` random nine-gene "real" modules matched on the same joint
+  (expression decile × induction decile) grid, each with its own 200 matched null sets, and compute
+  `T` for each. Exclude each drawn module from its own nulls.
+- **p:** `(1 + #{T_null >= T_real}) / (1 + N)`. This is a module-level permutation p. It is exact by
+  construction and needs no independence assumption across perturbations.
+- **Calibration check, new:** leave-one-out among the 200 null modules must give a uniform p, i.e.
+  ≈5% of them below 0.05. This replaces §7.3 and is reported.
+- **α, decision rule, both branches, and every limitation in §9: unchanged.**
+
+The per-perturbation MWU is still computed and reported, **explicitly labelled void and
+anticonservative**, so the reader can see the size of the error.
+
+## What was already visible in the first run, and is not changed by the fix
+
+- Induction matching reduces the top-100 `z` from **+3.745** (expression-matched, the permuted
+  recovery control) to **+2.600**. Co-induction therefore accounts for roughly **31%** of the effect
+  that `scripts/10` reported. It is a large part of it. It is not all of it.
+- The positive control behaves: the effector module, against its own expression- and
+  induction-matched nulls, gives `z` = +10.093 in the top-100. The pipeline can detect a
+  preferentially-suppressed module where one certainly exists.
+- **The per-gene split (§8) does not follow the co-induction prediction.** Co-induction predicts the
+  two non-induced genes show no excess suppression in the naive top-100. Observed:
+
+  | gene | induction log2FC | top-100 median | background median | MWU p |
+  |---|---|---|---|---|
+  | IL10 | +4.73 | 2.366 | 0.498 | 1.8e-16 |
+  | LRRC32 | +3.96 | 0.020 | 0.021 | **0.43** |
+  | FOXP3 | +3.04 | 0.387 | 0.040 | 3.4e-07 |
+  | LAG3 | +2.78 | 0.200 | 0.007 | 9.6e-08 |
+  | CTLA4 | +2.29 | 0.360 | 0.025 | 1.5e-23 |
+  | PDCD1 | +1.58 | 0.562 | 0.017 | 2.4e-17 |
+  | IKZF2 | +1.19 | 0.386 | 0.161 | 5.5e-03 |
+  | **TIGIT** | **−0.04** | **0.930** | 0.164 | **8.1e-10** |
+  | **TGFB1** | **−0.54** | 0.014 | −0.005 | 0.13 |
+
+  `TIGIT` is not stimulation-induced and is nonetheless the second most strongly suppressed gene in
+  the naive top-100. `LRRC32` is strongly induced and shows no excess at all. So the pattern is
+  **1 of 2 non-induced genes suppressed, and 1 of 7 induced genes not suppressed.** These per-gene
+  p-values carry the same non-independence caveat as the void primary and are descriptive only.
+  n = 2 on the non-induced side. It corroborates. It cannot settle anything. Recorded because it was
+  pre-registered, and because it points the other way from the hypothesis under test.
+
+- IL-2 axis: only 4 of the 8 pre-specified genes are perturbed and QC-passing (`IL2RA`, `IL2RB`,
+  `STAT5A`, `STAT5B`), and only 2 reach the naive top-100. **Reported as unavailable, not as null.**
+  The exploratory mechanism in §8 cannot be assessed on this screen.
