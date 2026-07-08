@@ -9,10 +9,19 @@ from __future__ import annotations
 
 import pandas as pd
 
+import glob
+
 from .paths import EXTERNAL, PRIORS
 
 SAFETY = EXTERNAL / "safety_priors"
 """Organism-level safety priors, fetched by ``scripts/06_fetch_safety_priors.sh``."""
+
+OPEN_TARGETS = EXTERNAL / "open_targets"
+"""Open Targets 26.06 bulk parquet, fetched by ``scripts/15`` and ``scripts/19`` (gitignored)."""
+
+OT_GENETIC_THRESHOLD = 0.1
+"""The source paper's autoimmune genetic-evidence cut (Zhu, Dann et al., Methods p.50). Adopted,
+not tuned. N10 reports a sensitivity at 0.05 and 0.2."""
 
 IMMUNE_TISSUES = frozenset(
     {"appendix", "bone marrow", "lymph node", "spleen", "thymus", "tonsil"}
@@ -261,3 +270,77 @@ def schmidt_cd4_il2_screen() -> pd.DataFrame:
     # MAGeCK reports the same lfc in the neg| and pos| blocks; take the neg| column.
     cd4 = cd4.rename(columns={"neg|lfc": "il2_lfc", "neg|fdr": "il2_neg_fdr"})
     return cd4[["gene_name", "il2_lfc", "il2_neg_fdr"]]
+
+
+def _ot_ensembl_to_symbol() -> pd.Series:
+    """Map Open Targets Ensembl gene ids to approved symbols, from the on-disk target parquet.
+
+    Returns:
+        Series indexed by Ensembl id, values are approved symbols.
+    """
+    parts = [pd.read_parquet(f, columns=["id", "approvedSymbol"])
+             for f in sorted(glob.glob(str(OPEN_TARGETS / "target_*.parquet")))]
+    table = pd.concat(parts, ignore_index=True).dropna(subset=["approvedSymbol"]).drop_duplicates("id")
+    return table.set_index("id")["approvedSymbol"]
+
+
+def ot_genetic_support(threshold: float = OT_GENETIC_THRESHOLD) -> pd.DataFrame:
+    """Open Targets autoimmune genetic-association support, per gene symbol.
+
+    Reads the filtered ``autoimmune_genetic_assoc.parquet`` produced by
+    ``scripts/19_fetch_ot_genetic_evidence.sh`` (genetic_association datatype scores for the 14
+    autoimmune diseases the source paper used), maps Ensembl ids to symbols, and summarises per gene.
+
+    Args:
+        threshold: A disease counts as supported if its association score is at least this. The
+            source paper used 0.1.
+
+    Returns:
+        DataFrame with ``gene_name``, ``ot_genetic_max`` (max score across the 14 diseases),
+        ``ot_genetic_n_diseases`` (how many clear ``threshold``), and ``ot_genetic_supported``
+        (bool, at least one disease clears it). One row per gene present in the association table.
+    """
+    assoc = pd.read_parquet(OPEN_TARGETS / "autoimmune_genetic_assoc.parquet")
+    assoc["gene_name"] = assoc["targetId"].map(_ot_ensembl_to_symbol())
+    assoc = assoc.dropna(subset=["gene_name"])
+    grouped = assoc.groupby("gene_name")
+    out = pd.DataFrame({
+        "ot_genetic_max": grouped["associationScore"].max(),
+        "ot_genetic_n_diseases": grouped["associationScore"].apply(lambda s: int((s >= threshold).sum())),
+    }).reset_index()
+    out["ot_genetic_supported"] = out["ot_genetic_n_diseases"] > 0
+    return out
+
+
+def ot_tractability() -> pd.DataFrame:
+    """Open Targets small-molecule and antibody tractability, summarised per gene symbol.
+
+    The raw field is a list of ``{modality, id, value}`` buckets. We reduce it to a few booleans a
+    triage layer can read: a small-molecule pocket exists, the gene is in a druggable protein family,
+    it is antibody-accessible at the cell surface, and there is any clinical precedent for a drug
+    against it in any modality.
+
+    Returns:
+        DataFrame with ``gene_name``, ``sm_pocket``, ``sm_druggable_family``, ``ab_accessible``,
+        ``clinical_precedent``, and ``tractable`` (any of the first three).
+    """
+    parts = [pd.read_parquet(f, columns=["approvedSymbol", "tractability"])
+             for f in sorted(glob.glob(str(OPEN_TARGETS / "target_*.parquet")))]
+    table = pd.concat(parts, ignore_index=True).dropna(subset=["approvedSymbol"]).drop_duplicates("approvedSymbol")
+
+    rows = []
+    for symbol, buckets in zip(table["approvedSymbol"], table["tractability"], strict=True):
+        flags = {(b["modality"], b["id"]): bool(b["value"]) for b in (buckets if buckets is not None else [])}
+        sm_pocket = flags.get(("SM", "High-Quality Pocket"), False) or flags.get(("SM", "Med-Quality Pocket"), False)
+        sm_family = flags.get(("SM", "Druggable Family"), False)
+        ab = any(flags.get(("AB", k), False) for k in
+                 ("UniProt loc high conf", "GO CC high conf", "UniProt loc med conf", "GO CC med conf",
+                  "Human Protein Atlas loc", "UniProt SigP or TMHMM"))
+        clinical = any(flags.get((m, k), False) for m in ("SM", "AB", "PR", "OC")
+                       for k in ("Approved Drug", "Advanced Clinical", "Phase 1 Clinical"))
+        rows.append({
+            "gene_name": symbol, "sm_pocket": sm_pocket, "sm_druggable_family": sm_family,
+            "ab_accessible": ab, "clinical_precedent": clinical,
+            "tractable": sm_pocket or sm_family or ab,
+        })
+    return pd.DataFrame(rows)

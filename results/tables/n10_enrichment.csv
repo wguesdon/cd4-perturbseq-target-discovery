@@ -1,0 +1,7 @@
+test,observed,matched_mean,p,odds_ratio,note
+gate vs rejected (Fisher),49.0,,0.6451768814583017,0.867683226758485,safe 49/263 vs rejected 19/91
+naive top 100 enrichment,32.0,19.7072,0.003,,32/100 supported; matched 19.7; shortfall 0
+safe-set top 100 enrichment,21.0,22.176,0.6556,,21/100 supported; matched 22.2; shortfall 0
+delta (safe - naive) supported fraction,-0.11000000000000001,,,,safe 0.210 vs naive 0.320
+CONTROL label-shuffle (must be non-significant),,,0.3218,,PASS
+CONTROL matched-null calibration (FPR ~5%),,,0.03,,FPR 0.030; PASS
