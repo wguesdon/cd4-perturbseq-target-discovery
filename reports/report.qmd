@@ -109,8 +109,8 @@ scored separately as a **tolerance module** whose suppression is penalised.
 Four requirements, applied in order.
 
 1. **Evidence floor.** A perturbation must significantly suppress at least three effector-module
-   genes at 10% FDR. Without this, perturbations that did nothing dominate the ranking; see
-   @sec-failures.
+   genes at 10% FDR. Without it, perturbations that did nothing dominate the ranking, as
+   @sec-failures shows.
 2. **Context selectivity.** The stimulated effect must exceed the resting effect at least
    tenfold, measured in significant DE-gene counts. This threshold is fixed a priori.
 3. **Immune essentiality.** Genes on the IUIS inborn-errors-of-immunity list are rejected.
