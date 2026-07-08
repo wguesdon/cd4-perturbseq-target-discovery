@@ -43,6 +43,11 @@ reports/*.html
 reports/*_files/
 reports/.jupyter_cache/
 
+# Third-party PDFs. The source preprint and any downloaded papers stay local. They are other
+# people's copyrighted layout even when the text is CC BY, the repo goes PUBLIC before the
+# deadline, and nothing in the pipeline reads them. Cite them; do not vendor them.
+*.pdf
+
 # OS cruft
 .DS_Store
 
