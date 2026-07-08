@@ -36,6 +36,13 @@ data/external/*
 # Notebook checkpoints
 .ipynb_checkpoints/
 
+# Quarto render output. report.html is 6 MB with resources embedded and is rebuilt by
+# `quarto render reports/report.qmd`. Commit the final render at submission, not every draft.
+/.quarto/
+reports/*.html
+reports/*_files/
+reports/.jupyter_cache/
+
 # OS cruft
 .DS_Store
 
