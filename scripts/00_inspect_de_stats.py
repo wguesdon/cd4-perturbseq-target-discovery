@@ -38,6 +38,17 @@ def main() -> None:
 
     print(f"\nunique perturbed genes: {obs['target_contrast_gene_name'].nunique()}")
 
+    # Emit the two gene lists that HANDOFF #1 needs to cross-check the ground truth.
+    paths.ensure_dirs()
+    measured = paths.INTERIM / "measured_genes.txt"
+    perturbed = paths.INTERIM / "perturbed_genes.txt"
+    measured.write_text("\n".join(sorted(var["gene_name"].astype(str))) + "\n")
+    perturbed.write_text(
+        "\n".join(sorted(obs["target_contrast_gene_name"].astype(str).unique())) + "\n"
+    )
+    print(f"\nwrote {measured}")
+    print(f"wrote {perturbed}")
+
 
 if __name__ == "__main__":
     main()
