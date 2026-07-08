@@ -27,6 +27,12 @@ Columns: # | date | tool | task | prompt or commit | artifact or output | result
 
 ## Claude Science handoffs
 
+Queue and two-machine protocol: [`handoffs/README.md`](./handoffs/README.md).
+Claude Science runs on the Mac Mini; it never needs the 16.8 GB effect matrix.
+
 | # | date | handoff task | handoff prompt ref | artifact id | result |
 | --- | --- | --- | --- | --- | --- |
-| CS1 | (queued) | Open Targets cross-check of the ground-truth positives, both directions | [HANDOFF #1](./handoffs/HANDOFF_01_open_targets_ground_truth.md) | (pending) | (pending) |
+| CS1 | (ready) | Open Targets: how many phase-4 immune inhibitory targets are in our 6,371 rankable genes? Decides whether the benchmark is powered. | [HANDOFF #1](./handoffs/HANDOFF_01_open_targets_ground_truth.md) | (pending) | (pending) |
+| CS2 | (ready) | Reviewer agent independently recomputes the risk-kill statistics and resamples the single-draw matched background | [HANDOFF #2](./handoffs/HANDOFF_02_reviewer_verify_riskkill.md) | (pending) | (pending) |
+| CS3 | (blocked) | Evidence cards for the safety-passing shortlist | (pending null model) | | |
+| CS4 | (blocked) | Tractability and degrader handle for the final shortlist | (pending CS3) | | |
