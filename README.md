@@ -134,8 +134,12 @@ they do not beat simple baselines here.
    co-inhibitory checkpoints are stimulation induced too, so a naive objective wrongly rewards
    destroying them.
 2. Score effector suppression in stimulated cells, calibrated against a within condition null.
-3. Gate on the three axes the data actually supports: immune essentiality from the IUIS inborn
-   errors of immunity list, resting transcriptome disruption, and tolerance preservation.
+3. Gate on the axes the screen itself measures: an evidence floor, context selectivity (the
+   stimulated effect must exceed the resting effect tenfold), and tolerance preservation. Immune
+   essentiality from the IUIS list is **reported, not gated on**. It is more enriched among approved
+   drug targets (OR 8.3) than among the perturbations a naive ranking calls toxic (OR 4.2), so it
+   cannot separate a hazard from a good target. Every gate axis that was a database lookup has
+   failed here. Every axis computed from the screen has held.
 4. Validate the efficacy axis against an independent CRISPRi screen with a protein readout.
    Validate the window score on therapeutic index, separately, because the two are not the same
    question.

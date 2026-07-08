@@ -6,11 +6,11 @@ date: last-modified
 abstract: |
   Ranking CRISPRi perturbations by how strongly they reverse an inflammatory signature is a
   released, commodity capability. We show that on a genome-scale CD4+ T cell Perturb-seq atlas
-  it nominates targets that work and would leave a patient immunodeficient. Nineteen of the top
+  it nominates targets that work and would leave a patient immunodeficient. Eighteen of the top
   twenty perturbations in a naive suppression ranking fail a safety gate, and an independent
   lab's protein-level CRISPRi screen confirms that many of them genuinely do shut IL-2
   production down. We build a therapeutic-window score with an evidence floor, a context
-  selectivity requirement, an immune-essentiality gate, and a tolerance-preservation penalty,
+  selectivity requirement and a tolerance-preservation penalty,
   and we read viability directly off the screen. Without being told which drugs are well
   tolerated, the score sorts five approved immunomodulators into the three mechanism classes
   the clinic uses. We report where it fails as carefully as where it succeeds.
@@ -106,16 +106,20 @@ scored separately as a **tolerance module** whose suppression is penalised.
 
 ## The therapeutic-window score
 
-Four requirements, applied in order.
+Three requirements, applied in order. A fourth, immune essentiality, was removed; see @sec-failures.
 
 1. **Evidence floor.** A perturbation must significantly suppress at least three effector-module
    genes at 10% FDR. Without it, perturbations that did nothing dominate the ranking, as
    @sec-failures shows.
 2. **Context selectivity.** The stimulated effect must exceed the resting effect at least
    tenfold, measured in significant DE-gene counts. This threshold is fixed a priori.
-3. **Immune essentiality.** Genes on the IUIS inborn-errors-of-immunity list are rejected.
-4. **Tolerance preservation.** Perturbations in the top quartile of tolerance-module suppression
-   are rejected.
+3. **Tolerance preservation.** Perturbations in the top quartile of tolerance-module suppression
+   are rejected. The tolerance module really is suppressed beyond its own null: against 200
+   expression-matched random nine-gene modules, z = +3.87 in the naive top 100 versus +1.26 in
+   background, p = 3.5e-13.
+
+Immune essentiality from the IUIS list is **reported, not gated on**, and the reason is in
+@sec-failures.
 
 For every perturbation, the perturbed gene is removed from both its own module and the
 background, because its on-target knockdown is large, negative, and required to be significant by
@@ -142,8 +146,9 @@ never enters the score, the gate, or any threshold. Every number involving it is
 top20 = w.nsmallest(20, "naive_rank")
 Markdown(
     f"Of the top 20 perturbations by naive effector suppression, **{N_TOP20_REJECTED} are "
-    f"rejected** by the safety gate. The single survivor is "
-    f"`{top20.loc[top20['safe'], 'gene_name'].iloc[0] if top20['safe'].any() else 'none'}`."
+    f"rejected** by the safety gate. The survivors are "
+    + (", ".join(f"`{g}`" for g in top20.loc[top20["safe"], "gene_name"]) or "none")
+    + ", and each needs checking by hand: a gate is not a proof."
 )
 ```
 
@@ -161,10 +166,10 @@ Markdown(
 ### They really work
 
 ::: {.light-content}
-![Twelve knockdowns an independent lab proves reduce IL-2, all refused.](../results/figures/fig2_effective_but_rejected_light.png){#fig-rejected}
+![Knockdowns an independent lab proves reduce IL-2, all refused by the gate.](../results/figures/fig2_effective_but_rejected_light.png){#fig-rejected}
 :::
 ::: {.dark-content}
-![Twelve knockdowns an independent lab proves reduce IL-2, all refused.](../results/figures/fig2_effective_but_rejected_dark.png){#fig-rejected-dark}
+![Knockdowns an independent lab proves reduce IL-2, all refused by the gate.](../results/figures/fig2_effective_but_rejected_dark.png){#fig-rejected-dark}
 :::
 
 ### The rejected list
@@ -238,10 +243,14 @@ tacrolimus) and `IL4R` (dupilumab), both non-depleting. It passes `IMPDH2` (myco
 depleting-at-rest. It rejects `CD3E` and `CD3G`, which are inborn errors of immunity, and
 muromonab was withdrawn.
 
-Well-tolerated agents passing the gate: 3 of 3. Narrow-index agents passing: 0 of 2. Five points
-is a direction, not a p-value, and we report it as one. Nothing in the score or the gate was told
-which drug is well tolerated. The three strata that emerged are the three mechanism classes the
-clinic uses.
+Well-tolerated agents passing the gate: 3 of 3. Narrow-index agents passing: 1 of 2. Five points
+is a direction, not a p-value, and we report it as one.
+
+That second number was 0 of 2 until 2026-07-08, when the immunodeficiency flag was removed from the
+gate. It had to go: the flag is more enriched among approved drug targets than among the
+perturbations the naive ranking calls toxic, so it could not separate a hazard from a target.
+`CD3E` now passes. The screen-native axes cannot see cytokine release syndrome, which is why
+muromonab was withdrawn. We report the weaker number.
 
 ## Where the designs failed {#sec-failures}
 
@@ -284,8 +293,11 @@ statement of what would have to be true for each entry to be wrong.
 Our safety gate is not the one we planned. The original design anchored viability on DepMap and
 Hart core-essential genes. In this screen that axis is inert: the 31 rankable Hart essentials sit
 at median rank 3,148 of 6,371 in the naive ranking, Mann-Whitney p = 0.611. The axes that
-actually separate the false positives are immune essentiality, resting-transcriptome disruption,
-and tolerance preservation. Two of the three are computed from the knockdown transcriptome itself.
+actually separate the false positives are context selectivity, resting-transcriptome disruption,
+and tolerance preservation. All three are computed from the knockdown transcriptome itself. Every
+gate axis that was a database membership test has failed here: first DepMap and Hart essentiality,
+then the IUIS immunodeficiency list. That is not a coincidence, and it is the project's actual
+contribution.
 
 The shortlist that survives is dominated by immunometabolism: mitochondrial biogenesis, OXPHOS
 assembly, one-carbon metabolism, and `RRAGC`, the Rag GTPase through which mTORC1 senses amino
