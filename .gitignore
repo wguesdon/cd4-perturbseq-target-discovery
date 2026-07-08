@@ -14,12 +14,16 @@ wheels/
 .env.*
 
 # Data (large and/or restricted — keep folder structure, ignore contents)
+# data/external is reproduced exactly by scripts/fetch_priors.sh, so we ignore the
+# payload rather than vendor ~10 MB of third-party tables.
 data/raw/*
 data/interim/*
 data/processed/*
+data/external/*
 !data/raw/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep
+!data/external/.gitkeep
 
 # Single-cell / genomics artifacts (never commit these anywhere)
 *.h5ad
