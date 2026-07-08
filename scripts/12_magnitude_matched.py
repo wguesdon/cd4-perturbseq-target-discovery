@@ -74,7 +74,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from cd4_perturbseq import de_stats, paths, priors, programs, stratified
+from cd4_perturbseq import de_stats, magnitude, paths, priors, programs, stratified
 
 STIM = "Stim48hr"
 REST = "Rest"
@@ -86,8 +86,6 @@ SENSITIVITY_BINS = (10, 20, 50)
 
 CIRCULARITY_RHO = 0.90
 """Above this |Spearman| with the matching variable, test A cannot separate pillar from stratum."""
-
-Z_L2_CACHE = paths.INTERIM / "z_l2_stim48.csv"
 
 
 @dataclass(frozen=True)
@@ -146,68 +144,6 @@ def _test(pillar: Pillar, frame: pd.DataFrame, group: str, strata: np.ndarray, a
         return None
 
 
-def compute_z_l2(obs: pd.DataFrame, var: pd.DataFrame, rows: np.ndarray, exclude: set[str]) -> pd.DataFrame:
-    """Transcriptome-wide effect magnitude per perturbation, off-module and off-target.
-
-    ``z_l2 = sqrt(sum of z^2)`` over the measured genes, minus three things that would put the
-    score inside the variable meant to control for it: the perturbed gene's own column (a
-    QC-required significant knockdown, so large by construction), the 32 effector genes the score
-    is built from, and the 9 tolerance genes pillar 5 is built from.
-
-    Cached, because it is the only step in this project that reads full-width rows of a 16.8 GB
-    layer. ``de_stats.read_layer_rows`` downcasts to float32, so 6,371 rows cost 262 MB.
-
-    Args:
-        obs: Full ``.obs`` frame, positionally indexed.
-        var: Full ``.var`` frame.
-        rows: Positional indices into ``.obs`` of the perturbations to score.
-        exclude: Gene symbols to drop from the norm, beyond each row's own target.
-
-    Returns:
-        DataFrame indexed by gene symbol with ``z_l2``, ``z_l2_raw`` (nothing excluded), and
-        ``n_genes_used``.
-    """
-    if Z_L2_CACHE.exists():
-        cached = pd.read_csv(Z_L2_CACHE)
-        if len(cached) == len(rows):
-            print(f"  z_l2: reusing cache {Z_L2_CACHE} ({len(cached):,} rows)")
-            return cached.set_index("gene_name")
-        print(f"  z_l2: cache has {len(cached):,} rows, need {len(rows):,}; recomputing")
-
-    names = var["gene_name"].astype(str).to_numpy()
-    column_of = {g: i for i, g in enumerate(names)}
-
-    print(f"  z_l2: reading {len(rows):,} full-width rows of the zscore layer (float32, ~262 MB) ...")
-    block = de_stats.read_layer_rows(rows, layer="zscore")
-    finite = np.isfinite(block)
-    squared = np.where(finite, block, 0.0).astype(np.float64) ** 2
-    z_l2_raw = np.sqrt(squared.sum(axis=1))
-
-    module_cols = np.array(sorted({column_of[g] for g in exclude if g in column_of}), dtype=np.int64)
-    squared[:, module_cols] = 0.0
-    finite[:, module_cols] = False
-
-    targets = obs.loc[rows, "target_contrast_gene_name"].astype(str).to_numpy()
-    self_rows = np.array([i for i, g in enumerate(targets) if g in column_of], dtype=np.int64)
-    self_cols = np.array([column_of[g] for g in targets if g in column_of], dtype=np.int64)
-    squared[self_rows, self_cols] = 0.0
-    finite[self_rows, self_cols] = False
-    print(f"  z_l2: excluded {len(module_cols)} module columns and {len(self_rows):,} self-target columns")
-
-    frame = pd.DataFrame(
-        {
-            "gene_name": targets,
-            "z_l2": np.sqrt(squared.sum(axis=1)),
-            "z_l2_raw": z_l2_raw,
-            "n_genes_used": finite.sum(axis=1),
-        }
-    )
-    paths.ensure_dirs()
-    frame.to_csv(Z_L2_CACHE, index=False)
-    print(f"  z_l2: wrote cache {Z_L2_CACHE}")
-    return frame.set_index("gene_name")
-
-
 def build_frame(top_k: int) -> pd.DataFrame:
     """Rank by naive suppression and attach every pillar plus the magnitude covariate.
 
@@ -263,9 +199,9 @@ def build_frame(top_k: int) -> pd.DataFrame:
 
     frame["is_iei"] = frame["gene_name"].isin(priors.iei_genes()).astype(float)
 
-    magnitude = compute_z_l2(obs, var, stim_rows, exclude=set(effector) | set(tolerance))
-    frame["z_l2"] = frame["gene_name"].map(magnitude["z_l2"])
-    frame["z_l2_raw"] = frame["gene_name"].map(magnitude["z_l2_raw"])
+    scale = magnitude.effect_magnitude(obs, var, stim_rows, exclude=set(effector) | set(tolerance))
+    frame["z_l2"] = frame["gene_name"].map(scale["z_l2"])
+    frame["z_l2_raw"] = frame["gene_name"].map(scale["z_l2_raw"])
 
     frame["abs_score"] = frame["naive_suppression"].abs()
     frame["is_suppressor"] = frame["naive_suppression"] > 0
