@@ -100,14 +100,21 @@ def enrichment(frame: pd.DataFrame, n_draws: int) -> tuple[pd.DataFrame, dict[st
                         "note": f"{obs}/{len(top)} supported; matched {draws['supported'].mean():.1f}; "
                                 f"shortfall {shortfall}"})
 
-    # The direction: safe-top supported fraction minus naive-top supported fraction.
+    # The direction: safe-top supported fraction minus naive-top supported fraction, with a
+    # two-proportion 95% CI. The pre-registration (section 6) keys OPPOSE on delta<0 with a CI that
+    # EXCLUDES 0, not on the sign of delta alone.
     naive_top = frame.nsmallest(TOP_N, "naive_rank")
-    safe_top = frame[frame["safe"]].nlargest(min(TOP_N, int(frame["safe"].sum())), "window_score")
-    delta = safe_top["ot_genetic_supported"].mean() - naive_top["ot_genetic_supported"].mean()
+    n_safe_top = min(TOP_N, int(frame["safe"].sum()))
+    safe_top = frame[frame["safe"]].nlargest(n_safe_top, "window_score")
+    p_naive = naive_top["ot_genetic_supported"].mean()
+    p_safe = safe_top["ot_genetic_supported"].mean()
+    delta = p_safe - p_naive
+    se = np.sqrt(p_naive * (1 - p_naive) / len(naive_top) + p_safe * (1 - p_safe) / n_safe_top)
+    delta_lo, delta_hi = delta - 1.96 * se, delta + 1.96 * se
     records.append({"test": "delta (safe - naive) supported fraction", "observed": delta,
-                    "matched_mean": np.nan, "p": np.nan, "odds_ratio": np.nan,
-                    "note": f"safe {safe_top['ot_genetic_supported'].mean():.3f} vs "
-                            f"naive {naive_top['ot_genetic_supported'].mean():.3f}"})
+                    "matched_mean": np.nan, "p": float(2 * (1 - stats.norm.cdf(abs(delta / se)))),
+                    "odds_ratio": np.nan,
+                    "note": f"safe {p_safe:.3f} vs naive {p_naive:.3f}; 95% CI [{delta_lo:+.3f}, {delta_hi:+.3f}]"})
 
     # Control: label-shuffle must destroy enrichment.
     shuffled = frame.copy()
@@ -205,6 +212,8 @@ def main() -> None:
     safe_row = enrich[enrich["test"] == "safe-set top 100 enrichment"].iloc[0]
     delta_row = enrich[enrich["test"].str.startswith("delta")].iloc[0]
     delta = float(delta_row["observed"])
+    delta_p = float(delta_row["p"])
+    delta_ci_excludes_0 = delta_p < ALPHA  # the two-proportion CI excludes 0 iff its z-test p < 0.05
 
     ctrl_ok = all(controls.values())
     print("\n" + "=" * 78)
@@ -215,25 +224,32 @@ def main() -> None:
         print("=" * 78)
         raise SystemExit(1)
 
+    naive_enriched = naive_row["p"] < ALPHA
     safe_enriched = safe_row["p"] < ALPHA
-    if delta > 0 and safe_enriched:
+    # Section 6, applied exactly: OPPOSE and ALIGN both require the delta CI to exclude 0.
+    if delta > 0 and safe_enriched and delta_ci_excludes_0:
         verdict = "ALIGN"
         msg = ("The safety-gated ranking enriches for genetics-supported autoimmune targets beyond "
                "effect magnitude. The decision layer adds drug relevance.")
-    elif delta < 0:
+    elif delta < 0 and delta_ci_excludes_0:
         verdict = "OPPOSE"
-        msg = ("The gate DE-enriches for genetics-supported targets relative to the naive ranking. "
-               "This is the immunodeficiency result from a third angle: the standard target-discovery "
-               "prior, applied to an inflammatory reversal signature, selects for the targets a safety "
-               "layer must reject. 'Reversal is not enough' generalises past reversal.")
+        msg = ("The gate DE-enriches for genetics-supported targets relative to the naive ranking: the "
+               "standard target-discovery prior, applied to an inflammatory reversal signature, selects "
+               "for the targets a safety layer must reject.")
     else:
-        verdict = "NULL"
-        msg = ("The gate is orthogonal to genetic support. The nomination rests on the gate plus LoF "
-               "tolerance and tractability, without a genetic-enrichment claim.")
+        verdict = "NULL (with a directional signal)"
+        msg = ("The delta CI includes 0, so we do NOT claim the gate opposes genetic support. What is "
+               "significant and pre-registered: the NAIVE ranking is enriched for autoimmune genetic "
+               f"support ({'yes' if naive_enriched else 'no'}, p={naive_row['p']:.4f}) while the SAFETY-GATED "
+               f"ranking is NOT (p={safe_row['p']:.4f}). The gate does not inherit the naive ranking's "
+               "genetic enrichment. The difference between them is suggestive but under-powered at n=100 "
+               f"(delta {delta:+.3f}, p={delta_p:.3f}). Consistent with the IEI and co-inhibitory results; "
+               "not independently significant.")
     print(f"VERDICT: {verdict}")
     print(f"  naive top-100 supported {int(naive_row['observed'])} (matched {naive_row['matched_mean']:.1f}, "
           f"p={naive_row['p']:.4f}); safe top-100 supported {int(safe_row['observed'])} "
-          f"(matched {safe_row['matched_mean']:.1f}, p={safe_row['p']:.4f}); delta={delta:+.3f}")
+          f"(matched {safe_row['matched_mean']:.1f}, p={safe_row['p']:.4f})")
+    print(f"  delta={delta:+.3f}, two-proportion p={delta_p:.3f} -> CI {'excludes' if delta_ci_excludes_0 else 'INCLUDES'} 0")
     print(f"  {msg}")
     print("=" * 78)
     print("\nThe nomination is hypothesis-generating: T-cell-intrinsic gate, organism safety is annotation,")
