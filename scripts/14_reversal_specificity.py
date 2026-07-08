@@ -51,7 +51,11 @@ TOP_N = 20
 ALPHA = 0.01
 """Pre-registered: tolerance must beat the magnitude-matched draws at this level."""
 
-AXES = ("tolerance", "homeostasis")
+# Only the co-inhibitory axis remains a gate. "homeostasis" (selectivity) was demoted to an
+# annotation (N6), so it no longer appears in reject_reason. Its non-specificity is why it was
+# demoted: N7 measured 14 of ours vs 13.6 magnitude-matched, P=0.53. We report that result in the
+# text as the reason, and we do not carry an empty "rejected on homeostasis: 0" column here.
+AXES = ("tolerance",)
 
 
 def load() -> pd.DataFrame:
@@ -102,7 +106,12 @@ def _matched_draws(frame: pd.DataFrame, top: pd.DataFrame, n_draws: int, rng: np
         sample = frame.loc[picked]
         row = {"n": len(sample), "rejected": int(sample["rejected"].sum())}
         for axis in AXES:
-            row[axis] = int(sample["reject_reason"].str.contains(axis).sum())
+            # Exact-token match on the split reject_reason, never a substring, so a future axis name
+            # that contains another cannot double-count. reject_reason is comma-joined.
+            row[axis] = int(sample["reject_reason"].str.split(",").apply(lambda parts: axis in parts).sum())
+        # The demoted selectivity axis, reported so the figure can show WHY it was demoted: it
+        # rejects a magnitude-matched shortlist as often as ours. It is not part of the gate.
+        row["selectivity_annotation"] = int(sample["fail_homeostasis"].sum())
         records.append(row)
     return pd.DataFrame(records)
 
@@ -133,8 +142,8 @@ def gate_specificity(frame: pd.DataFrame, n_draws: int) -> tuple[bool, pd.DataFr
           f"({draws['rejected'].mean() / TOP_N:.0%})   P(matched >= observed) = {p_total:.4f}")
     if p_total >= 0.05:
         print("    -> THE HEADLINE COUNT IS NOT SPECIFIC TO REVERSAL. A shortlist of the same effect")
-        print("       magnitude is rejected almost as often. Quoting 18/20 as evidence that *reversal*")
-        print("       nominates toxic targets overstates it. Say so in the report, in these words.")
+        print(f"       magnitude is rejected almost as often. Quoting {observed}/{TOP_N} as evidence that")
+        print("       *reversal* nominates toxic targets overstates it. Say so in the report.")
 
     print(f"\n    which AXIS does work that effect magnitude does not? ({n_draws:,} matched draws)")
     records = [{
@@ -146,7 +155,7 @@ def gate_specificity(frame: pd.DataFrame, n_draws: int) -> tuple[bool, pd.DataFr
     }]
     verdicts = {}
     for axis in AXES:
-        observed_axis = int(top["reject_reason"].str.contains(axis).sum())
+        observed_axis = int(top["reject_reason"].str.split(",").apply(lambda parts: axis in parts).sum())
         p_axis = float((draws[axis] >= observed_axis).mean())
         verdicts[axis] = p_axis < ALPHA
         call = "SPECIFIC TO REVERSAL" if p_axis < ALPHA else "explained by effect magnitude"
@@ -160,8 +169,23 @@ def gate_specificity(frame: pd.DataFrame, n_draws: int) -> tuple[bool, pd.DataFr
             "specific_to_reversal": verdicts[axis],
         })
 
-    print("\n    The gate rejects on both. Only one of them is about the direction of the")
-    print("    perturbation. The other is about its size, and effect size is not a finding.")
+    # The demoted selectivity axis, as a reported comparison. This is the demotion, made visible:
+    # it rejects a magnitude-matched shortlist as often as it rejects ours.
+    observed_sel = int(top["fail_homeostasis"].sum())
+    p_sel = float((draws["selectivity_annotation"] >= observed_sel).mean())
+    print(f"      {'selectivity':12s} top {observed_sel:2d}   matched mean {draws['selectivity_annotation'].mean():5.2f}   "
+          f"P(matched >= top) = {p_sel:.4f}   {'SPECIFIC' if p_sel < ALPHA else 'explained by effect magnitude (DEMOTED, N6)'}")
+    records.append({
+        "quantity": f"fails selectivity annotation, top {TOP_N}",
+        "observed": observed_sel,
+        "matched_mean": draws["selectivity_annotation"].mean(),
+        "p_matched_ge_observed": p_sel,
+        "specific_to_reversal": p_sel < ALPHA,
+    })
+
+    print("\n    The gate rejects on the co-inhibitory axis, and that is specific to reversal. The")
+    print("    demoted selectivity axis rejects a magnitude-matched shortlist just as often: it was")
+    print("    about the size of a perturbation, not its direction, and effect size is not a finding.")
 
     table = pd.DataFrame(records)
     table["n_draws"] = n_draws
@@ -202,8 +226,8 @@ def rival_rankings(frame: pd.DataFrame) -> pd.DataFrame:
             "ranking": label,
             "median tolerance loss": top["tolerance_loss"].median(),
             "median z_l2": top["z_l2"].median(),
-            "rejected on tolerance": int(top["reject_reason"].str.contains("tolerance").sum()),
-            "rejected on homeostasis": int(top["reject_reason"].str.contains("homeostasis").sum()),
+            "rejected on tolerance": int(top["reject_reason"].str.split(",").apply(lambda p: "tolerance" in p).sum()),
+            "fails selectivity (annotation)": int(top["fail_homeostasis"].sum()),
             "pass gate": int(top["safe"].sum()),
         })
     table = pd.DataFrame(records)

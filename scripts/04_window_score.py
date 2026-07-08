@@ -49,15 +49,15 @@ MIN_MODULE_DOWN = 3
 ACTIVE_DE = 100
 
 MIN_SELECTIVITY = float(np.log(10.0))
-"""Require the stimulated effect to be at least tenfold the resting effect, in DE-gene count.
+"""Threshold for the selectivity ANNOTATION. This axis no longer gates (N6); see :func:`apply_gate`.
 
-An absolute cap on resting DE genes cannot work. Set on all perturbations it rejects IMPDH2, the
-mycophenolate target, which carries 33 resting DE genes against 1,055 stimulated. Set on the
-evidence-passing subpopulation, which is by construction active, the threshold inflates to roughly
-500 and CFAP20 sails through with 455 resting DE genes.
-
-The therapeutic window is a RATIO, not a count. This threshold is fixed a priori at tenfold and is
-not tuned against any outcome. Schmidt is held out; the approved-drug positives are not consulted.
+The implemented rule is ``(1 + stim_de_genes) / (1 + rest_de_genes) >= 10``, applied to DE counts
+that include the on-target gene. It is NOT ``stim_de / rest_de >= 10``. The implied bar on
+``stim_de_genes`` is ``10 * (1 + rest_de_genes) - 1``: 9 at ``rest_de = 0``, 19 at ``rest_de = 1``,
+and 39 at the value 3.0 the deleted median imputation used to supply. The word "tenfold" is avoided
+because the ``log1p`` offset moves the effective bar across the counts where most of the data lives.
+The threshold and the transform are frozen: changing either now, having seen where rows fall, would
+be tuning. It is documented, not tuned, and it is reported, not gated.
 """
 
 RNG = np.random.default_rng(0)
@@ -178,10 +178,45 @@ def build() -> pd.DataFrame:
     )
 
     rest = obs[obs["culture_condition"] == REST].drop_duplicates(gene_col).set_index(gene_col)
+    rest_qc = de_stats.qc_mask(rest)
     frame["rest_de_genes"] = frame["gene_name"].map(rest["n_total_de_genes"])
-    frame["rest_de_genes"] = frame["rest_de_genes"].fillna(frame["rest_de_genes"].median())
 
-    # Context selectivity: large effect when stimulated, small effect at rest.
+    # NO IMPUTATION. The previous version filled the 51 genes with no resting row with the
+    # screen-wide median (3.0), which is the median of the null mass; among evidence-passers with a
+    # measured resting row the median is 157. That understated the resting effect ~52x for exactly
+    # the active perturbations and let a mitotic kinesin (CENPE) pass the whole gate on a made-up
+    # number. A gene with no resting row has an UNKNOWN resting DE count, not a low one. Selectivity
+    # is now NaN there. This is safe because selectivity no longer gates (N6, see apply_gate).
+    rest_flags = ("distal_offtarget_flag", "neighboring_gene_KD", "ontarget_significant", "low_target_gex")
+
+    def _rest_class(gene: str) -> str:
+        if gene not in rest.index:
+            return "rest_absent"
+        return "rest_qc_pass" if bool(rest_qc.loc[gene]) else "rest_qc_fail"
+
+    def _rest_reason(gene: str) -> str:
+        if gene not in rest.index:
+            return "absent"
+        r = rest.loc[gene]
+        why = []
+        if bool(r["distal_offtarget_flag"]):
+            why.append("distal_offtarget")
+        if bool(r["neighboring_gene_KD"]):
+            why.append("neighboring_kd")
+        if not bool(r["ontarget_significant"]):
+            why.append("ontarget_ns")
+        if bool(r["low_target_gex"]):
+            why.append("low_target_gex")
+        return ",".join(why) or "-"
+
+    frame["rest_qc_class"] = frame["gene_name"].map(_rest_class)
+    frame["rest_qc_fail_reason"] = frame["gene_name"].map(_rest_reason)
+
+    # Context selectivity: large effect when stimulated, small effect at rest. DEMOTED (N6) to a
+    # reported annotation; it does not gate. It lost to a one-variable shadow of itself (a raw
+    # rest-DE threshold beat it, z -3.42 vs -2.77 on LOEUF), and the same association appears among
+    # perturbations the gate never touches (z -4.01 on the evidence-failers), so it was reading gene
+    # constraint, not perturbation danger. See docs/preregistration_n6_2026_07_08.md and script 18.
     frame["selectivity"] = np.log1p(frame["stim_de_genes"]) - np.log1p(frame["rest_de_genes"])
     frame["efficacy"] = -frame["eff_mean_lfc"]
     frame["tolerance_loss"] = -frame["tol_mean_lfc"]
@@ -215,37 +250,56 @@ def build() -> pd.DataFrame:
 
 
 def apply_gate(frame: pd.DataFrame) -> pd.DataFrame:
-    """Apply the evidence floor and the three evidence-chosen safety axes."""
+    """Apply the two validated safety axes: the evidence floor and co-inhibitory preservation.
+
+    The gate had three axes until 2026-07-08. Selectivity (context "homeostasis") was demoted (N6):
+    it lost a pre-registered dominance test to a one-variable shadow of itself, and its association
+    with LoF constraint appears just as strongly among perturbations the gate never acts on, so it
+    was reading gene importance rather than perturbation danger. It is computed and reported here as
+    an annotation; it does not enter ``safe`` or ``window_score``.
+    """
     frame["fail_evidence"] = frame["n_module_down"] < MIN_MODULE_DOWN
 
     passing = frame[~frame["fail_evidence"]]
     tol_max = passing["tolerance_loss"].quantile(0.75)
-
-    frame["fail_homeostasis"] = frame["selectivity"] < MIN_SELECTIVITY
     frame["fail_tolerance"] = frame["tolerance_loss"] > tol_max
+
+    # Selectivity: REPORTED, NEVER GATED (N6). The three-valued verdict is the honest form, because
+    # a row with no measured resting arm cannot be called "selective" or "not selective". It is
+    # carried for the report; nothing keys `safe` on it.
+    below = frame["selectivity"] < MIN_SELECTIVITY
+    frame["fail_homeostasis"] = below.fillna(False)  # legacy boolean, annotation only
+    frame["homeostasis_verdict"] = np.select(
+        [frame["rest_qc_class"] != "rest_qc_pass", below.fillna(False)],
+        ["indeterminate", "fail"],
+        default="pass",
+    )
 
     # `is_iei` is NOT a gate. Verified 2026-07-08: the IUIS flag is more enriched among approved
     # immunomodulator targets (25.0%, OR 8.31) than among the perturbations a naive reversal
     # ranking calls toxic (14.0%, OR 4.16). It cannot separate a dangerous knockdown from a gene
-    # that is load-bearing in immunity, and a good immune drug target is the latter. Gating on it
-    # rejected CD3E, CD3G, IL2RA, PIK3CD and TYK2, which are five approved drugs. It is reported.
-    fails = ["fail_evidence", "fail_homeostasis", "fail_tolerance"]
+    # that is load-bearing in immunity, and a good immune drug target is the latter. It is reported.
+    fails = ["fail_evidence", "fail_tolerance"]
     frame["safe"] = ~frame[fails].any(axis=1)
     frame["reject_reason"] = frame.apply(
         lambda r: ",".join(c.replace("fail_", "") for c in fails if r[c]) or "-", axis=1
     )
 
+    # The score ranks within the safe set, and now reflects only the two validated axes: maximise
+    # effector suppression, penalise co-inhibitory-module suppression. Selectivity is out of the
+    # ranking as well as out of the gate; leaving it in would be a soft form of the gating we retired.
     frame["window_score"] = (
         score.zscore(frame["efficacy"].to_numpy())
-        + score.zscore(frame["selectivity"].to_numpy())
         - score.zscore(np.maximum(frame["tolerance_loss"].to_numpy(), 0.0))
     )
 
     print(f"\nevidence floor: >= {MIN_MODULE_DOWN} module genes significantly down at FDR {FDR}")
     print(f"  passes evidence floor: {int((~frame['fail_evidence']).sum())} / {len(frame)}")
-    print(f"selectivity gate: stimulated effect >= 10x resting effect (log-ratio {MIN_SELECTIVITY:.3f}), fixed a priori")
-    print(f"tolerance gate: tolerance_loss <= {tol_max:.3f} (p75 of evidence-passers)")
-    print(f"  fully safety-passing: {int(frame['safe'].sum())}")
+    print(f"co-inhibitory gate: tolerance_loss <= {tol_max:.3f} (p75 of evidence-passers)")
+    print(f"  fully safety-passing (evidence + co-inhibitory): {int(frame['safe'].sum())}")
+    print("  selectivity is DEMOTED to an annotation (N6). homeostasis_verdict distribution:")
+    for verdict, n in frame["homeostasis_verdict"].value_counts().items():
+        print(f"    {verdict:14s} {n}")
     print("  NOTE: there is deliberately no cap on Stim DE-gene count. Capping it rejects the")
     print("  context-selective targets (CD3G 1374/5, ITK 2566/2) this project exists to find.")
     print("  NOTE: is_iei is an ANNOTATION, not a gate. See _iei_is_not_a_gate() below.")

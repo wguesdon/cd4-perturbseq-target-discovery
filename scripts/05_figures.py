@@ -70,10 +70,14 @@ THEMES = {
 }
 
 REASON_LABEL = {
-    "homeostasis": "disrupts rest",
-    "tolerance": "kills tolerance",
+    "tolerance": "collapses co-inhibitory module",
     "evidence": "no effect",
 }
+"""Two gate axes. `homeostasis` (selectivity) was demoted to a reported annotation on 2026-07-08
+(N6): it lost a pre-registered dominance test to a raw resting-DE threshold, and the association it
+rested on appears just as strongly among perturbations the gate never touches. It no longer enters
+`reject_reason`, so it is not a label here. `immune_essential` was removed earlier for the same
+class of reason (more enriched among approved drugs than among the toxic top 100)."""
 """The gate has THREE reject axes. ``immune_essential`` was a fourth and was removed on
 2026-07-08, because the IUIS flag is more enriched among approved drug targets (OR 8.31) than
 among the perturbations a naive ranking calls toxic (OR 4.16). :func:`_assert_no_dead_axis`
@@ -374,9 +378,8 @@ def figure_4(mode: str) -> None:
 
     labels, observed, matched, pvals = [], [], [], []
     for pretty, key in (
-        ("rejected\non any axis", "rejected (any axis)"),
-        ("rejected on\nHOMEOSTASIS", "rejected on homeostasis"),
-        ("rejected on\nTOLERANCE", "rejected on tolerance"),
+        ("SELECTIVITY\n(we demoted it)", "fails selectivity annotation"),
+        ("CO-INHIBITORY\n(we kept it)", "rejected on tolerance"),
     ):
         row = spec[spec["quantity"].str.startswith(key)].iloc[0]
         labels.append(pretty)

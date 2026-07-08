@@ -1,4 +1,4 @@
 quantity,observed,matched_mean,p_matched_ge_observed,specific_to_reversal,n_draws,pool
-"rejected (any axis), top 20",18,15.3038,0.1042,False,5000,286
-"rejected on tolerance, top 20",12,3.9918,0.0,True,5000,286
-"rejected on homeostasis, top 20",14,13.625,0.5296,False,5000,286
+"rejected (any axis), top 20",12,3.9868,0.0,True,5000,286
+"rejected on tolerance, top 20",12,3.9868,0.0,True,5000,286
+"fails selectivity annotation, top 20",14,13.5944,0.5374,False,5000,286
