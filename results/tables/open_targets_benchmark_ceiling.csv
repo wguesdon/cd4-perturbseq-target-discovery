@@ -1,0 +1,9 @@
+ot_release,disease_set,n_immune_diseases,moa_set,specificity,count1_targets,count2_measured,count3_rankable,filters_pass_controls
+26.06,strict (immune TA),907,core,<=3 targets,103,62,38,True
+26.06,strict (immune TA),907,core,unfiltered,170,90,49,True
+26.06,strict (immune TA),907,permissive,<=3 targets,109,65,40,True
+26.06,strict (immune TA),907,permissive,unfiltered,178,94,52,True
+26.06,"broad (+asthma, eczema, IBD)",917,core,<=3 targets,107,64,38,True
+26.06,"broad (+asthma, eczema, IBD)",917,core,unfiltered,180,93,50,True
+26.06,"broad (+asthma, eczema, IBD)",917,permissive,<=3 targets,113,67,40,True
+26.06,"broad (+asthma, eczema, IBD)",917,permissive,unfiltered,188,97,53,True

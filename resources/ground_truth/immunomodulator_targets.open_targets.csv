@@ -1,0 +1,47 @@
+gene_symbol,drug_examples,drug_class,mechanism,approved,lof_mimics_drug,include_as_positive,rationale,ot_state,ot_rankable,disagrees_with_curation
+PPP3CA,ciclosporin;tacrolimus,calcineurin inhibitor,inhibitor,True,True,True,Catalytic calcineurin subunit; loss of function blocks NFAT nuclear translocation and IL2 induction,OT_CONFIRMS,True,False
+PPP3CB,ciclosporin;tacrolimus,calcineurin inhibitor,inhibitor,True,True,True,Second catalytic calcineurin subunit,OT_SILENT,False,True
+PPP3R1,ciclosporin;tacrolimus,calcineurin inhibitor,inhibitor,True,True,True,Regulatory calcineurin subunit required for phosphatase activity,OT_SILENT,False,True
+JAK1,tofacitinib;upadacitinib;baricitinib,JAK inhibitor,inhibitor,True,True,True,Cytokine receptor signalling kinase; inhibition is the approved mechanism,OT_CONFIRMS,False,False
+JAK2,baricitinib;ruxolitinib,JAK inhibitor,inhibitor,True,True,True,Shared JAK subunit for several inflammatory cytokines,OT_CONFIRMS,True,False
+JAK3,tofacitinib;ritlecitinib,JAK inhibitor,inhibitor,True,True,True,Common gamma chain associated kinase; LoF causes SCID and phenocopies inhibition,OT_CONFIRMS,False,False
+TYK2,deucravacitinib,TYK2 inhibitor,inhibitor,True,True,True,IL12 and IL23 signalling kinase; allosteric inhibition approved for psoriasis,OT_CONFIRMS,True,False
+MTOR,sirolimus;everolimus,mTOR inhibitor,inhibitor,True,True,True,Central growth and effector differentiation kinase,OT_SILENT,False,True
+DHODH,teriflunomide;leflunomide,pyrimidine synthesis inhibitor,inhibitor,True,True,True,De novo pyrimidine synthesis; inhibition blocks lymphocyte proliferation,OT_CONFIRMS,False,False
+IMPDH1,mycophenolate mofetil,purine synthesis inhibitor,inhibitor,True,True,True,De novo guanine nucleotide synthesis,OT_CONFIRMS,False,False
+IMPDH2,mycophenolate mofetil,purine synthesis inhibitor,inhibitor,True,True,True,Dominant IMPDH isoform in activated lymphocytes,OT_CONFIRMS,True,False
+IL2RA,basiliximab;daclizumab,anti-CD25 antibody,antagonist,True,True,True,High affinity IL2 receptor alpha chain; blockade prevents allograft rejection,OT_CONFIRMS,True,False
+PDE4A,apremilast;roflumilast,PDE4 inhibitor,inhibitor,True,True,True,cAMP phosphodiesterase; inhibition raises cAMP and dampens effector cytokines,OT_SILENT,False,True
+PDE4B,apremilast;roflumilast,PDE4 inhibitor,inhibitor,True,True,True,Principal immune cell PDE4 isoform,OT_SILENT,False,True
+PDE4D,apremilast;roflumilast,PDE4 inhibitor,inhibitor,True,True,True,PDE4 isoform targeted by apremilast,OT_SILENT,False,True
+S1PR1,fingolimod;ozanimod;siponimod,S1P receptor modulator,functional antagonist,True,True,True,Functional antagonism causes receptor internalisation; LoF traps lymphocytes in nodes,OT_SILENT,False,True
+TNF,infliximab;adalimumab;etanercept,anti-TNF biologic,neutralising,True,True,True,T cell derived TNF; neutralisation is the approved mechanism,OT_CONFIRMS,False,False
+IL17A,secukinumab;ixekizumab,anti-IL17 antibody,neutralising,True,True,True,Th17 effector cytokine,OT_CONFIRMS,False,False
+IL17F,bimekizumab,anti-IL17A/F antibody,neutralising,True,True,True,Co-neutralised with IL17A by bimekizumab,OT_CONFIRMS,False,False
+IL23A,risankizumab;guselkumab,anti-IL23 p19 antibody,neutralising,True,True,True,IL23 p19 subunit sustaining the Th17 program,OT_CONFIRMS,True,False
+IL12B,ustekinumab,anti-IL12/23 p40 antibody,neutralising,True,True,True,Shared p40 subunit of IL12 and IL23,OT_CONFIRMS,False,False
+IL6R,tocilizumab;sarilumab,anti-IL6R antibody,antagonist,True,True,True,IL6 receptor; blockade approved in RA,OT_CONFIRMS,False,False
+IL4R,dupilumab,anti-IL4Ra antibody,antagonist,True,True,True,Shared IL4 and IL13 receptor chain,OT_CONFIRMS,True,False
+IL13,tralokinumab;lebrikizumab,anti-IL13 antibody,neutralising,True,True,True,Type 2 effector cytokine,OT_CONFIRMS,True,False
+IL5,mepolizumab;reslizumab,anti-IL5 antibody,neutralising,True,True,True,Type 2 effector cytokine driving eosinophilia,OT_CONFIRMS,False,False
+ITGA4,natalizumab;vedolizumab,anti-integrin antibody,antagonist,True,True,True,Alpha 4 integrin; blockade prevents lymphocyte trafficking,OT_CONFIRMS,True,False
+ITGAL,efalizumab,anti-LFA1 antibody,antagonist,True,True,True,LFA1 alpha chain; approved then withdrawn for PML risk,OT_CONFIRMS,True,False
+CD52,alemtuzumab,anti-CD52 antibody,depleting,True,True,True,Lymphocyte depleting antibody target,OT_CONFIRMS,True,False
+CD3E,teplizumab;muromonab,anti-CD3 antibody,antagonist,True,True,True,TCR complex epsilon chain,OT_CONFIRMS,True,False
+CD3D,muromonab,anti-CD3 antibody,antagonist,True,True,True,TCR complex delta chain,OT_CONFIRMS,False,False
+CD3G,muromonab,anti-CD3 antibody,antagonist,True,True,True,TCR complex gamma chain,OT_CONFIRMS,True,False
+PIK3CD,leniolisib,PI3K delta inhibitor,inhibitor,True,True,True,Approved 2023 for activated PI3K delta syndrome,OT_CONFIRMS,True,False
+IKZF1,lenalidomide;pomalidomide,cereblon molecular glue,degrader,True,True,True,Degraded by IMiDs; the validated degrader archetype in immune cells,OT_SILENT,False,True
+IKZF3,lenalidomide;pomalidomide,cereblon molecular glue,degrader,True,True,True,Degraded by IMiDs alongside IKZF1,OT_SILENT,False,True
+CCR4,mogamulizumab,anti-CCR4 antibody,depleting,True,True,True,Approved for mycosis fungoides and Sezary syndrome,OT_SILENT,False,True
+DHFR,methotrexate,antifolate,inhibitor,True,True,True,"Antifolate target; also core essential, so it exemplifies the effective-but-toxic class",OT_CONFIRMS,False,False
+NR3C1,prednisolone;dexamethasone,glucocorticoid,agonist,True,False,False,EXCLUDED: glucocorticoids are receptor AGONISTS. Knockdown removes the anti-inflammatory signal and does the opposite of the drug,OT_SILENT,False,False
+FKBP1A,tacrolimus;sirolimus,immunophilin,drug-binding chaperone,True,False,False,EXCLUDED: the drug BINDS FKBP1A to form the inhibitory complex. Knockdown abolishes drug efficacy rather than mimicking it,OT_CONFIRMS,False,False
+PPIA,ciclosporin,immunophilin,drug-binding chaperone,True,False,False,EXCLUDED: cyclophilin A is the ciclosporin-binding partner not the effector target,OT_SILENT,False,False
+IL2,aldesleukin;low-dose IL2,cytokine therapy,agonist,True,False,False,EXCLUDED: administered as an agonist. Knockdown is not the therapeutic direction,OT_SILENT,False,False
+TNFRSF4,rocatinlimab;amlitelimab,anti-OX40 antibody,antagonist,False,True,False,EXCLUDED: phase 3 not approved. Held out as a prospective validation target,OT_SILENT,False,False
+STAT6,KT-621,STAT6 degrader,degrader,False,True,False,EXCLUDED: phase 1 not approved. Cited as the degrader-handle archetype only,OT_SILENT,False,False
+CD80,abatacept,CTLA4-Ig fusion,antagonist,True,True,False,EXCLUDED: costimulatory ligand expressed on antigen presenting cells not CD4 T cells,OT_CONFIRMS,True,False
+CD86,abatacept,CTLA4-Ig fusion,antagonist,True,True,False,EXCLUDED: costimulatory ligand expressed on antigen presenting cells not CD4 T cells,OT_CONFIRMS,False,False
+MS4A1,rituximab,anti-CD20 antibody,depleting,True,True,False,EXCLUDED: B cell restricted; not expressed in CD4 T cells,OT_SILENT_not_measured_here,False,False
+BTK,ibrutinib;remibrutinib,BTK inhibitor,inhibitor,True,True,False,EXCLUDED: B cell kinase; ITK is the T cell paralogue,OT_CONFIRMS,False,False
