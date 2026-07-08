@@ -1,0 +1,8 @@
+stage,essentials,nonessentials,all_library
+in sgRNA library,682,141,13129
+reaches DE_stats,217,134,11526
+tested in Stim48hr,185,133,11281
++ not distal_offtarget,184,130,11154
++ not neighboring_KD,177,130,10324
++ ontarget_significant,88,3,6388
++ not low_target_gex,87,3,6371

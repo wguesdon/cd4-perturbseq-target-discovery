@@ -187,13 +187,22 @@ def build_scores(top_k: int) -> pd.DataFrame:
 
 
 def essentiality_coverage(frame: pd.DataFrame) -> None:
-    """Explain a null core-essential enrichment: absent, or present but not toxic?
+    """Report the essentiality coverage, and RETRACT the conclusion once drawn from it.
 
-    A zero count of core-essential genes in the top K has two very different causes.
-    Either essential-gene knockdowns are simply not in the analysable set, because they
-    deplete cells and fail DE eligibility, or they are analysable and the naive ranking
-    genuinely does not favour them. Only the second licenses the claim that essentiality
-    is the wrong safety axis for this screen.
+    A zero count of core-essential genes in the top K looked like it had two causes: either
+    essential-gene knockdowns are absent from the analysable set, or they are present and the
+    naive ranking does not favour them. We concluded the second and called essentiality the wrong
+    safety axis. That was wrong.
+
+    ``scripts/11_selection_funnel.py`` measured the selection against the true sgRNA-library
+    denominator. Both causes operate, through two colliders pulling in opposite directions:
+    465 of 682 library essentials never reach the DE table (their knockdown kills the cell), and
+    then ``ontarget_significant`` removes the nonessentials instead (it needs an expressed target).
+    The essentials that survive are exactly the ones whose knockdown was harmless, so a rank
+    comparison among survivors estimates nothing causal.
+
+    This function still prints the coverage funnel, because it is informative. It no longer draws
+    a conclusion, because none is available.
 
     Args:
         frame: The QC-passing ranked frame from :func:`build_scores`.
@@ -226,11 +235,19 @@ def essentiality_coverage(frame: pd.DataFrame) -> None:
         f"of {len(frame)}   (others {other_rank.median():.0f})"
     )
     print(f"  Mann-Whitney, essentials ranked BETTER than others: p={pval:.3g}")
-    if pval > 0.05:
-        print("  Essentials ARE rankable and the naive score does not favour them.")
-        print("  Cancer-cell essentiality is therefore the wrong safety axis for this screen.")
-    else:
-        print("  Essentials are rankable AND favoured. Essentiality remains a live safety axis.")
+    print()
+    print("  RETRACTED 2026-07-08. This test cannot answer the question it appears to answer.")
+    print("  `scripts/11_selection_funnel.py` measures the selection against the true sgRNA-library")
+    print("  denominator and finds TWO colliders pulling opposite ways:")
+    print("    465 of 682 library core-essentials never reach the DE table at all, because their")
+    print("    knockdown depletes cells and fails DE-eligibility (OR 0.024, p=5.6e-48); and then")
+    print("    ontarget_significant destroys the nonessentials instead, because it needs an")
+    print("    expressed target (OR 38.5, p=9.4e-22).")
+    print("  The surviving essentials are precisely the ones whose knockdown did NOT kill the cell.")
+    print("  A rank comparison among survivors estimates nothing causal, and a null on 31 of them")
+    print("  was underpowered regardless.")
+    print("  The supportable statement: THIS SCREEN CANNOT RESOLVE whether cancer-cell essentiality")
+    print("  predicts the naive ranking. Do NOT read this p-value as evidence either way.")
 
 
 def report(frame: pd.DataFrame, top_k: int) -> bool:
