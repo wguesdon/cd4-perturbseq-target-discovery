@@ -3,6 +3,12 @@
 The queue of work to run in the Claude Science web UI, and the protocol for working across two
 machines without stepping on each other.
 
+> **To actually run CS1 and CS2, follow
+> [`claude_life_science/RUN_CS1_AND_CS2.md`](../../claude_life_science/RUN_CS1_AND_CS2.md).**
+> That is the operator runbook: startup commands, attachments, prompts, and where to save the
+> answers. This file is the rationale and the board. **`HANDOFF_02`'s prompt is SUPERSEDED** and
+> must not be pasted; the runbook carries its replacement.
+
 Read this first on the Mac Mini after `git pull`.
 
 ---
@@ -39,12 +45,13 @@ No handoff requires the effect matrix. These are the inputs, all small:
 
 | File | Size | What it is |
 | --- | --- | --- |
-| `results/tables/risk_kill_naive_reversal.csv` | 558 KB | the full ranked table, 6,371 perturbations, all scores and flags |
+| `resources/handoff_inputs/cs2_blind_ranking.csv` | 752 KB | **CS2 attaches THIS.** The ranked table with our analytical decisions stripped out |
+| `results/tables/risk_kill_naive_reversal.csv` | 752 KB | the full ranked table. Carries `z_l2_decile`, `n_cells_decile` and `matched_background`, which **give the answer away**. Never attach it to a blind run |
 | `resources/handoff_inputs/rankable_genes.txt` | 40 KB | the 6,371 genes that survived perturbation QC |
-| `resources/handoff_inputs/measured_genes.txt` | 65 KB | the 10,282 measured transcriptome genes |
+| `resources/handoff_inputs/measured_genes.txt` | 64 KB | the 10,282 measured transcriptome genes |
 | `resources/handoff_inputs/perturbed_genes.txt` | 73 KB | the 11,526 genes perturbed anywhere in the library |
 | `resources/handoff_inputs/ground_truth_coverage.csv` | 2 KB | per-positive coverage and naive rank |
-| `resources/ground_truth/immunomodulator_targets.csv` | 6 KB | the curated benchmark ground truth |
+| `resources/ground_truth/immunomodulator_targets.csv` | 8 KB | the curated benchmark ground truth |
 
 ---
 
@@ -53,7 +60,7 @@ No handoff requires the effect matrix. These are the inputs, all small:
 | # | Handoff | Network | Blocks | Status |
 | --- | --- | --- | --- | --- |
 | CS1 | [Open Targets: can the benchmark be salvaged?](./HANDOFF_01_open_targets_ground_truth.md) | **yes**, needs `socat` + Open Targets MCP | the entire benchmark design | **READY, do this first** |
-| CS2 | [Reviewer agent: independently verify the risk-kill result](./HANDOFF_02_reviewer_verify_riskkill.md) | no | nothing, run in parallel with CS1 | **READY** |
+| CS2 | Blind adversarial re-analysis of the risk-kill result — prompt in the [runbook](../../claude_life_science/RUN_CS1_AND_CS2.md); rationale in [HANDOFF_02](./HANDOFF_02_reviewer_verify_riskkill.md) | no | nothing, run in parallel with CS1 | **READY, prompt REWRITTEN 07-08** |
 | CS3 | Evidence cards for the safety-passing shortlist, every citation verified | yes | needs the null model on the um890 first | blocked |
 | CS4 | Figures rendered from the committed tables, with provenance artifacts | no | needs the final ranking | blocked |
 | CS5 | **Head to head: rerun a Claude Code analysis in Claude Science and compare** | no | needs a finished analysis to rerun | candidate, see below |
@@ -87,13 +94,24 @@ Schmidt IL-2 screen instead.
 
 ### CS2 — the trust asset
 
-Claude Science's reviewer agent independently recomputes the risk-kill statistics from the
-committed ranked table. This is not a formality. Claude Code already knows of one defect it wants
-checked from the outside: the cell-count-matched background is drawn **once**, with `seed=0`, and
-the IEI enrichment p=0.012 rests on that single draw.
+**Rewritten 2026-07-08.** The original asked Claude Science to check a defect Claude Code had
+already spotted: the cell-count-matched background drawn once with `seed=0`. Claude Code has since
+reproduced that defect (22.4% of seeds give p ≥ 0.05), removed it, and in the process discovered
+that cell count was the wrong covariate to match on in the first place. Asking Claude Science to
+confirm a correction we have already made would prove nothing.
 
-An independent verification that finds and quantifies that, then reports what survives, is worth
-more to the Demo criterion (30%, "findings you trust") than any figure we could draw.
+So CS2 is now a **blind** run. Claude Science gets the measurements with our analytical decisions
+stripped out — no `z_l2_decile`, no `matched_background` — and is asked to identify the confound
+itself, build its own control, and reach its own verdict. Both candidate covariates are present and
+neither is labelled.
+
+That makes a genuine disagreement possible, which is the entire point. Nobody scores for using two
+tools. They score for showing what one caught that the other did not, and for being able to say
+which was right. An independent agent that reaches "only tolerance is direction-specific" without
+being told is worth more to the Demo criterion (30%, "findings you trust") than any figure we could
+draw. An independent agent that reaches something else is worth more still.
+
+The sealed comparison, and the rule against leaking our answer mid-session, are in the runbook.
 
 ---
 

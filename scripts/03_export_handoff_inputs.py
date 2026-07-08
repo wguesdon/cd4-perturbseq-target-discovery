@@ -11,6 +11,17 @@ Outputs, all small and all COMMITTED under resources/handoff_inputs/ so that a p
     measured_genes.txt         the 10,282 measured transcriptome genes
     perturbed_genes.txt        the 11,526 genes perturbed anywhere in the library
     ground_truth_coverage.csv  per-positive coverage: perturbed, measured, rankable, naive rank
+    cs2_blind_ranking.csv      the ranked table with OUR ANALYTICAL CHOICES STRIPPED OUT
+
+The last one needs explaining. ``risk_kill_naive_reversal.csv`` carries ``z_l2_decile``,
+``n_cells_decile`` and ``matched_background``. Those are not measurements; they are the record of
+which covariate we decided to stratify on and which background we decided to draw. Handing that
+table to an independent reviewer and asking it to choose a confounder is not a blind test, because
+the answer is written in the column names.
+
+``cs2_blind_ranking.csv`` keeps every measurement, including both candidate covariates
+(``n_cells_target`` and ``z_l2``), and drops every column that encodes a conclusion. The reviewer
+must pick its own confounder and justify the pick. See ``claude_life_science/RUN_CS1_AND_CS2.md``.
 
 Usage:
     uv run python scripts/03_export_handoff_inputs.py
@@ -26,6 +37,31 @@ from cd4_perturbseq import paths
 
 RANKING = paths.TABLES / "risk_kill_naive_reversal.csv"
 GROUND_TRUTH = paths.GROUND_TRUTH / "immunomodulator_targets.csv"
+
+BLIND_DROP = ("z_l2_decile", "n_cells_decile", "matched_background", "in_top")
+"""Columns that record an analytical decision rather than a measurement. Stripped for CS2."""
+
+
+def write_blind_ranking(ranked: pd.DataFrame) -> None:
+    """Write the ranked table with our analytical decisions removed.
+
+    A reviewer asked to find the confounder must not be handed a column called ``z_l2_decile``.
+    Both candidate covariates survive, because without ``z_l2`` the reviewer cannot compute effect
+    magnitude at all: it needs full rows of a 16.8 GB layer. Neither is labelled as the answer.
+
+    Args:
+        ranked: The ranked frame from ``results/tables/risk_kill_naive_reversal.csv``.
+    """
+    blind = ranked.drop(columns=[c for c in BLIND_DROP if c in ranked.columns])
+    out = paths.HANDOFF_INPUTS / "cs2_blind_ranking.csv"
+    blind.to_csv(out, index=False)
+
+    leaked = [c for c in BLIND_DROP if c in blind.columns]
+    if leaked:
+        raise AssertionError(f"blind table still encodes our choices: {leaked}")
+    print(f"wrote {out}  ({len(blind):,} rows, {len(blind.columns)} columns, "
+          f"{len(BLIND_DROP)} decision columns stripped)")
+    print(f"  kept both candidate covariates: n_cells_target, z_l2")
 
 
 def main() -> None:
@@ -67,6 +103,8 @@ def main() -> None:
     cols = ["gene_symbol", "drug_examples", "mechanism", "perturbed", "measured", "rankable", "naive_rank"]
     positives[cols].to_csv(out_cov, index=False)
     print(f"wrote {out_cov}")
+
+    write_blind_ranking(ranked)
 
     n = len(positives)
     print(f"\ncoverage of {n} curated positives:")

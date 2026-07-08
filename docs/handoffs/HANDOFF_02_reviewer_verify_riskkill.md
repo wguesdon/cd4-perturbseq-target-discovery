@@ -1,9 +1,32 @@
 # HANDOFF #2 — Reviewer agent: independently verify the risk-kill result
 
+> ## ⚠ SUPERSEDED 2026-07-08. DO NOT PASTE THE PROMPT BELOW.
+>
+> **Use [`claude_life_science/RUN_CS1_AND_CS2.md`](../../claude_life_science/RUN_CS1_AND_CS2.md).**
+>
+> This handoff asks Claude Science to verify claims that have since been **retracted**:
+>
+> - *"the safety gate must be re-anchored on immune essentiality (IUIS)"* — retracted. The IEI flag
+>   is **more** enriched among approved drug targets (OR 8.31) than among the naive top 100
+>   (OR 4.16). It is an annotation, not a gate.
+> - *"core-essentiality is flat, MWU p = 0.611"* — retracted. Two colliders pulling opposite ways
+>   mean that comparison estimates nothing causal. See `scripts/11_selection_funnel.py`.
+> - *"IEI enriched 14.0% vs 4.0%, Fisher OR 3.91, p = 0.012"* — the table below labels this the
+>   **matched** background. 3.91 is the **unmatched** odds ratio. The matched seed-0 draw gives
+>   OR 3.59, p = 0.0199.
+>
+> It also asks Claude Science to resample the seed-0 background as though we did not know it was
+> broken. We have since resampled it ourselves: **22.4% of seeds give p ≥ 0.05**, and the single
+> draw is gone from inference entirely (`scripts/02_risk_kill_reversal.py`, task N2).
+>
+> Running this prompt now would return a confident verification of a document that no longer exists.
+> The replacement is a **blind adversarial re-analysis** against a table with our analytical choices
+> stripped out. Its rationale is below and remains accurate; only the prompt is dead.
+
 **Run in:** Claude Science web UI, Python sandbox plus the reviewer agent.
 **Network:** not required. No connector, no `socat`. Runs offline.
 **Log as:** CS2 in [`claude_tooling_log.md`](../claude_tooling_log.md).
-**Machine:** any. One committed 558 KB CSV is the only input.
+**Machine:** any. One committed CSV is the only input.
 
 ## Why this handoff exists
 
