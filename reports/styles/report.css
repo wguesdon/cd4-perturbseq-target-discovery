@@ -1,0 +1,144 @@
+/* CD4+ Perturb-seq target triage — report theme.
+   Structure follows the use_cases Quarto template; palette is navy/blue, no logo. */
+
+:root {
+  /* Anchor colour, as specified. Near-black navy: used for text-weight elements. */
+  --brand-navy: #0A0F29;
+
+  /* Accent. Lightened from the anchor so it clears WCAG AA on white for body-size links
+     (contrast 7.6:1). #0A0F29 itself is too dark to read as a *link* colour, since it is
+     indistinguishable from body text. */
+  --brand-blue: #1E4FA3;
+  --brand-blue-hover: #2E6FD0;
+
+  /* Tints for rules and surfaces. */
+  --brand-blue-faint: #dce5f2;
+  --brand-grey: #4d4d4d;
+}
+
+/* Title block. No logo, no banner. */
+.quarto-title h1.title,
+h1.title {
+  color: var(--brand-navy);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.quarto-title .subtitle,
+p.subtitle {
+  color: var(--brand-grey);
+  font-weight: 400;
+}
+
+.quarto-title-block .quarto-title-banner {
+  margin-bottom: 1.5rem;
+}
+
+.quarto-title-meta {
+  border-top: 2px solid var(--brand-blue);
+  padding-top: 1rem;
+}
+
+/* Section headers. The rule under h2 gives the document its structure at a glance;
+   h3 carries no rule, so a Results subsection does not compete with its parent. */
+h2 {
+  color: var(--brand-navy);
+  border-bottom: 2px solid var(--brand-blue);
+  padding-bottom: 0.3rem;
+}
+
+h3 {
+  color: var(--brand-navy);
+  border-bottom: 1px solid var(--brand-blue-faint);
+  padding-bottom: 0.2rem;
+}
+
+h4, h5, h6 {
+  color: var(--brand-grey);
+}
+
+/* Table of contents. */
+.sidebar nav[role="doc-toc"] .active {
+  color: var(--brand-blue) !important;
+  font-weight: 600;
+  border-left: 2px solid var(--brand-blue);
+}
+
+/* Links. */
+a {
+  color: var(--brand-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--brand-blue-hover);
+  text-decoration: underline;
+}
+
+/* Citation and cross-reference links sit inside running text, so they take the body colour
+   with a subtle underline rather than the full link colour, which would speckle the page. */
+a.quarto-xref,
+.citation a {
+  color: var(--brand-navy);
+  border-bottom: 1px dotted var(--brand-blue);
+}
+
+/* Code. */
+div.sourceCode {
+  border-left: 3px solid var(--brand-blue);
+  background-color: #fbfcfe;
+}
+
+code:not(.sourceCode) {
+  color: var(--brand-navy);
+  background-color: var(--brand-blue-faint);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+/* Tables. The header uses the anchor navy, which is dark enough to carry white text. */
+.table thead th {
+  background-color: var(--brand-navy);
+  color: white;
+  font-weight: 600;
+  border-bottom: none;
+}
+
+.table tbody tr:nth-child(even) {
+  background-color: #f7f9fc;
+}
+
+.table td, .table th {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.92rem;
+}
+
+/* Figure captions read as journal legends: small, grey, full measure. */
+figcaption,
+.figure-caption,
+.quarto-float-caption {
+  font-size: 0.85rem;
+  color: var(--brand-grey);
+  text-align: left;
+  line-height: 1.45;
+}
+
+/* Callouts. Note and important are re-tinted to the brand; warning keeps its amber, because
+   the colour carries meaning and recolouring it would flatten the distinction. */
+div.callout-note.callout {
+  border-left-color: var(--brand-blue);
+}
+
+div.callout-note .callout-icon::before {
+  filter: none;
+}
+
+div.callout-important.callout {
+  border-left-color: var(--brand-navy);
+}
+
+/* Blockquotes used for the sentences that may be written verbatim. */
+blockquote {
+  border-left: 3px solid var(--brand-blue-faint);
+  color: var(--brand-grey);
+}

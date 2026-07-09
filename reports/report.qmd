@@ -33,18 +33,25 @@ abstract: |
   pre-specified nomination standard, and a pre-registered control on the rebuilt nomination rule
   fails for want of power. We report the triage layer, the conditions under which it abstains, and
   the claims withdrawn during the analysis.
+title-block-banner: false
 format:
   html:
-    theme:
-      light: cosmo
-      dark: darkly
+    theme: cosmo
+    css: styles/report.css
+    title-block-banner: false
     toc: true
     toc-depth: 3
+    toc-title: "Contents"
+    toc-location: left
     number-sections: true
     code-fold: true
-    code-summary: "Show the code"
+    code-tools: true
+    code-summary: "Show code"
     embed-resources: true
     fig-align: center
+    fig-width: 8
+    fig-height: 5
+    df-print: kable
     tbl-cap-location: top
     citations-hover: true
 bibliography: references.bib
