@@ -4,28 +4,35 @@ author: "William Guesdon"
 date: now
 date-format: "YYYY-MM-DD HH:mm"
 abstract: |
-  Ranking CRISPRi perturbations by suppression of a disease-associated expression program is a
+  Ranking CRISPRi perturbations by suppression of a polyclonal T cell activation program is a
   standard approach to target nomination. Applied to a genome-scale Perturb-seq atlas of primary
-  human CD4+ T cells, such a ranking returns T cell receptor proximal signalosome genes. We built a
-  triage layer from measures computed within the screen itself: an efficacy axis scoring suppression
-  of an effector activation module, and a penalty on suppression of an activation-induced
-  co-inhibitory module. Of 6,371 rankable perturbations, 214 pass. Twelve of the twenty highest
-  ranked perturbations are rejected, against a matched expectation of 4.0 for a shortlist of equal
-  panel-wide effect magnitude (P < 0.0001, n = 20). A context-selectivity axis carried no information
-  beyond effect magnitude (14 versus 13.6 matched, P = 0.54) and was demoted to a reported
-  annotation. The co-inhibitory module remains more suppressed than expression- and
-  induction-matched random modules of the same size (module-level permutation p = 0.005), although
-  the evidence attenuates when the null pool is restricted to comparably co-regulated modules
-  (p = 0.0196). The efficacy axis recovers approved immunomodulator targets above chance among the 20
-  assay-visible curated positives (5 observed, permutation p = 0.0017), and gene set enrichment shows
-  that it inverts IL-2/STAT5 and TNF-alpha/NF-kB signatures relative to a magnitude-matched control
-  that suppresses proliferation and metabolism equally. In an independent primary human CD4 CRISPR
-  screen the efficacy axis replicates under four stratified permutation nulls (Spearman +0.135,
-  n = 471), whereas the co-inhibitory axis does not (Spearman +0.006). Direction of effect could be
-  adjudicated for 23 of the 214 screen-passing genes, and every adjudicable verdict required the
-  gene to have a pre-existing drug or a described monogenic syndrome. No novel target met the
-  pre-specified nomination standard. We report the triage layer, the conditions under which it
-  abstains, and four claims withdrawn during the analysis.
+  human CD4+ T cells, such a ranking returns T cell receptor proximal signalosome genes. We built an
+  exploratory triage layer from measures computed within the screen itself: a single signed efficacy
+  statistic scoring suppression of a 34-gene effector activation module, and a penalty on suppression
+  of a nine-gene activation-induced co-inhibitory transcript module. Of 6,371 perturbations that pass
+  a custom quality-control mask, 263 clear an evidence floor requiring both a minimum number of
+  significantly decreased module genes and net suppression, and 197 additionally fall below the 75th
+  percentile of co-inhibitory suppression, a relative cut that rejects one quarter of the set by
+  construction. Fourteen of the twenty highest ranked perturbations are rejected, against a matched
+  expectation of 4.6 for a shortlist of equal panel-wide effect magnitude (P = 2.0e-4, the smallest
+  value attainable in 5,000 draws, n = 20). A context-selectivity axis carried no information beyond
+  effect magnitude (14 versus 14.2 matched, P = 0.65) and is reported as an annotation. The
+  co-inhibitory module is more suppressed than every one of 200 expression- and induction-matched
+  random modules of the same size, so the module-level permutation probability equals its floor of
+  1/201; restricting the null to comparably co-regulated modules leaves the observed module above all
+  50, giving the floor 1/51. The efficacy axis recovers approved immunomodulator targets above chance
+  among the 20 quality-control-eligible curated positives (4 observed, permutation p = 0.0081), while
+  the co-inhibitory criterion adds nothing conditional on the evidence floor (3 observed, 3.00
+  expected, p = 0.74). Gene set enrichment shows that the efficacy axis inverts IL-2/STAT5 and
+  TNF-alpha/NF-kB signatures relative to a magnitude-matched control, although eleven of the
+  score-defining genes are members of each tested set. In an independent, targeted primary human CD4
+  CRISPR screen the efficacy axis shows orthogonal concordance under four stratified permutation
+  nulls (Spearman +0.115, n = 471), whereas the co-inhibitory axis does not (Spearman +0.025).
+  Direction of effect could be annotated for 17 of the 197 screen-passing genes; every concordant
+  annotation required an approved loss-of-function-mimicking drug. No novel target met the
+  pre-specified nomination standard, and a pre-registered control on the rebuilt nomination rule
+  fails for want of power. We report the triage layer, the conditions under which it abstains, and
+  the claims withdrawn during the analysis.
 format:
   html:
     theme:
@@ -187,21 +194,27 @@ def _assert_abstract_is_current() -> None:
     """
     claims = {
         "rankable perturbations": (N_RANKABLE, 6371),
-        "screen-passing genes": (N_SAFE, 214),
-        "top-20 rejected": (int(ANY["observed"]), 12),
-        "matched expectation": (round(float(ANY["matched_mean"]), 1), 4.0),
+        "evidence-floor passers": (N_EVIDENCE, 263),
+        "screen-passing genes": (N_SAFE, 197),
+        "top-20 rejected": (int(ANY["observed"]), 14),
+        "matched expectation": (round(float(ANY["matched_mean"]), 1), 4.6),
+        "permutation floor": (round(float(ANY["p_matched_ge_observed"]), 5), round(1 / 5001, 5)),
         "selectivity observed": (int(SEL["observed"]), 14),
-        "selectivity matched": (round(float(SEL["matched_mean"]), 1), 13.6),
-        "selectivity P": (round(float(SEL["p_matched_ge_observed"]), 2), 0.54),
-        "module-level p": (round(float(n9["p_module_level"]), 3), 0.005),
-        "co-regulated null p": (round(float(n9["p_module_level_coregulated_quartile"]), 4), 0.0196),
-        "assay-visible positives": (N_POS_VISIBLE, 20),
-        "recovery observed": (int(recovery.loc["positives pass evidence floor", "observed"]), 5),
-        "recovery perm p": (round(float(recovery.loc["positives pass evidence floor", "perm_p"]), 4), 0.0017),
-        "direction adjudicable": (N_ADJUDICABLE, 23),
-        "H2 rho": (round(float(H2["rho"].iloc[0]), 3), 0.135),
+        "selectivity matched": (round(float(SEL["matched_mean"]), 1), 14.2),
+        "selectivity P": (round(float(SEL["p_matched_ge_observed"]), 2), 0.65),
+        "module-level p is the floor": (round(float(n9["p_module_level"]), 6), round(1 / 201, 6)),
+        "co-regulated null p is the floor": (round(float(n9["p_module_level_coregulated_quartile"]), 6),
+                                             round(1 / 51, 6)),
+        "QC-eligible positives": (N_POS_VISIBLE, 20),
+        "recovery observed": (int(recovery.loc["positives pass evidence floor", "observed"]), 4),
+        "recovery perm p": (round(float(recovery.loc["positives pass evidence floor", "perm_p"]), 4), 0.0081),
+        "safety adds nothing, observed": (int(recovery.loc["safety enriches given evidence", "observed"]), 3),
+        "safety adds nothing, p": (round(float(recovery.loc["safety enriches given evidence", "hyper_p"]), 2), 0.74),
+        "direction annotated": (N_ADJUDICABLE, 17),
+        "H2 rho": (round(float(H2["rho"].iloc[0]), 3), 0.115),
         "H2 n": (int(H2["n"].iloc[0]), 471),
-        "H1 rho": (round(float(H1["rho"].iloc[0]), 3), 0.006),
+        "H2 nulls survived": (int((H2["verdict"] == "REPLICATES").sum()), 4),
+        "H1 rho": (round(float(H1["rho"].iloc[0]), 3), 0.025),
     }
     drift = {k: v for k, v in claims.items() if v[0] != v[1]}
     if drift:
@@ -243,14 +256,16 @@ Markdown(_provenance())
 # Introduction
 
 Genome-scale Perturb-seq in primary human cells makes it possible to ask which single-gene
-perturbations move a disease-associated expression program [@zhu2025]. The obvious use of such an
+perturbations move an expression program [@zhu2025]. The obvious use of such an
 atlas for therapeutic target identification is to rank perturbations by how strongly they suppress
 that program. This ranking is a commodity: it requires only the released effect matrix and a gene set.
 
 The approach has a failure mode that its own objective function cannot detect. A perturbation that
 disables the cell will also collapse an inflammatory signature, and so will a perturbation of a gene
 required for the receptor-proximal signalling that initiates the program. Ranking on suppression alone
-does not distinguish a therapeutic window from a defect.
+does not distinguish a therapeutic window from a defect. The program suppressed here is a polyclonal
+activation program rather than a signature of any disease, tissue, or patient cohort, so suppression of
+it is not by itself evidence of therapeutic benefit.
 
 We asked whether a triage layer built only from quantities the screen itself measures can separate the
 two, and whether such a layer can nominate a target that is not already known. The dataset is a
@@ -272,40 +287,98 @@ tolerance, regulatory identity, or suppression.
 
 ## Data
 
-We used the released per-perturbation effect matrix `GWCD4i.DE_stats.h5ad` from @zhu2025, comprising
-33,983 perturbation-by-condition rows across `{python} f"{N_PANEL:,}"` measured genes in three
-conditions: rest, 8 h stimulation, and 48 h stimulation. Analyses use the 48 h stimulated arm unless
-stated. Raw sequencing data were not reprocessed. After the authors' quality control,
-`{python} f"{N_RANKABLE:,}"` perturbations are rankable. Our count of sgRNA library targets is
+We used the released per-perturbation effect matrix `GWCD4i.DE_stats.h5ad` from @zhu2025, a preprint,
+comprising 33,983 perturbation-by-condition rows across `{python} f"{N_PANEL:,}"` measured genes.
+Raw sequencing data were not reprocessed. Our count of sgRNA library targets is
 `{python} f"{N_LIBRARY:,}"`; the source publication reports 12,748, and the discrepancy is unresolved.
+
+Cells were primary human CD4+ T cells isolated as naive from four donors, activated with a
+CD3/CD28/CD2 activator, transduced, and expanded *ex vivo* in medium supplemented with 200 IU/ml
+interleukin-2 throughout. The stimulated arm is a 48 h restimulation; the rest arm is an aliquot of the
+same expanded cells left without restimulation. The rest arm is therefore not quiescent naive T cells,
+and no analysis in this manuscript treats it as such.
+
+## Quality-control mask {#sec-qc}
+
+The set of `{python} f"{N_RANKABLE:,}"` perturbations analysed here is **not** the source authors'
+quality-control output. It is a conjunction of filters applied by us, and it removes a majority of the
+perturbations tested in the stimulated arm.
+
+```{python}
+f = funnel.reset_index()[["stage", "all_library", "essentials", "nonessentials"]].copy()
+f.columns = ["cumulative filter", "library genes remaining", "Hart core-essential", "Hart nonessential"]
+Markdown(f.to_markdown(index=False))
+```
+
+Of `{python} f"{int(funnel.loc['tested in Stim48hr', 'all_library']):,}"` library genes tested in the
+48 h arm, `{python} f"{N_RANKABLE:,}"` survive. The on-target significance requirement removes the
+largest fraction, and it removes nonessential control genes almost entirely, from
+`{python} f"{int(funnel.loc['+ not neighboring_KD', 'nonessentials'])}"` to
+`{python} f"{int(funnel.loc['+ ontarget_significant', 'nonessentials'])}"`. This mask determines which
+questions can be asked. It conditions on the perturbation having a detectable transcriptional effect,
+which is a function of both knockdown efficiency and gene essentiality, and it therefore governs the
+essentiality analysis in @sec-selection. We refer to the surviving perturbations as
+**quality-control eligible**, not as assay-visible, because visibility is a property of the assay and
+eligibility is a property of our mask. The mask also excludes perturbations of regulators that the
+source study validates, among them `LCP2`. Sensitivity analyses under relaxed masks are not reported
+here and are a limitation (@sec-limitations).
 
 ## Gene modules
 
-The effector module is the set of genes induced by stimulation in both of two reference sources,
-excluding the co-inhibitory genes. The activation-induced co-inhibitory module comprises nine genes:
-`CTLA4`, `PDCD1`, `LAG3`, `TIGIT`, `FOXP3`, `IKZF2`, `LRRC32`, `IL10` and `TGFB1`. The two modules are
-disjoint by construction. For each perturbation, the perturbed gene is removed from its own module
-before scoring, because its on-target knockdown is large, negative, and required to be significant by
-quality control.
+The effector module comprises 34 genes induced by stimulation in both of two reference sources,
+excluding the co-inhibitory genes; 32 are present on the measured panel. The activation-induced
+co-inhibitory module comprises nine genes: `CTLA4`, `PDCD1`, `LAG3`, `TIGIT`, `FOXP3`, `IKZF2`,
+`LRRC32`, `IL10` and `TGFB1`. The two modules are disjoint by construction. For each perturbation, the
+perturbed gene is removed from its own module before scoring, because its on-target knockdown is
+large, negative, and required to be significant by the mask in @sec-qc.
+
+The effector module is a **polyclonal activation program**. It spans proliferation, cytokine and
+general activation biology and is not derived from any patient cohort, disease state, tissue signature
+or indication. No analysis here establishes that suppressing it is therapeutic in any disease.
+
+The co-inhibitory module is not one molecular mechanism. It combines four checkpoint receptors, two
+transcription factors, two cytokines and `LRRC32`. Two of its members, `TIGIT` and `TGFB1`, do not meet
+the stimulation-induction criterion applied elsewhere in this analysis. Messenger RNA abundance is not
+functional checkpoint availability; CTLA-4 function in particular depends on protein trafficking and
+surface presentation. We therefore call it a **co-inhibitory transcript annotation**, and not a safety,
+preservation, or therapeutic-window axis.
 
 ## Triage axes and thresholds
 
-Thresholds were fixed before the analysis that used them.
+**A single signed efficacy statistic.** Efficacy is the negative mean of the per-gene z statistics of
+the effector module, so a positive value denotes net suppression. The z statistic is the source study's
+default effect estimate and is variance-stabilised across perturbations of differing power. The same
+statistic is used for ranking, for the evidence floor, for selecting the gene sets tested by enrichment,
+for drug recovery and for external comparison. An earlier version of this work ranked on the z statistic
+in one place and scored on the mean log fold change in another. Those two orderings share 9 of their top
+20 and 49 of their top 100 (Spearman 0.866). Log-fold-change versions are retained as sensitivity
+quantities and support no reported inference.
 
-1. **Evidence floor.** A perturbation must significantly suppress at least three *effector*-module
-   genes at a 10% false discovery rate [@benjamini1995]. `{python} f"{N_EVIDENCE:,}"` of
-   `{python} f"{N_RANKABLE:,}"` perturbations pass.
-2. **Co-inhibitory preservation.** Among perturbations clearing the evidence floor, those in the top
-   quartile of co-inhibitory module suppression are rejected.
+1. **Evidence floor.** A perturbation must significantly decrease at least three effector-module genes
+   at a 10% false discovery rate [@benjamini1995] **and** have a positive efficacy statistic.
+   `{python} f"{N_EVIDENCE:,}"` of `{python} f"{N_RANKABLE:,}"` perturbations pass. The direction
+   requirement is not cosmetic: without it, perturbations that induce the effector module on net while
+   decreasing a few of its genes clear the floor, and one such perturbation was a curated positive.
+2. **Co-inhibitory criterion.** Among perturbations clearing the evidence floor, those in the top
+   quartile of co-inhibitory suppression are rejected. `{python} f"{N_SAFE}"` remain.
 
-`{python} f"{N_SAFE}"` perturbations pass both. Viability is reported as a tier rather than used as a
-rejection, because depletion only under stimulation is an antiproliferative signature shared by an
-approved drug in this set. Immune-essentiality annotation is reported and never gated on
-(@sec-selection).
+::: {.callout-important title="The co-inhibitory cut has no external calibration"}
+The criterion is a quantile of the evidence-passing set, so approximately one quarter of that set is
+rejected **by construction**, whatever the shape of the distribution:
+`{python} f"{N_SAFE}"` is `{python} f"{N_SAFE / N_EVIDENCE:.1%}"` of `{python} f"{N_EVIDENCE}"`. The
+threshold is not calibrated against any adverse phenotype, and the module-level test in @sec-module
+does not estimate an error rate for the classification of any individual gene. The continuous score is
+the primary quantity; the binary label is a convenience, and "screen-passing" carries no claim of
+safety.
+:::
+
+Viability is reported as a tier rather than used as a rejection, because depletion only under
+stimulation is an antiproliferative signature shared by an approved drug in this set.
+Immune-essentiality annotation is reported and never gated on (@sec-selection).
 
 A third axis, context selectivity, required the stimulated effect to exceed the resting effect
 tenfold. It was evaluated against a magnitude-matched control (@sec-magnitude), carried no information
-beyond effect magnitude, and was demoted to a reported annotation.
+beyond effect magnitude, and is reported as an annotation.
 
 ## Statistical inference
 
@@ -316,8 +389,21 @@ effect magnitude. An earlier version of this analysis sampled a single 100-row m
 procedure made the p-value a random variable, and 22.4% of seeds returned a non-significant result. It
 is superseded.
 
+Panel-wide effect magnitude, written $z_{L2}$, is the Euclidean norm of a perturbation's vector of
+per-gene z statistics across all `{python} f"{N_PANEL:,}"` measured genes. Matching on $z_{L2}$ means
+matching on deciles of this quantity.
+
 Specificity of a shortlist is assessed by drawing 5,000 shortlists of equal size from the same
-evidence-passing pool, matched on panel-wide effect magnitude.
+evidence-passing pool, matched on $z_{L2}$ decile. Monte Carlo probabilities are computed as
+$(1 + \#\{{\rm null} \ge {\rm observed}\}) / (1 + n_{\rm draws})$. With 5,000 draws the smallest
+attainable value is $1/5001 = 2.0\times10^{-4}$, and a value equal to that floor means no draw reached
+the observed statistic. An earlier version of this analysis omitted the correction and reported
+$P < 0.0001$, which those draws cannot establish.
+
+**Status of the inference.** The thresholds and modules were fixed before the analyses that used them,
+but the axes themselves, the score, and the nomination rule were developed and revised on this dataset.
+The probabilities reported here are therefore exploratory. Confirmation would require an untouched
+dataset, a held-out donor partition, or a rule specified before the data were seen.
 
 For module-level statements, the unit of analysis is the module, not the perturbation. The
 co-inhibitory module is a single fixed nine-gene set; if it covaries with efficacy, every
@@ -327,7 +413,9 @@ returned p = `{python} f"{n9['mwu_p_void']:.2g}"` and a false-positive rate of
 `{python} f"{n9['mwu_fpr_per_perturbation']:.0%}"` on random modules against a nominal 5%; it is
 withdrawn and is not quoted as evidence anywhere in this manuscript. Module-level inference instead
 compares the observed statistic against `{python} f"{int(n9['n_modules'])}"` random nine-gene modules
-matched on expression and on stimulation induction, holding the perturbation set fixed.
+matched on expression and on stimulation induction, holding the perturbation set fixed. The observed
+module exceeds every null module, so the resulting probability equals the floor $1/(n+1)$ of that null
+and is a bound rather than an estimate.
 
 ## External resources
 
@@ -430,18 +518,17 @@ plt.show()
 
 ## Specificity of the co-inhibitory axis relative to effect magnitude {#sec-magnitude}
 
-A shortlist of twenty perturbations drawn from the same evidence-passing pool and matched on panel-wide
-effect magnitude is rejected on the co-inhibitory axis
-`{python} f"{TOL['matched_mean']:.1f}"` times, against
-`{python} f"{int(TOL['observed'])}"` observed (P < 0.0001, n = 20, 5,000 draws). The
+A shortlist of twenty perturbations drawn from the same evidence-passing pool and matched on $z_{L2}$
+decile is rejected on the co-inhibitory axis `{python} f"{TOL['matched_mean']:.1f}"` times, against
+`{python} f"{int(TOL['observed'])}"` observed. No matched shortlist reached the observed count, so
+P = `{python} f"{TOL['p_matched_ge_observed']:.1e}"`, the floor for 5,000 draws (n = 20). The
 context-selectivity annotation flags `{python} f"{int(SEL['observed'])}"` of the same twenty against
 `{python} f"{SEL['matched_mean']:.1f}"` matched (P = `{python} f"{SEL['p_matched_ge_observed']:.2f}"`).
-Selectivity therefore carries no information beyond effect magnitude, and it was demoted from a triage
-axis to a reported annotation.
+Selectivity therefore carries no information beyond effect magnitude and is reported as an annotation.
 
-An earlier formulation of this comparison counted rejections on any axis and reported 18 of 20 against
-a matched expectation of 15.3 (P = 0.104). That statement is withdrawn: the aggregate count was
-substantially attributable to effect magnitude, and the axis-resolved comparison above supersedes it.
+An earlier formulation counted rejections on any axis and reported 18 of 20 against a matched
+expectation of 15.3 (P = 0.104). That statement is withdrawn: the aggregate count was substantially
+attributable to effect magnitude, and the axis-resolved comparison above supersedes it.
 
 Against a background stratified on panel-wide effect magnitude, using every control row, co-inhibitory
 suppression in the naive top 100 exceeds the background by a one-sided van Elteren z of
@@ -486,20 +573,26 @@ plt.show()
 The observed statistic is `{python} f"{n9['T_real']:.3f}"`. The largest of the
 `{python} f"{int(n9['n_modules'])}"` matched null modules reaches
 `{python} f"{n9['T_null_max']:.3f}"`, and the median null is
-`{python} f"{n9['T_null_median']:.3f}"`. The module-level permutation probability is
-`{python} f"{n9['p_module_level']:.4f}"`. Co-induction accounts for
+`{python} f"{n9['T_null_median']:.3f}"`. Because no null module reaches the observed value, the
+module-level permutation probability equals its floor,
+`{python} f"{n9['p_module_level']:.6f}"` = 1/`{python} f"{int(n9['n_modules']) + 1}"`. It is a bound,
+not an estimate. Co-induction accounts for
 `{python} f"{n9['coinduction_share_of_scripts10_effect']:.0%}"` of the effect reported by an
 expression-matched null that did not control for induction. The negative control, the false-positive
 rate on random modules, is `{python} f"{n9['loo_fpr_module_level']:.3f}"` against a nominal 5%.
 
-One confound is not closed. The nine module genes are co-regulated, and across the null modules the
-mean gene-gene correlation predicts the statistic (Spearman
-`{python} f"{n9['spearman_rhobar_vs_T_null']:+.3f}"`,
+One confound is not closed, and the restricted null does not close it. The nine module genes are
+co-regulated, and across the null modules the mean gene-gene correlation predicts the statistic
+(Spearman `{python} f"{n9['spearman_rhobar_vs_T_null']:+.3f}"`,
 p = `{python} f"{n9['spearman_rhobar_vs_T_null_p']:.4f}"`). The observed module's mean correlation,
-`{python} f"{n9['rho_bar_real']:.4f}"`, exceeds that of every null module (largest
-`{python} f"{n9['rho_bar_null_max']:.4f}"`). Restricting the null pool to the most co-regulated
-quartile attenuates the evidence, raising the permutation probability to
-**`{python} f"{n9['p_module_level_coregulated_quartile']:.4f}"`**. We report the attenuated value.
+`{python} f"{n9['rho_bar_real']:.4f}"`, exceeds that of **every** null module (largest
+`{python} f"{n9['rho_bar_null_max']:.4f}"`). Restricting the null pool to its most co-regulated
+quartile leaves 50 modules, the observed module still exceeds all of them, and the resulting
+probability is again the floor,
+`{python} f"{n9['p_module_level_coregulated_quartile']:.4f}"` = 1/51. Restriction to a quartile
+therefore does not make the observed module exchangeable with the null: it remains more internally
+correlated than any module the null can supply. The correct reading is that this confound is open, not
+that it has been controlled and the evidence merely attenuated.
 
 ## Correlation between the efficacy and co-inhibitory axes {#sec-correlation}
 
@@ -507,10 +600,10 @@ The two axes are not independent. Across all `{python} f"{N_RANKABLE:,}"` pertur
 correlation between the efficacy score and co-inhibitory suppression is
 `{python} f"{RHO_EFF_TOL:+.3f}"`, rising to `{python} f"{RHO_EFF_TOL_EV:+.3f}"` among the
 `{python} f"{N_EVIDENCE}"` perturbations that clear the evidence floor, or
-`{python} f"{RHO_EFF_TOL_EV**2:.1%}"` of shared rank variance. A previous version of this analysis
-reported only the correlation with panel-wide effect magnitude (Spearman 0.07) and did not report the
-correlation above. @sec-module is the control that addresses the resulting concern, because it holds
-the perturbation set fixed and varies the module.
+A previous version of this analysis reported only the correlation with panel-wide effect magnitude
+(Spearman 0.07) and did not report the correlation above. We do not interpret the square of a Spearman
+coefficient as a proportion of shared variance. @sec-module is the control that addresses the resulting
+concern, because it holds the perturbation set fixed and varies the module.
 
 ## Selection effects on essentiality and immune-deficiency annotations {#sec-selection}
 
@@ -535,10 +628,16 @@ reported as an annotation and never used as a filter.
 ## Recovery of approved immunomodulator targets {#sec-recovery}
 
 Of `{python} f"{N_POS}"` curated approved-immunomodulator targets, `{python} f"{N_POS_VISIBLE}"` are
-rankable in this screen. The remainder are invisible by construction: the assay stimulates through the
-T cell receptor without polarising cytokines, so cytokine-signalling targets rank near the bottom, and
-two targets of an approved JAK inhibitor were never perturbed. Recall is bounded by the assay, not by
-the ranking.
+quality-control eligible (@sec-qc). The remainder are excluded by the assay or by the mask: the
+stimulation carries no polarising cytokines, so cytokine-signalling targets rank near the bottom, and
+two targets of an approved JAK inhibitor were never perturbed. Recall is bounded by the assay and the
+mask, not by the ranking.
+
+The positive set is not a set of independent genes. It contains correlated mechanism units, including
+three calcineurin subunits, two IMPDH paralogues, two IKZF paralogues and three CD3 chains. A
+gene-level permutation treats each as an independent recovery and therefore overstates the evidence.
+Collapsing the positives into drug-mechanism units is not done here and is a limitation
+(@sec-limitations).
 
 ```{python}
 #| label: fig-recovery
@@ -582,8 +681,10 @@ evidence floor, the safety axes recover
 `{python} f"{int(recovery.loc['safety enriches given evidence', 'observed'])}"` against
 `{python} f"{recovery.loc['safety enriches given evidence', 'expected']:.2f}"` expected
 (p = `{python} f"{recovery.loc['safety enriches given evidence', 'hyper_p']:.2f}"`). Recovery is
-therefore driven by the efficacy axis. A safety criterion that enriched for drug targets beyond the
-efficacy floor would be measuring efficacy.
+therefore attributable to the evidence floor. We do not read the absence of enrichment as evidence of
+safety. Approved status is not a safety label, and a null result on a three-gene contingency is not
+evidence of anything. This comparison provides limited support for the binary evidence floor and none
+for the co-inhibitory criterion.
 
 Rank discrimination on the same 20 positives is weak: the area under the receiver operating
 characteristic curve is 0.542 with a 95% confidence interval of [0.373, 0.707], which includes chance.
@@ -649,6 +750,17 @@ fig.tight_layout()
 plt.show()
 ```
 
+::: {.callout-warning title="The enrichment test is partly circular"}
+Eleven of the 34 effector-module genes that define the efficacy score are members of the tested
+`IL-2/STAT5 Signaling` set, and eleven are members of `TNF-alpha Signaling via NF-kB`. Those genes
+remain in the ranked lists. The reported false discovery rates also test enrichment within each
+aggregated ranked list separately; they do not test whether enrichment differs between the top-efficacy
+group and the matched control. A non-circular version would remove the score-defining genes from both
+the ranked lists and the tested sets, use repeated matched controls, and test the difference in
+enrichment directly by permutation over perturbations. That analysis is not reported here
+(@sec-limitations).
+:::
+
 IL-2/STAT5 signalling reaches a normalised enrichment score of
 `{python} f"{top.loc['IL-2/STAT5 Signaling', 'NES']:.3f}"`
 (FDR `{python} f"{top.loc['IL-2/STAT5 Signaling', 'FDR q-val']:.3f}"`) in the top-efficacy set and
@@ -687,13 +799,32 @@ found. Loss-of-function tolerance in humans is a constraint on a complete knocko
 mycophenolate is an approved reversible inhibitor of a gene that is intolerant of biallelic loss, so the
 criterion bears on the therapeutic modality and not on whether the gene can be a target.
 
-Selecting instead the most restrictive rule whose positive-class sensitivity is 6 of 6 gives the screen
-gate combined with structural tractability and the exclusion of direction-discordant genes. It returns
-`{python} f"{N_NOMINATED}"` candidates. Under a permutation null that holds the screen gate fixed, this
-rule recovers 4 curated positives against 1.81 expected (p = 0.040), against a hard ceiling of 0.039
-because only 4 positives lie within the screen-passing set. This is a sanity check at the limit of its
-power, not a confirmatory result. The rebuilding of the rule was performed after the initial result was
-known, and is exploratory.
+Selecting instead the most restrictive rule whose positive-class sensitivity is complete gives the
+screen gate combined with structural tractability and the exclusion of direction-discordant genes. It
+returns `{python} f"{N_NOMINATED}"` candidates.
+
+::: {.callout-important title="A pre-registered control on this rule fails"}
+```{python}
+ctrl = pd.read_csv(T / "nomination_controls.csv").set_index("control")
+p_obs = float(ctrl.loc["recovery, conditioned on the safety gate", "p_value"])
+p_ceil = float(ctrl.loc["power ceiling: all safe-set positives retained", "p_value"])
+n_obs = int(ctrl.loc["recovery, conditioned on the safety gate", "observed"])
+e_obs = float(ctrl.loc["recovery, conditioned on the safety gate", "expected"])
+Markdown(
+    f"The rule was required to preserve recovery of curated positives under a permutation null that "
+    f"holds the screen gate fixed. It recovers {n_obs} positives against {e_obs:.2f} expected, "
+    f"p = {p_obs:.3f}. Only {int(den['positives among screen-passing genes'])} curated positives lie "
+    f"within the screen-passing set, so a rule retaining all of them could not attain a probability "
+    f"below {p_ceil:.3f}. **The control fails, and the rebuilt rule is void by its own criterion.** "
+    f"`scripts/29_nomination_recalibration.py` exits with a non-zero status. The "
+    f"{N_NOMINATED}-candidate pool is reported for completeness and supports no nomination."
+)
+```
+:::
+
+The rule was rebuilt after the initial result was known. It is exploratory model repair, transparently
+logged, and its controls are sanity checks rather than confirmatory statistics. One of those checks now
+fails.
 
 Clinical precedent, meaning that a drug against the gene has reached the clinic, is reported and never
 used as a criterion. It is true of 32 of the 36 curated positives, so a rule reading it would recover
@@ -702,16 +833,31 @@ approved drug targets by construction.
 ## Availability of direction-of-effect annotation {#sec-direction}
 
 Because CRISPRi models an inhibitor, a nomination requires that loss of function be the therapeutic
-direction. Direction could be adjudicated for `{python} f"{N_ADJUDICABLE}"` of the
-`{python} f"{N_SAFE}"` screen-passing genes; `{python} f"{N_UNMEASURED}"` are unmeasured.
+direction. These are **manually assigned annotations, not adjudicated measurements**. An annotation was
+available for `{python} f"{N_ADJUDICABLE}"` of the `{python} f"{N_SAFE}"` screen-passing genes;
+`{python} f"{N_UNMEASURED}"` have none.
 
-Every adjudicable verdict rests on a basis that requires the gene to have been characterised already:
-either an approved drug whose mechanism mimics loss of function, or a described monogenic
-immunodeficiency. The conditional probability of a concordant verdict given an uncharacterised gene is
-therefore zero, and the missingness is not at random. Direction of effect can exclude a candidate; it
-cannot promote one. Because discordance is equally characterisation-bound, excluding the two
-direction-discordant genes licenses no direction-safety claim about the remaining
-`{python} f"{N_UNMEASURED}"`.
+```{python}
+b = doe["direction_basis"].value_counts().reset_index()
+b.columns = ["basis", "genes"]
+Markdown(b.to_markdown(index=False))
+```
+
+Two earlier rules were withdrawn. The set of action types treated as loss-of-function-mimicking
+included `BINDING AGENT` and `CROSS-LINKING AGENT`; neither implies reduced target activity, and the
+anti-CD3 and anti-CD28 reagents that stimulate the cells in this screen are cross-linking agonists.
+A second rule inferred concordance from an inborn error of immunity, on the reasoning that a gene whose
+loss impairs immunity must promote it. That inference is unsafe. `PTEN` is an inborn-error gene whose
+loss dysregulates PI3K signalling and produces lymphoid hyperplasia and autoimmunity, and the rule
+called it concordant. Immunodeficiency and autoimmunity are not opposite ends of one axis. `PTEN` is
+now unannotated.
+
+What remains is asymmetric. Every concordant annotation requires an approved drug whose mechanism
+mimics loss of function, so the conditional probability of a concordant annotation given a gene with no
+approved drug is zero and the missingness is not at random. The two discordant annotations come from a
+hand-curated list of canonical negative regulators, which is a judgement rather than a measurement.
+Direction can exclude a candidate; it cannot promote one. Excluding the two discordant genes licenses
+no direction-safety claim about the remaining `{python} f"{N_UNMEASURED}"`.
 
 `PTPN2` illustrates the consequence. It has strong autoimmune genetic support [@wtccc2007] and would be
 promoted by a genetics-weighted ranking, but it is a negative regulator of T cell receptor signalling
@@ -731,7 +877,10 @@ expression [@dendrou2016].
 
 @freimer2022 provides signed, protein-level readouts in primary human CD4 T cells for IL-2, the
 activation output that the efficacy axis scores, and for CTLA-4, one of the nine genes in the
-co-inhibitory module.
+co-inhibitory module. It is a **targeted** screen of approximately 1,350 transcription factors and
+chromatin modifiers, not a genome-wide replication cohort, and it shares that library exactly with
+@arce2025 (Jaccard index 1.0000). We therefore describe the comparison below as orthogonal
+concordance rather than replication.
 
 ```{python}
 t = ov[["hypothesis", "n", "rho", "stratified_on", "p_matched", "verdict"]].copy()
@@ -741,10 +890,11 @@ t.columns = ["hypothesis", "n", "Spearman", "permutation null stratified on", "P
 Markdown(t.to_markdown(index=False))
 ```
 
-The efficacy axis predicts IL-2 loss (Spearman `{python} f"{H2['rho'].iloc[0]:+.3f}"`,
-n = `{python} f"{int(H2['n'].iloc[0])}"`) and the association survives all four permutation nulls,
-including one stratified directly on resting-arm transcriptional disruption. The co-inhibitory axis
-does not predict CTLA-4 loss (Spearman `{python} f"{H1['rho'].iloc[0]:+.3f}"`) under any null.
+The efficacy axis is associated with IL-2 loss (Spearman `{python} f"{H2['rho'].iloc[0]:+.3f}"`,
+n = `{python} f"{int(H2['n'].iloc[0])}"`), and the association persists after coarse stratification on
+all four covariates, including resting-arm transcriptional disruption. The effect is small. The
+co-inhibitory axis is not associated with CTLA-4 loss (Spearman
+`{python} f"{H1['rho'].iloc[0]:+.3f}"`) under any stratification.
 
 ```{python}
 #| label: fig-freimer
@@ -795,8 +945,8 @@ IL-2-lowering carry a median of `{python} f"{rev['median_rest_de_hits']:.0f}"` r
 differentially expressed genes, against `{python} f"{rev['median_rest_de_nonhits']:.0f}"` for the
 `{python} f"{int(rev['n_nonhits'])}"` remaining genes (Mann-Whitney
 P = `{python} f"{rev['mwu_p_hits_more_resting_disruption']:.1e}"`). IL-2 is a highly induced transcript,
-so a perturbation that impairs transcription broadly will lower it. The continuous association is not
-affected by this confound; the hit call is, and a promotion rule uses the hit call.
+so a perturbation that impairs transcription broadly will lower it. The continuous association persists after coarse
+stratification on that confound; the hit call does not, and a promotion rule uses the hit call.
 
 ## Exploratory relaxation of the promotion rule {#sec-relaxation}
 
@@ -805,18 +955,17 @@ requirement of ten co-tested genes, no candidate could be assessed: only six poo
 the IL-2 arm. A subsequent exploratory relaxation removed the coverage requirement and promoted genes
 whose knockout significantly lowers IL-2. It returned two genes, `{python} RELAXED_GENES`.
 
-Both fail the criteria already specified. `ATXN7L3` lies at the 96.2nd percentile of resting-arm
-disruption and has a stimulated-over-resting differential expression ratio of 0.92, against the
-pre-specified tenfold context-selectivity criterion; a ratio below one indicates that the perturbation
-disturbs the unstimulated cell more than the stimulated cell. It is a component of the SAGA
-deubiquitinase module, together with `USP22`, which the naive ranking returns as a broadly disruptive
-perturbation. `XBP1` lies at the 92.1st percentile. Neither carries autoimmune genetic support, a
-small-molecule binding pocket, or clinical precedent. Neither shows CTLA-4 lowering, which is the
-absence of a liability signal and not evidence of preservation.
+Both fail criteria specified earlier in this manuscript. Measured in this screen, `ATXN7L3` lies at the
+96.2nd percentile of resting-arm differential expression and has a stimulated-over-resting ratio of
+0.92, against the pre-specified tenfold context-selectivity criterion; a ratio below one means the
+perturbation disturbs the unstimulated cell more than the stimulated cell. `XBP1` lies at the 92.1st
+percentile. Neither carries autoimmune genetic support, a small-molecule binding pocket, or clinical
+precedent. Neither shows CTLA-4 lowering, which is the absence of a liability signal and not evidence
+of preservation.
 
 The comparator library is a panel of transcription factors and chromatin modifiers, so the co-tested
-gene set is enriched for transcription machinery by construction, and the two promoted genes are drawn
-from that enrichment.
+gene set is enriched for transcriptional and chromatin machinery by construction. Both promoted genes
+are drawn from that enrichment, and neither result should be read as a statement about T cell biology.
 
 # Discussion
 
@@ -873,10 +1022,53 @@ external annotations re-nominates only three of the six approved-drug targets th
 recovers, because two of those annotations are absent for the essential-hub mechanisms that phenotypic
 pharmacology has historically produced.
 
-No gene met the pre-specified nomination standard. We regard this as the correct output of the layer
-given the available evidence, rather than as a limitation of the screen. Resolving it requires an
-instrument that is signed, functional, primary-human-CD4, and genome-wide. None of the three we
-evaluated satisfies all four conditions simultaneously.
+No gene met the pre-specified nomination standard, and the pre-registered control on the rebuilt
+nomination rule fails for want of power. We regard abstention as the correct output of the layer given
+the available evidence, rather than as a limitation of the screen. Resolving it requires an instrument
+that is signed, functional, primary-human-CD4, and genome-wide. None of the three we evaluated
+satisfies all four conditions simultaneously.
+
+## Limitations {#sec-limitations}
+
+The work is an exploratory computational reanalysis. It is not a validated method for target discovery,
+safety assessment, or therapeutic-window estimation, and the following are known deficiencies rather
+than hypothetical ones.
+
+**The co-inhibitory criterion is a transcript annotation.** Its nine genes are not one molecular
+mechanism, two of them fail the induction criterion applied elsewhere, and messenger RNA abundance is
+not functional checkpoint availability. Its only external, protein-level comparison is negative. The
+observed module is more internally correlated than every module the matched null can supply, so
+restricting the null to co-regulated modules does not make it exchangeable. Separate checkpoint,
+cytokine and regulatory-lineage components, per-gene and leave-one-gene-out analyses, covariance-matched
+coherent modules, and measurement of surface CTLA-4, PD-1, LAG-3 and TIGIT with a functional readout are
+all required before this can be called a preservation axis. None is reported here.
+
+**The 197-gene set is partly definitional.** The co-inhibitory cut is a quantile of the evidence-passing
+set, so it rejects one quarter of that set whatever the distribution. Threshold sensitivity, rank
+stability, and uncertainty in set membership are not reported, and the cut is not calibrated against any
+external adverse phenotype.
+
+**Donor and guide uncertainty is not propagated.** The primary results use pooled effects across four
+donors and generally two guides per target. We report no leave-one-donor-out stability, no guide
+concordance, no confidence interval on any gene score, and no stability analysis for the
+`{python} f"{N_SAFE}"`-member set. This matters concretely: `PPP3R1`, used here as a recovered positive,
+has two guides whose signatures anticorrelate on significant genes in the released metadata. Gene-level
+claims in this manuscript should be read with that in mind.
+
+**The enrichment analysis is partly circular**, as stated in @sec-gsea, and the recovery analysis treats
+correlated mechanism units as independent genes.
+
+**The efficacy score is not disease-specific.** It measures suppression of a polyclonal activation
+program. Suppressing IL-2/STAT5 signalling is not uniformly therapeutic: low-dose interleukin-2 is used
+clinically to expand regulatory T cells in autoimmune disease. Nothing here identifies an indication.
+
+**The quality-control mask is ours** (@sec-qc), it removes a majority of the perturbations tested in the
+stimulated arm, and no sensitivity analysis under relaxed masks is reported.
+
+**The comparator screens are targeted and share one library.** @freimer2022 and @arce2025 assay the same
+approximately 1,350 transcription factors and chromatin modifiers. They are independent in readout and
+cell state, not in gene space, and the 471 genes co-tested against this screen are not a random sample
+of the perturbed genome.
 
 # Data and code availability
 
@@ -912,7 +1104,53 @@ d["n"] = d["n"].map(lambda x: f"{x:,}")
 Markdown(d.to_markdown(index=False))
 ```
 
-## Withdrawn claims {#sec-supp-withdrawn}
+## Gene sets and candidate lists {#sec-supp-genes}
+
+```{python}
+import sys as _sys
+_sys.path.insert(0, str(REPO / "src"))
+from cd4_perturbseq import programs as _programs
+
+eff_genes = sorted(_programs.effector_core())
+tol_genes = sorted(_programs.tolerance_module())
+safe_genes = sorted(window.loc[window["safe"], "gene_name"])
+Markdown(
+    f"**Effector module, {len(eff_genes)} genes.** " + ", ".join(f"`{g}`" for g in eff_genes) + "\n\n"
+    f"**Activation-induced co-inhibitory transcript module, {len(tol_genes)} genes.** "
+    + ", ".join(f"`{g}`" for g in tol_genes) + "\n\n"
+    f"**Screen-passing perturbations, {len(safe_genes)}.** Full table with every axis and annotation: "
+    f"`results/tables/window_score.csv` (filter on `safe`). Nomination pool of {N_NOMINATED}: "
+    f"`results/tables/nomination_recalibrated.csv`."
+)
+```
+
+## Withdrawn claims and corrections {#sec-supp-withdrawn}
+
+The abstract refers to this list. It is not fixed in length, and it grew during peer review.
+
+**Corrections made in response to peer review.**
+
+- The manuscript used two different efficacy statistics: a z score for ranking and a mean log fold
+  change for gating, gene-set selection, recovery and external comparison. Those orderings share 9 of
+  their top 20 and 49 of their top 100 (Spearman 0.866). A single signed z-based statistic is now used
+  throughout.
+- The evidence floor counted significantly decreased module genes without requiring net suppression. It
+  admitted five perturbations that induce the effector module, one of them the curated positive `IL4R`
+  (efficacy −0.086 on the log-fold-change scale). A direction requirement was added; evidence passers
+  fell from 286 to `{python} f"{N_EVIDENCE}"` and screen-passing genes from 214 to
+  `{python} f"{N_SAFE}"`.
+- Monte Carlo probabilities were computed without the `+1` correction, and `P < 0.0001` was reported
+  from 5,000 draws. Corrected to the floor `{python} f"{ANY['p_matched_ge_observed']:.1e}"` = 1/5001.
+- Module-level probabilities of 1/201 and 1/51 were described as an estimate and as attenuated
+  evidence. Both are floors, and the restricted null does not make the observed module exchangeable.
+- The action types treated as loss-of-function-mimicking included `BINDING AGENT` and `CROSS-LINKING
+  AGENT`. Both were removed. A rule inferring concordance from an inborn error of immunity was
+  withdrawn; it called `PTEN` concordant.
+- The rankable set was attributed to the source authors' quality control. It is our own mask (@sec-qc).
+- @arce2025 was described as a fitness screen. It is a FACS marker screen on IL-2Rα surface expression,
+  and it shares its library exactly with @freimer2022.
+
+**Claims withdrawn earlier in the analysis.**
 
 1. A per-perturbation Mann-Whitney probability of 3.5e-13 for co-inhibitory module suppression treats
    `{python} f"{N_RANKABLE:,}"` z statistics as independent when the module is a single fixed nine-gene
