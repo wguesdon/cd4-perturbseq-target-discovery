@@ -1,0 +1,9 @@
+rule,n_conjuncts,recovered_drugs,sensitivity,novel_nominated
+(screen gate only),0,6,1.0,206
+tractable,1,6,1.0,95
+lof_tolerant,1,5,0.833,53
+supported,1,3,0.5,45
+lof_tolerant & tractable,2,5,0.833,16
+supported & lof_tolerant,2,3,0.5,9
+supported & tractable,2,3,0.5,20
+supported & lof_tolerant & tractable,3,3,0.5,1
