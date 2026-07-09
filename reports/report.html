@@ -2560,7 +2560,7 @@ color: var(--brand-grey);
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">2026-07-09 23:08</p>
+      <p class="date">2026-07-09 23:20</p>
     </div>
   </div>
   
@@ -2595,7 +2595,7 @@ color: var(--brand-grey);
 <section id="sec-qc" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="sec-qc"><span class="header-section-number">2.2</span> Quality-control mask</h2>
 <p>The set of 6,371 perturbations analysed here is <strong>not</strong> the source authors’ quality-control output. It is a conjunction of filters applied by us, and it removes a majority of the perturbations tested in the stimulated arm.</p>
-<div id="b0930b8b" class="cell" data-execution_count="2">
+<div id="fbaba059" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="2">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
@@ -2958,7 +2958,7 @@ Figure 4: Preranked gene set enrichment on the MSigDB Hallmark collection, comp
 <section id="sec-nomination" class="level2" data-number="3.8">
 <h2 data-number="3.8" class="anchored" data-anchor-id="sec-nomination"><span class="header-section-number">3.8</span> Sensitivity of the nomination rule on recovered drug targets</h2>
 <p>The pipeline recovers 5 approved-drug targets among the 197 screen-passing genes. Applying a candidate nomination rule to those targets, and asking how many it would re-nominate if their drug status were unknown, calibrates the rule without reference to any novel gene.</p>
-<div id="db861264" class="cell" data-execution_count="7">
+<div id="963d79a6" class="cell" data-execution_count="7">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="7">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
@@ -3030,7 +3030,7 @@ Figure 4: Preranked gene set enrichment on the MSigDB Hallmark collection, comp
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<div id="96b7c00f" class="cell" data-execution_count="8">
+<div id="a0a327b1" class="cell" data-execution_count="8">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="8">
 <p>The rule was required to preserve recovery of curated positives under a permutation null that holds the screen gate fixed. It recovers 3 positives against 1.37 expected, p = 0.092. Only 3 curated positives lie within the screen-passing set, so a rule retaining all of them could not attain a probability below 0.095. <strong>The control fails, and the rebuilt rule is void by its own criterion.</strong> <code>scripts/29_nomination_recalibration.py</code> exits with a non-zero status. The 85-candidate pool is reported for completeness and supports no nomination.</p>
 </div>
@@ -3043,7 +3043,7 @@ Figure 4: Preranked gene set enrichment on the MSigDB Hallmark collection, comp
 <section id="sec-direction" class="level2" data-number="3.9">
 <h2 data-number="3.9" class="anchored" data-anchor-id="sec-direction"><span class="header-section-number">3.9</span> Availability of direction-of-effect annotation</h2>
 <p>Because CRISPRi models an inhibitor, a nomination requires that loss of function be the therapeutic direction. These are <strong>manually assigned annotations, not adjudicated measurements</strong>. An annotation was available for 17 of the 197 screen-passing genes; 180 have none.</p>
-<div id="1fdf3207" class="cell" data-execution_count="9">
+<div id="0c98f871" class="cell" data-execution_count="9">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="9">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -3077,7 +3077,7 @@ Figure 4: Preranked gene set enrichment on the MSigDB Hallmark collection, comp
 <section id="sec-freimer" class="level2" data-number="3.10">
 <h2 data-number="3.10" class="anchored" data-anchor-id="sec-freimer"><span class="header-section-number">3.10</span> External replication in an independent primary human CD4 screen</h2>
 <p><span class="citation" data-cites="freimer2022"><sup><a href="#ref-freimer2022" role="doc-biblioref">12</a></sup></span> provides signed, protein-level readouts in primary human CD4 T cells for IL-2, the activation output that the efficacy axis scores, and for CTLA-4, one of the nine genes in the co-inhibitory module. It is a <strong>targeted</strong> screen of approximately 1,350 transcription factors and chromatin modifiers, not a genome-wide replication cohort, and it shares that library exactly with<span class="citation" data-cites="arce2025"><sup><a href="#ref-arce2025" role="doc-biblioref">13</a></sup></span> (Jaccard index 1.0000). We therefore describe the comparison below as orthogonal concordance rather than replication.</p>
-<div id="62010e84" class="cell" data-execution_count="10">
+<div id="d1cda2f1" class="cell" data-execution_count="10">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="10">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
@@ -3346,7 +3346,7 @@ Figure 5: External comparison with the independent primary human CD4 CRISPR scr
 <section id="sec-supp-genealogy" class="level2" data-number="6.1">
 <h2 data-number="6.1" class="anchored" data-anchor-id="sec-supp-genealogy"><span class="header-section-number">6.1</span> Provenance of every reported statistic</h2>
 <p>Each quantity that has been quoted during this analysis, its current status, and the reason it changed. Values marked <em>current</em> are re-read from their source table by <code>scripts/30_pvalue_genealogy.py</code>, which exits non-zero if any has drifted.</p>
-<div id="a29a6360" class="cell" data-execution_count="12">
+<div id="cfd4824b" class="cell" data-execution_count="12">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="12">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
@@ -3506,7 +3506,7 @@ Figure 5: External comparison with the independent primary human CD4 CRISPR scr
 </section>
 <section id="sec-supp-denominators" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="sec-supp-denominators"><span class="header-section-number">6.2</span> Denominators</h2>
-<div id="a13d8e3a" class="cell" data-execution_count="13">
+<div id="e750d747" class="cell" data-execution_count="13">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="13">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
@@ -3609,7 +3609,7 @@ Figure 5: External comparison with the independent primary human CD4 CRISPR scr
 </section>
 <section id="sec-supp-genes" class="level2" data-number="6.3">
 <h2 data-number="6.3" class="anchored" data-anchor-id="sec-supp-genes"><span class="header-section-number">6.3</span> Gene sets and candidate lists</h2>
-<div id="801dda52" class="cell" data-execution_count="14">
+<div id="31c3335f" class="cell" data-execution_count="14">
 <div class="cell-output cell-output-display cell-output-markdown" data-execution_count="14">
 <p><strong>Effector module, 34 genes.</strong> <code>BATF</code>, <code>CCL20</code>, <code>CCL3</code>, <code>CCL4</code>, <code>CSF1</code>, <code>CSF2</code>, <code>CXCL8</code>, <code>CXCR4</code>, <code>GZMB</code>, <code>ICOS</code>, <code>IFNG</code>, <code>IFNGR2</code>, <code>IL13</code>, <code>IL17A</code>, <code>IL17F</code>, <code>IL17RB</code>, <code>IL2</code>, <code>IL21</code>, <code>IL22</code>, <code>IL23A</code>, <code>IL2RA</code>, <code>IL3</code>, <code>IL4</code>, <code>IL5</code>, <code>IRF4</code>, <code>JUN</code>, <code>LTA</code>, <code>NFIL3</code>, <code>TNF</code>, <code>TNFRSF18</code>, <code>TNFRSF4</code>, <code>TNFRSF9</code>, <code>TNFSF14</code>, <code>VEGFA</code></p>
 <p><strong>Activation-induced co-inhibitory transcript module, 9 genes.</strong> <code>CTLA4</code>, <code>FOXP3</code>, <code>IKZF2</code>, <code>IL10</code>, <code>LAG3</code>, <code>LRRC32</code>, <code>PDCD1</code>, <code>TGFB1</code>, <code>TIGIT</code></p>
