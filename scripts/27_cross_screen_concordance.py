@@ -74,15 +74,54 @@ def load_freimer(fdr: float) -> pd.DataFrame:
 
 
 def load_arce(fdr: float) -> pd.DataFrame:
-    """Per-gene hit/direction for the Arce 2025 fitness screen (Stimulated_Teff primary)."""
+    """Per-gene hit/direction for the Arce 2025 IL-2Ra marker screen (restimulated Teff arm).
+
+    Arce et al. 2025, Nature 637:930, doi:10.1038/s41586-024-08314-y. This is a **FACS marker screen**,
+    not a fitness screen: cells were sorted on the top and bottom 20% of IL-2Ra (CD25) surface
+    expression, and guides ranked by their shift in that marker. An earlier version of this function
+    called it a fitness/proliferation screen and labelled its directions `required_for_fitness` and
+    `suppresses_fitness`. There is no proliferating population in this design; those labels were wrong.
+
+    `arce_hit` uses `min(neg|fdr, pos|fdr)` and is therefore sign-agnostic, so the N19 enrichment
+    verdict does not depend on the direction labels and is unaffected by this correction.
+
+    Args:
+        fdr: Significance threshold.
+
+    Returns:
+        Per-gene hit flag, minimum FDR, and marker direction.
+    """
     a = _clean(pd.read_csv(SCREENS / "Arce2025_Screen.csv")).rename(columns={"id": "gene_name"})
     cond = "Stimulated_Teff"
     a["arce_min_fdr"] = a[[f"neg|fdr.{cond}", f"pos|fdr.{cond}"]].min(axis=1)
     a["arce_hit"] = a["arce_min_fdr"] < fdr
-    # depleted (neg) = knockdown reduces stimulated Teff fitness -> gene required for effector expansion
-    a["arce_dir"] = np.where(a[f"neg|fdr.{cond}"] <= a[f"pos|fdr.{cond}"], "required_for_fitness",
-                             "suppresses_fitness")
+    a["arce_dir"] = np.where(a[f"neg|fdr.{cond}"] <= a[f"pos|fdr.{cond}"],
+                             "loss_lowers_IL2RA", "loss_raises_IL2RA")
     return a[["gene_name", "arce_hit", "arce_min_fdr", "arce_dir"]]
+
+
+def assert_library_overlap() -> float:
+    """Freimer and Arce target the same gene panel. Measure it rather than assume independence.
+
+    Both are Marson-lab trans-factor libraries of transcription factors and chromatin modifiers. They
+    are independent in readout and cell state; they are not independent in gene space. Describing them
+    as "two independent screens" without this qualification overstates the coverage of any replication
+    claim built on them.
+
+    Returns:
+        The Jaccard index of the two gene sets.
+    """
+    f = set(pd.read_csv(SCREENS / "Freimer2022_Screen.csv")["id"])
+    a = set(pd.read_csv(SCREENS / "Arce2025_Screen.csv")["id"])
+    jaccard = len(f & a) / len(f | a)
+    print(f"\nFreimer library {len(f):,} genes; Arce library {len(a):,} genes; "
+          f"Jaccard = {jaccard:.4f}")
+    if jaccard > 0.99:
+        print("  The two comparator screens target the SAME gene panel. They are independent in")
+        print("  readout and cell state, NOT in gene space. Any replication rate computed across them")
+        print("  refers to the same genes twice, and the co-tested set is a transcription-factor and")
+        print("  chromatin-modifier panel rather than a random sample of the perturbed genome.")
+    return jaccard
 
 
 def _matched_enrichment(frame: pd.DataFrame, hit_col: str, n_draws: int, rng) -> dict:
@@ -105,6 +144,7 @@ def main() -> None:
     args = ap.parse_args()
     paths.ensure_dirs()
     rng = np.random.default_rng(SEED)
+    assert_library_overlap()
 
     saf = pd.read_csv(paths.TABLES / "window_score_organism_safety.csv")
     rows = pd.read_csv(paths.TABLES / "magnitude_matched_rows.csv")[["gene_name", "z_l2"]]
