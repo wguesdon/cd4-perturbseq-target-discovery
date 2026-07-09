@@ -10,7 +10,7 @@ nomination_rank,gene_name,tier,window_rank,viability_tier,ot_genetic_max,ot_gene
 9,TBX21,2,11,non-depleting,0.6228324218591725,True,5.0,0.381,6.4763e-05,False,False,False,False,False,2.2878428112568425,True,False
 10,BHLHE40,2,17,non-depleting,0.6880738297889575,True,2.0,0.219,1.6599e-06,False,False,False,False,False,1.2871140410302573,True,False
 11,SIK3,2,23,non-depleting,0.3409022846487999,True,3.0,0.269,1.7797e-16,False,True,False,False,False,1.3747652737692275,True,False
-12,MEN1,2,24,depleting-at-rest,0.33685208934974675,True,1.0,0.206,1.5823e-10,False,False,False,True,False,1.271708687787238,True,False
+12,MEN1,2,24,depleting-at-rest,0.33685208934974675,True,1.0,0.206,1.5823e-10,False,True,False,True,False,1.271708687787238,True,False
 13,STAT3,2,38,depleting-at-rest,0.7757925671777649,True,8.0,0.11,1.0411e-22,False,True,False,False,False,0.5431276247039811,True,False
 14,UFM1,2,133,non-depleting,0.10201075674111859,True,1.0,0.85,0.35704,False,False,False,False,False,-0.1870003488455447,True,False
 15,USP24,2,147,non-depleting,0.3458807395917997,True,1.0,0.361,2.1594e-16,False,False,False,False,False,3.218875824868201,False,False
@@ -18,7 +18,7 @@ nomination_rank,gene_name,tier,window_rank,viability_tier,ot_genetic_max,ot_gene
 17,WAPL,2,161,depleting-at-rest,0.4165393111276245,True,1.0,0.083,3.0371e-22,False,False,False,False,False,-1.5174865713912418,True,False
 18,SMAD4,2,198,non-depleting,0.3748776680850805,True,1.0,0.227,8.4418e-08,False,True,True,False,False,-0.42744401482694,True,False
 19,BRPF1,2,238,non-depleting,0.18984523168994064,True,1.0,0.206,8.9841e-17,False,True,False,False,False,-0.225382636712923,True,False
-20,MALT1,2,244,depleting-at-rest,0.5557747588892444,True,1.0,0.581,0.36491,False,False,False,True,False,5.867176021564637,False,False
+20,MALT1,2,244,depleting-at-rest,0.5557747588892444,True,1.0,0.581,0.36491,False,True,False,True,False,5.867176021564637,False,False
 21,BRD1,2,254,depleting-at-rest,0.2399149086037292,True,1.0,0.338,2.5978e-09,False,True,True,False,False,0.7303261838016999,True,False
 22,HDAC7,2,322,non-depleting,0.7433455696392026,True,6.0,0.344,4.2086e-09,False,True,True,True,False,0.458307589482545,True,False
 23,PDSS1,2,380,non-depleting,0.26054151536005804,True,1.0,1.164,0.83203,False,False,False,False,False,1.2396908869280154,True,False
@@ -139,7 +139,7 @@ nomination_rank,gene_name,tier,window_rank,viability_tier,ot_genetic_max,ot_gene
 138,FBXO32,3,747,non-depleting,0.0,False,,0.54,0.07908,False,False,False,False,False,-1.2512891288770671,True,False
 139,MCM8,3,748,non-depleting,0.0,False,,0.971,0.94715,True,False,False,False,False,2.164163715075331,True,False
 140,ZNF710,3,757,depleting-at-rest,0.0,False,,0.395,7.6135e-05,False,False,False,False,False,-1.6094379124341005,True,False
-141,MLST8,3,764,non-depleting,0.0,False,,0.68,0.97887,True,False,False,True,False,0.6363821577557545,True,False
+141,MLST8,3,764,non-depleting,0.0,False,,0.68,0.97887,True,True,False,True,False,0.6363821577557545,True,False
 142,MTCH2,3,807,non-depleting,0.0,False,,0.752,0.99228,True,True,False,False,False,4.596561811451491,False,False
 143,PDCL,3,875,non-depleting,0.0,False,,0.652,0.56001,False,False,False,False,False,0.6898260217450183,True,False
 144,NDUFS8,3,899,depleting-at-rest,0.0,False,,0.776,0.95672,True,True,False,True,False,2.262668485588603,True,False
@@ -149,7 +149,7 @@ nomination_rank,gene_name,tier,window_rank,viability_tier,ot_genetic_max,ot_gene
 148,AP2A1,3,1047,depleting-at-rest,0.0,False,,0.331,8.796e-09,False,True,False,False,False,2.415913778301049,False,False
 149,PTBP1,3,1074,depleting-at-rest,0.0,False,,0.249,1.0438e-08,False,True,True,False,False,0.2876820724517808,True,False
 150,DOP1B,3,1147,non-depleting,0.0,False,,0.831,0.99996,True,True,False,False,False,1.186240759166985,True,False
-151,NDUFAF3,3,1182,non-depleting,0.0,False,,1.221,0.77343,False,False,False,True,False,5.616251482170338,False,False
+151,NDUFAF3,3,1182,non-depleting,0.0,False,,1.221,0.77343,False,True,False,True,False,5.616251482170338,False,False
 152,TIPARP,3,1192,depleting-at-rest,0.03303422072223039,False,0.0,0.346,3.2813e-06,False,False,False,False,False,-1.4000876832522264,True,False
 153,MOV10,3,1206,non-depleting,0.0,False,,0.435,6.2956e-05,False,False,False,False,False,0.3988252095212869,True,False
 154,PGAP2,3,1247,depleting-at-rest,0.032047457642937364,False,0.0,0.872,0.98524,True,True,False,False,False,3.8329797980876927,False,False

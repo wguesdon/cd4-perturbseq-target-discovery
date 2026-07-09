@@ -320,9 +320,17 @@ def ot_tractability() -> pd.DataFrame:
     it is antibody-accessible at the cell surface, and there is any clinical precedent for a drug
     against it in any modality.
 
+    ``tractable`` is the disjunction of ALL FOUR flags, ``clinical_precedent`` included. Until
+    2026-07-09 it was ``sm_pocket or sm_druggable_family or ab_accessible``, silently discarding
+    ``clinical_precedent`` — the strongest tractability evidence that exists, since it means a drug
+    against the gene has already reached the clinic. The omission inverted the flag on the genes that
+    matter most: ``MALT1``, which has clinical-stage allosteric protease inhibitors, read as
+    untractable, while ``ICAM2`` read as tractable on cell-surface localisation alone, with neither a
+    pocket nor a precedent. See ``docs/preregistration_n20_2026_07_09.md``.
+
     Returns:
         DataFrame with ``gene_name``, ``sm_pocket``, ``sm_druggable_family``, ``ab_accessible``,
-        ``clinical_precedent``, and ``tractable`` (any of the first three).
+        ``clinical_precedent``, and ``tractable`` (any of the four).
     """
     parts = [pd.read_parquet(f, columns=["approvedSymbol", "tractability"])
              for f in sorted(glob.glob(str(OPEN_TARGETS / "target_*.parquet")))]
@@ -341,6 +349,6 @@ def ot_tractability() -> pd.DataFrame:
         rows.append({
             "gene_name": symbol, "sm_pocket": sm_pocket, "sm_druggable_family": sm_family,
             "ab_accessible": ab, "clinical_precedent": clinical,
-            "tractable": sm_pocket or sm_family or ab,
+            "tractable": sm_pocket or sm_family or ab or clinical,
         })
     return pd.DataFrame(rows)
