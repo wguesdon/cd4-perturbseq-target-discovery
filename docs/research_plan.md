@@ -8,6 +8,34 @@
 > **Literature review:** the methods and prior-work survey is in [`literature/lit_review_2026_07_07.md`](./literature/lit_review_2026_07_07.md); the reusable toolkit is in [`literature/methods_toolkit.md`](./literature/methods_toolkit.md).
 > **Detailed strategy (current):** a deeper, evidence-grounded strategy that supersedes this draft is in [`strategy_2026_07_07.md`](./strategy_2026_07_07.md).
 
+> ## ★ BEST-METHODS STATUS — updated 2026-07-09 (supersedes the axes below where they conflict)
+> This draft's "therapeutic-window" framing has been implemented, tested, and revised by the RULE #9
+> scientific loop (literature → implement → critical review → report). The current best-methods pipeline
+> and its evidence are recorded in `docs/results/*.md` and the standing methods review
+> `docs/literature/target_discovery_ideas_2026_07_08.md`. Key changes from this draft:
+> - **The gate is TWO validated axes**, not the original four: an evidence floor (≥3 effector-module genes
+>   significantly down) and **co-inhibitory-module preservation** (N9, survives an induction-matched null,
+>   p=0.005). The **context-selectivity / "homeostasis" axis was DEMOTED** (N6): it lost a pre-registered
+>   dominance test to a raw resting-DE threshold and its association appeared where the gate never acts.
+>   Viability, IEI, essentiality, tissue breadth, LoF constraint (LOEUF + recessive `pRec`, N3) are all
+>   **reported annotations, never gates** (every database-lookup gate we tried failed — RULE #2).
+> - **The drug-target-recovery benchmark is RETIRED as a headline** (N8): the library ceiling is 38–53 of a
+>   threshold-60 target set, a property of the perturbation library, not our ranking. Recovery of 5 approved
+>   immunomodulators (IMPDH2, PPP3R1, CD3E, IL4R, CD2/CD28) is reported as **validation that the gate is
+>   sensible**, sorted by mechanism — not as the headline.
+> - **The nomination combines the screen with external evidence** (N10): Open Targets autoimmune genetic
+>   support (continuous confidence, N13, Minikel 2024), gnomAD LoF tolerance, tractability, held-out Schmidt.
+>   Genetics is **necessary, not sufficient**: the naive ranking is enriched for autoimmune genetics but the
+>   safe ranking is not, and the difference is under-powered (N10/N13).
+> - **Direction of effect is a required axis** (N11), and it is the load-bearing lesson: a knockdown mimics
+>   an inhibitor, so a gate-nominated gene is valid only if the disease direction is loss-of-function. The
+>   headline novel pick **PTPN2 was demoted as a direction-of-effect false positive** (its loss *causes*
+>   autoimmunity). No genetic weighting fixes this. The rigorous direction method (eQTL colocalisation) is
+>   infeasible in budget, so the novel shortlist is **direction-unresolved** and labelled so.
+> - **The honest contribution** is the DECISION LAYER and its self-audit — "reversal is not enough, and
+>   neither is genetics" — with five overclaims caught and corrected on camera (RULE #0), not a single
+>   confident novel drug target. It is hypothesis-generating, one dataset, one analyst.
+
 **One-line pitch.** A reproducible pipeline that first proves it can recover the targets of approved T cell immunomodulators from the Perturb-seq data alone, then uses that validated therapeutic-window score to nominate novel, druggable, context-selective regulators of pathogenic CD4⁺ activation, each delivered as a sourced evidence card.
 
 **Core question.** Which genes, when knocked down, selectively suppress the stimulation-induced inflammatory program in human CD4⁺ T cells while sparing the resting state, homeostasis, and viability, and of those, which are druggable and genetically supported for autoimmune disease?
