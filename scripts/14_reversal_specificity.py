@@ -78,6 +78,25 @@ def load() -> pd.DataFrame:
     return frame.reset_index(drop=True)
 
 
+
+def _perm_p(draws: "pd.Series", observed: float) -> float:
+    """Monte Carlo permutation p-value with the +1 correction.
+
+    A naive `(draws >= observed).mean()` can return exactly zero, which asserts a probability the
+    simulation cannot support. With `n` draws the smallest attainable value is `1 / (n + 1)`. The
+    manuscript previously reported `P < 0.0001` from 5,000 draws; that is unsupportable, and the
+    correct floor is 1/5001 = 2.0e-4.
+
+    Args:
+        draws: The null distribution.
+        observed: The observed statistic.
+
+    Returns:
+        The corrected p-value, never zero.
+    """
+    return float((int((draws >= observed).sum()) + 1) / (len(draws) + 1))
+
+
 def _matched_draws(frame: pd.DataFrame, top: pd.DataFrame, n_draws: int, rng: np.random.Generator) -> pd.DataFrame:
     """Draw shortlists matched to the top on z_l2 decile, from the non-top pool.
 
@@ -131,7 +150,7 @@ def gate_specificity(frame: pd.DataFrame, n_draws: int) -> tuple[bool, pd.DataFr
     print(f"    naive top {TOP_N} z_l2 median {top['z_l2'].median():.1f}   whole pool {frame['z_l2'].median():.1f}")
     print(f"    base rejection rate over the whole pool: {frame['rejected'].mean():.1%}")
 
-    p_total = float((draws["rejected"] >= observed).mean())
+    p_total = _perm_p(draws["rejected"], observed)
     print(f"\n    naive top {TOP_N}              {observed:2d}/{TOP_N} rejected  ({observed / TOP_N:.0%})")
     print(f"    z_l2-matched, {n_draws:,} draws   {draws['rejected'].mean():4.1f}/{TOP_N} rejected  "
           f"({draws['rejected'].mean() / TOP_N:.0%})   P(matched >= observed) = {p_total:.4f}")
@@ -151,7 +170,7 @@ def gate_specificity(frame: pd.DataFrame, n_draws: int) -> tuple[bool, pd.DataFr
     verdicts = {}
     for axis in AXES:
         observed_axis = int(top["reject_reason"].str.split(",").apply(lambda parts: axis in parts).sum())
-        p_axis = float((draws[axis] >= observed_axis).mean())
+        p_axis = _perm_p(draws[axis], observed_axis)
         verdicts[axis] = p_axis < ALPHA
         call = "SPECIFIC TO REVERSAL" if p_axis < ALPHA else "explained by effect magnitude"
         print(f"      {axis:12s} top {observed_axis:2d}   matched mean {draws[axis].mean():5.2f}   "
@@ -167,7 +186,7 @@ def gate_specificity(frame: pd.DataFrame, n_draws: int) -> tuple[bool, pd.DataFr
     # The demoted selectivity axis, as a reported comparison. This is the demotion, made visible:
     # it rejects a magnitude-matched shortlist as often as it rejects ours.
     observed_sel = int(top["fail_homeostasis"].sum())
-    p_sel = float((draws["selectivity_annotation"] >= observed_sel).mean())
+    p_sel = _perm_p(draws["selectivity_annotation"], observed_sel)
     print(f"      {'selectivity':12s} top {observed_sel:2d}   matched mean {draws['selectivity_annotation'].mean():5.2f}   "
           f"P(matched >= top) = {p_sel:.4f}   {'SPECIFIC' if p_sel < ALPHA else 'explained by effect magnitude (DEMOTED, N6)'}")
     records.append({

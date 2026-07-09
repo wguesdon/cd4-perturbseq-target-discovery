@@ -80,7 +80,7 @@ def rows() -> list[dict]:
             claim_id="C1-topN", section="@sec-magnitude",
             claim="Naive top-20 rejected by the gate, vs a magnitude-matched 20",
             previous_value="18/20 vs 15.3 matched, P = 0.104",
-            current_value="12/20 vs 4.0 matched, P < 0.0001",
+            current_value="14/20 vs 4.6 matched, P = 2.0e-4 (the 1/5001 floor; no matched shortlist reached it)",
             current_status="current",
             statistical_unit="perturbation (n = 20 shortlist)",
             null_model="5,000 shortlists of 20 drawn from the evidence-passing pool",
@@ -93,13 +93,13 @@ def rows() -> list[dict]:
                         "effect size (P = 0.104) and is retracted as evidence about reversal.",
             interpretation_now="Descriptive headline. The gate's rejections are specific to the "
                                "co-inhibitory axis, not to effect magnitude.",
-            check=lambda: (int(_spec("rejected (any axis)")["observed"]), 12),
+            check=lambda: (int(_spec("rejected (any axis)")["observed"]), 14),
         ),
         dict(
             claim_id="C2-selectivity", section="@sec-magnitude",
             claim="Context-selectivity axis, rejection specificity",
             previous_value="a gate axis doing most of the rejecting",
-            current_value="14/20 vs 13.6 matched, P = 0.54",
+            current_value="14/20 vs 14.2 matched, P = 0.65",
             current_status="demoted",
             statistical_unit="perturbation (n = 20)",
             null_model="magnitude-matched shortlists",
@@ -110,7 +110,7 @@ def rows() -> list[dict]:
             why_changed="It carries no information beyond effect magnitude, and lost to a "
                         "one-variable shadow of itself. Demoted from gate axis to annotation.",
             interpretation_now="Annotation only. It may never be quoted as a safety axis.",
-            check=lambda: (round(float(_spec("fails selectivity annotation")["p_matched_ge_observed"]), 2), 0.54),
+            check=lambda: (round(float(_spec("fails selectivity annotation")["p_matched_ge_observed"]), 2), 0.65),
         ),
         dict(
             claim_id="C3-vanElteren", section="Methods",
@@ -154,7 +154,7 @@ def rows() -> list[dict]:
             claim_id="C5-moduleNull", section="@sec-induction",
             claim="The co-inhibitory module survives a matched module-level null",
             previous_value="p = 0.004975 (expression- and induction-matched nulls)",
-            current_value="p = 0.0196 (restricted to co-regulated-quartile nulls)",
+            current_value="p = 0.0196, which is the FLOOR 1/51 of a 50-module null: the observed module exceeded every one",
             current_status="current",
             statistical_unit="module (n = 1 real module vs 200 nulls)",
             null_model="200 random nine-gene modules; perturbation set held FIXED at the top 100 by "
@@ -237,7 +237,7 @@ def rows() -> list[dict]:
             claim_id="C9-recovery", section="@sec-drugs",
             claim="The efficacy axis recovers assay-visible approved-drug targets",
             previous_value="(new in N14)",
-            current_value="5 of 20 pass the evidence floor vs 0.90 expected, permutation p = 0.0017",
+            current_value="4 of 20 pass the evidence floor vs 0.83 expected, permutation p = 0.0081",
             current_status="current",
             statistical_unit="gene (n = 20 assay-visible curated positives)",
             null_model="50,000-draw permutation against the screened-gene background",
@@ -255,7 +255,7 @@ def rows() -> list[dict]:
             claim_id="C10-safetyAdds", section="@sec-drugs",
             claim="Do the safety axes add recovery beyond the efficacy floor?",
             previous_value="(implied yes by the gate's framing)",
-            current_value="No. 4 observed vs 3.74 expected, p = 0.63",
+            current_value="No. 3 observed vs 3.00 expected, p = 0.74",
             current_status="current",
             statistical_unit="gene (n = 20)",
             null_model="permutation, conditioned on passing the evidence floor",
@@ -290,7 +290,7 @@ def rows() -> list[dict]:
             claim_id="C12-n20rule", section="@sec-nomination",
             claim="The N16 nomination rule, applied to the positive class it recovered",
             previous_value="rule shipped unexamined; returned 1 gene from 206",
-            current_value="re-nominates 3 of 6; exact 95% CI [0.12, 0.88]; one-sided binomial P = 0.062",
+            current_value="re-nominates 2 of 5; the rule returns 1 novel gene from 190 candidates",
             current_status="descriptive",
             statistical_unit="gene (n = 6 recovered approved-drug targets)",
             null_model="binomial against a pre-registered 5/6 sensitivity floor",
@@ -305,16 +305,16 @@ def rows() -> list[dict]:
                         "and PPP3R1 at an autoimmune genetic score of exactly 0.000.",
             interpretation_now="Descriptive. The rejection rests on the deterministic mechanism, not "
                                "on this proportion.",
-            check=lambda: (int(sens.loc["supported & lof_tolerant & tractable", "recovered_drugs"]), 3),
+            check=lambda: (int(sens.loc["supported & lof_tolerant & tractable", "recovered_drugs"]), 2),
         ),
         dict(
             claim_id="C13-n20recovery", section="@sec-nomination",
             claim="Does the rebuilt nomination gate preserve drug recovery?",
             previous_value="observed 4, expected 0.30, p = 0.00016 (drawn from all 6,371)",
-            current_value="observed 4, expected 1.81, p = 0.040 (drawn from the 214 screen-passing genes)",
-            current_status="sanity_check",
+            current_value="observed 3, expected 1.37, p = 0.092 against a power ceiling of 0.095. THE CONTROL FAILS.",
+            current_status="retracted",
             statistical_unit="gene",
-            null_model="50,000-draw permutation, HOLDING THE SCREEN GATE FIXED (draw 97 of 214)",
+            null_model="50,000-draw permutation, HOLDING THE SCREEN GATE FIXED (draw 90 of 197)",
             matched_variables="screen-gate passage",
             universe_or_denominator="214 screen-passing genes; 4 curated positives among them",
             random_seed_policy="seed 0",
@@ -325,7 +325,7 @@ def rows() -> list[dict]:
             interpretation_now="Sanity check only, and FRAGILE: only 4 curated positives sit in the "
                                "screen-passing set, so a gate retaining all four cannot beat "
                                "p = 0.039. The test is at its own power ceiling.",
-            check=lambda: (round(float(ctrl.loc["recovery, conditioned on the safety gate", "p_value"]), 3), 0.040),
+            check=lambda: (round(float(ctrl.loc["recovery, conditioned on the safety gate", "p_value"]), 3), 0.092),
         ),
         dict(
             claim_id="C14-precedentLeak", section="@sec-nomination",
@@ -350,9 +350,9 @@ def rows() -> list[dict]:
             claim_id="C15-direction", section="@sec-nomination",
             claim="Direction of effect as a nomination criterion",
             previous_value="'direction is a collider; it can only demote'",
-            current_value="Direction evidence is useful as a VETO, not as a promotion rule. All 21 "
-                          "concordant verdicts require prior characterisation; labels are missing "
-                          "for 191 of 214, and missingness is not random.",
+            current_value="Direction evidence is a VETO, not a promotion rule. All 15 concordant verdicts "
+                          "require an approved LoF-mimicking drug; the 2 discordant come from a manually "
+                          "curated list. 180 of 197 have no annotation.",
             current_status="current",
             statistical_unit="gene",
             null_model="n/a (a structural property of the annotation, not a measured bias)",
@@ -374,8 +374,8 @@ def rows() -> list[dict]:
             claim_id="C17-freimerEfficacy", section="@sec-freimer",
             claim="The efficacy axis replicates on an independent, signed, primary-human-CD4 screen",
             previous_value="(new in N21; no prior external replication of this axis except Schmidt)",
-            current_value="Spearman +0.135; p = 0.0065 stratified on resting-arm disruption; "
-                          "p = 0.0070 stratified on z_L2 and resting-arm disruption jointly",
+            current_value="Spearman +0.115; p = 0.020 stratified on resting-arm disruption; "
+                          "p = 0.020 stratified on z_L2 and resting-arm disruption jointly",
             current_status="current",
             statistical_unit="gene (n = 471 co-tested)",
             null_model="2,000-draw permutation, shuffled within strata; four stratifiers tried",
@@ -439,8 +439,7 @@ def rows() -> list[dict]:
             claim_id="C16-axesNotOrthogonal", section="@sec-induction",
             claim="Are the efficacy and co-inhibitory axes independent?",
             previous_value="implied yes, by quoting rho(z_L2, co-inhibitory loss) = 0.07",
-            current_value="No. Spearman(efficacy, co-inhibitory loss) = +0.328 overall, +0.445 among "
-                          "evidence-passers (19.8% shared rank variance)",
+            current_value="No. The two axes are correlated; see the recomputed value in window_score.csv",
             current_status="current",
             statistical_unit="perturbation",
             null_model="n/a (a descriptive correlation)",

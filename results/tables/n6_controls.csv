@@ -1,7 +1,7 @@
 id,what,requirement,z,p,fires,note
 C2a,loeuf ~ fail_tolerance among homeostasis survivors,|z| < 1.0,,,True,no tolerance-failers among survivors by construction
-C2b,loeuf ~ fail_evidence over all rows,p_less > 0.05,2.5063007267355024,0.9938999097093397,True,
-C3,same design on evidence-FAILERS,|z| < 2.0,-4.008070372043013,3.060844044869119e-05,False,n=4841
-C4,exposure = 1[n_cells_target < within-stratum median],|z| < 2.0,0.7068458206521826,0.7601688518858816,True,
-C5,500 size-matched random within-stratum splits,"P(p<0.05) in [0.02, 0.09]",,0.06,True,empirical FPR 0.060
-C7,within-stratum permutation (software calibration only),"reported, non-decisive",-0.026480938150872147,0.006,True,"null mean -0.026, sd 0.961"
+C2b,loeuf ~ fail_evidence over all rows,p_less > 0.05,2.3244664337879244,0.9899497457180806,True,
+C3,same design on evidence-FAILERS,|z| < 2.0,-4.242040149482257,1.107485269814916e-05,False,n=4866
+C4,exposure = 1[n_cells_target < within-stratum median],|z| < 2.0,0.05584718777222609,0.5222682284152624,True,
+C5,500 size-matched random within-stratum splits,"P(p<0.05) in [0.02, 0.09]",,0.046,True,empirical FPR 0.046
+C7,within-stratum permutation (software calibration only),"reported, non-decisive",-0.006544354524515836,0.0,True,"null mean -0.007, sd 1.013"

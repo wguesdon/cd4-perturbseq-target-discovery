@@ -1,11 +1,11 @@
 test,observed,matched_mean,p,extra
-naive top 100 continuous,0.151858629579109,0.08751274787934674,0.0012,n=100
-safe-set top 100 continuous,0.0925748220007141,0.10157284427044204,0.6694,n=100
-delta continuous (safe-naive),-0.05928380757839491,,0.0476,"CI [-0.1184,-0.0005]"
-ordinal gate-pass vs gen_score (evidence-passers),,,0.5123839877917538,MWU two-sided
-binary thr=0.05 naive,36.0,24.078000000000003,0.0044,
-binary thr=0.05 safe,24.0,26.4628,0.7614,
-binary thr=0.1 naive,32.0,19.7266,0.0016,
-binary thr=0.1 safe,21.0,22.082399999999996,0.6612,
-binary thr=0.2 naive,28.000000000000004,16.656999999999996,0.0026,
-binary thr=0.2 safe,18.0,19.3216,0.6814,
+naive top 100 continuous,0.151858629579109,0.08740937788695768,0.0002,n=100
+safe-set top 100 continuous,0.13453015293188897,0.09552345679660762,0.0198,n=100
+delta continuous (safe-naive),-0.017328476647220037,,0.6128,"CI [-0.0836,+0.0479]"
+ordinal gate-pass vs gen_score (evidence-passers),,,0.5388801055670436,MWU two-sided
+binary thr=0.05 naive,36.0,24.169,0.0054,
+binary thr=0.05 safe,30.0,25.6708,0.1728,
+binary thr=0.1 naive,32.0,19.702599999999997,0.0014,
+binary thr=0.1 safe,28.999999999999996,21.0414,0.0314,
+binary thr=0.2 naive,28.000000000000004,16.792199999999998,0.002,
+binary thr=0.2 safe,26.0,18.150199999999998,0.0186,

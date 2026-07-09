@@ -74,8 +74,13 @@ RECOVERED_DRUGS = ("IMPDH2", "PPP3R1", "CD3E", "IL4R", "CD2", "CD28")
 
 # Drug action types that REDUCE target function (knockdown mimics them -> concordant for a positive
 # regulator). AGONIST/ACTIVATOR do the opposite and are handled separately.
+# Action types whose pharmacology mimics loss of function. `BINDING AGENT` and `CROSS-LINKING AGENT`
+# were removed on 2026-07-09: neither implies reduced target activity. A binding agent may stabilise,
+# activate, or merely deliver a payload, and a cross-linking agent commonly ACTIVATES its target (the
+# anti-CD3 and anti-CD28 antibodies used to stimulate the very cells in this screen are cross-linking
+# agonists). Including them made an agonist read as an inhibitor.
 LOF_MIMICKING = frozenset({"INHIBITOR", "ANTAGONIST", "ANTISENSE INHIBITOR", "DEGRADER",
-                           "BINDING AGENT", "CROSS-LINKING AGENT", "BLOCKER"})
+                           "BLOCKER", "NEGATIVE MODULATOR", "NEGATIVE ALLOSTERIC MODULATOR"})
 GOF_MIMICKING = frozenset({"AGONIST", "ACTIVATOR", "PARTIAL AGONIST", "STABILISER"})
 
 
@@ -121,21 +126,36 @@ def classify(frame: pd.DataFrame) -> pd.DataFrame:
     frame["has_gof_drug"] = frame["has_gof_drug"].fillna(False)
 
     def verdict(r: pd.Series) -> tuple[str, str]:
-        # A negative regulator is discordant regardless of a weak screen suppression signal: its loss
-        # increases activation, so an inhibitor worsens autoimmunity.
+        """Assign a direction annotation. These are MANUALLY ASSIGNED, not adjudicated.
+
+        Two rules were removed on 2026-07-09.
+
+        The IUIS rule previously read: if loss of function causes an inborn error of immunity, the
+        gene promotes immunity, so inhibiting it is concordant. That inference is unsafe. `PTEN` is
+        an inborn-error gene whose loss dysregulates PI3K signalling and causes lymphoid hyperplasia
+        and autoimmunity; the rule called it CONCORDANT. Immunodeficiency and autoimmunity are not
+        opposite ends of one axis, and many inborn-error genes produce both. The rule is withdrawn.
+
+        `BINDING AGENT` and `CROSS-LINKING AGENT` were removed from the loss-of-function-mimicking
+        action types, because neither implies reduced target activity.
+
+        What remains is one promoting rule and one demoting rule, and they are not symmetric. The
+        promoting rule requires an approved drug whose mechanism mimics loss of function. The demoting
+        rule is a hand-curated list of canonical negative regulators. Neither is a measurement.
+
+        Args:
+            r: One gene's annotations.
+
+        Returns:
+            The verdict and its basis.
+        """
         if r["is_negative_regulator"]:
-            return "DISCORDANT", "canonical negative regulator of T-cell activation"
-        # An approved LoF-mimicking immunosuppressant is the strongest concordance evidence.
+            return "DISCORDANT", "manually curated negative regulator (not adjudicated)"
         if r["has_lof_drug"] and not r["has_gof_drug"]:
             return "CONCORDANT", "approved LoF-mimicking drug (OT actionType)"
-        # LoF causes immunodeficiency -> the gene promotes immunity -> inhibitor reduces it -> concordant
-        # direction (the immunodeficiency risk itself is the separate IEI safety annotation).
-        if r["is_iei"]:
-            return "CONCORDANT", "LoF causes immunodeficiency (IUIS); positive-regulator direction"
-        # NB: an agonist/activator drug existing is NOT used to call DISCORDANT. It is too noisy (it
-        # flagged MLST8, an mTOR component whose inhibitors are immunosuppressive, as discordant in v1).
-        # has_gof_drug is reported as an annotation only.
-        return "UNKNOWN", "no direction signal on disk (needs eQTL-coloc, N12)"
+        # An agonist drug is NOT used to call DISCORDANT: it flagged MLST8, an mTOR complex component
+        # whose inhibitors are immunosuppressive, as discordant. `has_gof_drug` is reported only.
+        return "UNKNOWN", "no direction annotation available"
 
     verdicts = frame.apply(verdict, axis=1, result_type="expand")
     frame["direction_verdict"] = verdicts[0]

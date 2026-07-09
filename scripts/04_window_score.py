@@ -171,6 +171,7 @@ def build() -> pd.DataFrame:
             "eff_mean_z": eff["mean_z"],
             "n_module_down": eff["n_down"],
             "tol_mean_lfc": tol["mean_lfc"],
+            "tol_mean_z": tol["mean_z"],
             "n_tolerance_down": tol["n_down"],
             "stim_de_genes": sub["n_total_de_genes"].to_numpy(),
             "n_cells_target": sub["n_cells_target"].to_numpy(),
@@ -218,8 +219,20 @@ def build() -> pd.DataFrame:
     # perturbations the gate never touches (z -4.01 on the evidence-failers), so it was reading gene
     # constraint, not perturbation danger. See docs/preregistration_n6_2026_07_08.md and script 18.
     frame["selectivity"] = np.log1p(frame["stim_de_genes"]) - np.log1p(frame["rest_de_genes"])
-    frame["efficacy"] = -frame["eff_mean_lfc"]
-    frame["tolerance_loss"] = -frame["tol_mean_lfc"]
+
+    # PRIMARY SIGNED STATISTIC, single definition used for ranking, gating, gene-set selection,
+    # drug recovery and external comparison. Positive means the module is suppressed.
+    #
+    # The z statistic is the source paper's default effect estimate (beta / standard error), and it
+    # is variance-stabilised across perturbations of different power. An earlier version of this
+    # pipeline ranked on the z statistic in one place and scored on the mean log fold change in
+    # another. Those are different orderings: they share 9 of the top 20 and 49 of the top 100, at
+    # Spearman 0.866. The log fold change versions are retained as `*_lfc` for sensitivity analysis
+    # and are not used for any reported inference.
+    frame["efficacy"] = -frame["eff_mean_z"]
+    frame["tolerance_loss"] = -frame["tol_mean_z"]
+    frame["efficacy_lfc"] = -frame["eff_mean_lfc"]
+    frame["tolerance_loss_lfc"] = -frame["tol_mean_lfc"]
 
     # Viability, read straight off the screen. Cells carrying a guide against a gene the cell
     # cannot live without simply are not there. Hart core-essentials are measurably depleted at
@@ -258,8 +271,18 @@ def apply_gate(frame: pd.DataFrame) -> pd.DataFrame:
     was reading gene importance rather than perturbation danger. It is computed and reported here as
     an annotation; it does not enter ``safe`` or ``window_score``.
     """
-    frame["fail_evidence"] = frame["n_module_down"] < MIN_MODULE_DOWN
+    # EVIDENCE FLOOR: count AND direction. Counting significantly decreased module genes without
+    # requiring the module to be suppressed on net admits perturbations that INDUCE the effector
+    # module while moving a few of its genes down. Five such perturbations cleared the old floor,
+    # one of them a curated positive (IL4R, efficacy -0.086 on the log-fold-change scale). A floor
+    # that admits an inducer is not an efficacy criterion.
+    frame["fail_direction"] = frame["efficacy"] <= 0
+    frame["fail_evidence"] = (frame["n_module_down"] < MIN_MODULE_DOWN) | frame["fail_direction"]
 
+    # CO-INHIBITORY CRITERION: the 75th percentile of the evidence-passing set. This is a relative
+    # cut, so approximately one quarter of evidence-passers are rejected BY CONSTRUCTION, whatever
+    # the shape of the distribution. It has no external calibration against an adverse phenotype.
+    # The continuous score is the primary quantity; the binary label is a convenience.
     passing = frame[~frame["fail_evidence"]]
     tol_max = passing["tolerance_loss"].quantile(0.75)
     frame["fail_tolerance"] = frame["tolerance_loss"] > tol_max

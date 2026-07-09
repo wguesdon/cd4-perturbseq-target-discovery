@@ -1,7 +1,7 @@
 test,observed,matched_mean,p,odds_ratio,note
-gate vs rejected (Fisher),49.0,,0.6451768814583017,0.867683226758485,safe 49/263 vs rejected 19/91
-naive top 100 enrichment,32.0,19.7072,0.003,,32/100 supported; matched 19.7; shortfall 0
-safe-set top 100 enrichment,21.0,22.176,0.6556,,21/100 supported; matched 22.2; shortfall 0
-delta (safe - naive) supported fraction,-0.11000000000000001,,0.07568773809321705,,"safe 0.210 vs naive 0.320; 95% CI [-0.231, +0.011]"
-CONTROL label-shuffle (must be non-significant),,,0.3218,,PASS
-CONTROL matched-null calibration (FPR ~5%),,,0.03,,FPR 0.030; PASS
+gate vs rejected (Fisher),46.0,,0.749480929979739,0.9065392654523738,safe 46/243 vs rejected 17/83
+naive top 100 enrichment,32.0,19.6308,0.0016,,32/100 supported; matched 19.6; shortfall 0
+safe-set top 100 enrichment,29.0,21.0886,0.03,,29/100 supported; matched 21.1; shortfall 0
+delta (safe - naive) supported fraction,-0.030000000000000027,,0.6448034623535748,,"safe 0.290 vs naive 0.320; 95% CI [-0.158, +0.098]"
+CONTROL label-shuffle (must be non-significant),,,0.6296,,PASS
+CONTROL matched-null calibration (FPR ~5%),,,0.043333333333333335,,FPR 0.043; PASS

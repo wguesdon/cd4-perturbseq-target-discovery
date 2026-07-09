@@ -101,7 +101,7 @@ def main() -> None:
          "Approved-drug targets present among the screen-passing genes.",
          "final_shortlist.csv (is_known_drug)",
          "NOT a subset of the curated positives. CD2 and CD28 were deliberately held OUT of the "
-         "ground truth (RULE #4). '6 recovered' is an annotation; '5 of 20 above chance' is the test."),
+         "ground truth (RULE #4). The count is an annotation; the permutation test is the evidence."),
         ("nomination candidates", n_candidates,
          "Screen-passing, not a known drug, not direction-discordant.",
          "nomination_rule_sensitivity.csv", "The input to any nomination rule."),
@@ -131,12 +131,12 @@ def main() -> None:
     checks = {
         "library vs paper": (n_library, 12_779),
         "rankable": (n_rankable, 6_371),
-        "screen-passing": (n_safe, 214),
+        "screen-passing": (n_safe, 197),
         "assay-visible positives": (n_pos_rankable, 20),
-        "positives in screen-passing set": (n_pos_safe, 4),
-        "recovered drug targets": (n_recovered, 6),
-        "rebuilt nomination pool": (n_nom, 91),
-        "direction-unmeasured": (n_unmeasured, 191),
+        "positives in screen-passing set": (n_pos_safe, 3),
+        "recovered drug targets": (n_recovered, 5),
+        "rebuilt nomination pool": (n_nom, 85),
+        "direction-unmeasured": (n_unmeasured, 180),
     }
     bad = {k: v for k, v in checks.items() if v[0] != v[1]}
     print()

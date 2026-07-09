@@ -1,2 +1,2 @@
 n_hits,n_nonhits,median_rest_de_hits,median_rest_de_nonhits,mwu_p_hits_more_resting_disruption,h2_rho,h2_n,h2_p_stratified_on_rest_de,h2_p_stratified_jointly,h2_nulls_survived,note
-29,442,66.0,3.0,9.836216237307253e-07,0.1346,471,0.0064967516241879,0.0069965017491254,4 of 4,"The continuous H2 association survives resting-disruption stratification; the FDR-thresholded hit call does not, and promotion uses the hit call."
+29,442,66.0,3.0,9.836216237307253e-07,0.1152,471,0.0204897551224387,0.0204897551224387,4 of 4,"The continuous H2 association survives resting-disruption stratification; the FDR-thresholded hit call does not, and promotion uses the hit call."
