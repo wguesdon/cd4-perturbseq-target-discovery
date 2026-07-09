@@ -1,0 +1,59 @@
+gene_name,role,ensembl,n_coloc_pos,n_coloc_neg,raw,direction_eqtl,n_traits,traits
+AEBP2,watchlist,ENSG00000139154,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+ARPC2,watchlist,ENSG00000163466,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),1,Knee osteoarthritis
+BATF,watchlist,ENSG00000156127,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+BHLHE40,watchlist,ENSG00000134107,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+BRD1,watchlist,ENSG00000100425,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+BRPF1,watchlist,ENSG00000156983,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+CASC3,watchlist,ENSG00000108349,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+CCNC,watchlist,ENSG00000112237,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+CD28,control,ENSG00000178562,0,21,NEG,UNRESOLVED(method-uncalibrated),9,"Celiac disease; Celiac disease and Rheumatoid arthritis; Chronic inflammatory diseases (ankylosing spondylitis, Crohn's disease, psoriasis, primary sclerosing cholangitis, ulcerative colitis) (pleiotropy); First line medication for Crohn's disease; Hypothyroidism; Hypothyroidism (PheCode 244)"
+CEP43,watchlist,ENSG00000213066,24,0,POS,UNRESOLVED(method-uncalibrated),17,B-cell lymphoblastic leukemia or Crohn's disease (pleiotropy); B-cell lymphoblastic leukemia or hypothyroidism (pleiotropy); B-cell lymphoblastic leukemia or inflammatory bowel disease (pleiotropy); Crohn's disease; Graves' disease; Hypothyroidism (PheCode 244)
+COG6,watchlist,ENSG00000133103,39,7,POS,UNRESOLVED(method-uncalibrated),8,"Asthma; Autoimmune diseases; Autoimmune diseases excluding thyroid diseases; Blood clot, DVT, bronchitis, emphysema, asthma, rhinitis, eczema, allergy diagnosed by doctor: Asthma (UKB data field 6152_8); First line medication for Crohn's disease; Rheumatoid arthritis"
+COMMD7,watchlist,ENSG00000149600,3,1,POS,UNRESOLVED(method-uncalibrated),5,"Chronic inflammatory diseases (ankylosing spondylitis, Crohn's disease, psoriasis, primary sclerosing cholangitis, ulcerative colitis) (pleiotropy); Inflammatory bowel disease; Nontoxic goitre/thyroid nodule; Thyroid stimulating hormone levels; Triglyceride levels in non-type 2 diabetes"
+CTLA4,panel:DISCORDANT,ENSG00000163599,4,72,NEG,UNRESOLVED(method-uncalibrated),31,"Autoimmune diseases; Autoimmune diseases excluding thyroid diseases; Autoimmune hyperthyroidism; Autoimmune thyroid diseases (Graves disease or Hashimoto's thyroiditis); Disorders of the thyroid gland; Graves disease, strict definition"
+DDX39B,watchlist,ENSG00000198563,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+DR1,watchlist,ENSG00000117505,0,3,NEG,UNRESOLVED(method-uncalibrated),1,Inflammatory bowel disease
+EGR2,watchlist,ENSG00000122877,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+FOSL2,watchlist,ENSG00000075426,1,0,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),1,Inflammatory bowel disease
+FOXO1,watchlist,ENSG00000150907,0,1,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),1,Allergic rhinitis (Firth correction)
+HDAC7,watchlist,ENSG00000061273,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+ICAM2,watchlist,ENSG00000108622,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),1,"Chronic inflammatory diseases (ankylosing spondylitis, Crohn's disease, psoriasis, primary sclerosing cholangitis, ulcerative colitis) (pleiotropy)"
+IL4R,control,ENSG00000077238,7,53,NEG,UNRESOLVED(method-uncalibrated),27,Allergic asthma (mode); Allergic rhinitis (Firth correction); Allergic rhinitis (SPA correction); Asthma; Asthma (2+ condition: 317009); Asthma (ADO phenotyping)
+IL6R,panel:CONCORDANT,ENSG00000160712,2,2,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),4,"Asthma; Blood clot, DVT, bronchitis, emphysema, asthma, rhinitis, eczema, allergy diagnosed by doctor: Hayfever, allergic rhinitis or eczema (UKB data field 6152_9); Coronary atherosclerosis; Rheumatoid arthritis"
+ITGA4,panel:CONCORDANT,ENSG00000115232,1,0,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),1,Inflammatory bowel disease
+LIG3,watchlist,ENSG00000005156,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+LRBA,panel:DISCORDANT,ENSG00000198589,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+MALT1,watchlist,ENSG00000172175,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+MED13,watchlist,ENSG00000108510,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+MEN1,watchlist,ENSG00000133895,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+METTL1,watchlist,ENSG00000037897,2,10,NEG,UNRESOLVED(method-uncalibrated),4,Hypothyroidism; Multiple sclerosis; Spondylopathies; Spondylosis
+MTRR,watchlist,ENSG00000124275,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+PDSS1,watchlist,ENSG00000148459,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+PPP2R2A,watchlist,ENSG00000221914,0,6,NEG,UNRESOLVED(method-uncalibrated),2,Diabetes mellitus (PheCode 250); Type 2 diabetes (PheCode 250.2)
+PTEN,watchlist,ENSG00000171862,0,2,NEG,UNRESOLVED(method-uncalibrated),2,"Type 1 diabetes; Type 1 diabetes, definitions combined"
+PTPN2,control,ENSG00000175354,21,17,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),18,"Autoimmune diseases; Autoimmune diseases excluding thyroid diseases; Celiac disease; Chronic inflammatory diseases (ankylosing spondylitis, Crohn's disease, psoriasis, primary sclerosing cholangitis, ulcerative colitis) (pleiotropy); Crohn's disease; First line medication for Crohn's disease"
+PTPRC,watchlist,ENSG00000081237,1,0,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),1,Vitiligo
+RC3H1,control,ENSG00000135870,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+RTRAF,watchlist,ENSG00000087302,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+S1PR1,panel:CONCORDANT,ENSG00000170989,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+SEL1L,watchlist,ENSG00000071537,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+SGF29,watchlist,ENSG00000176476,0,1,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),2,Crohn's disease; FVC or inflammatory bowel disease (pleiotropy)
+SH2B3,panel:DISCORDANT,ENSG00000111252,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+SIK3,watchlist,ENSG00000160584,8,0,POS,UNRESOLVED(method-uncalibrated),4,Hypothyroidism; ICD10 E00-E07: Disorders of thyroid gland; ICD10 E03: Other hypothyroidism; Medication use (thyroid preparations)
+SMAD4,watchlist,ENSG00000141646,21,13,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),4,"Asthma; Asthma (childhood onset); Blood clot, DVT, bronchitis, emphysema, asthma, rhinitis, eczema, allergy diagnosed by doctor: Hayfever, allergic rhinitis or eczema (UKB data field 6152_9); Blood clot, DVT, bronchitis, emphysema, asthma, rhinitis, eczema, allergy diagnosed by doctor: PHESANT recoding (UKB data field 6152_100)"
+SMG7,watchlist,ENSG00000116698,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+STAT3,watchlist,ENSG00000168610,17,0,POS,UNRESOLVED(method-uncalibrated),9,"Autoimmune diseases excluding thyroid diseases; Chronic inflammatory diseases (ankylosing spondylitis, Crohn's disease, psoriasis, primary sclerosing cholangitis, ulcerative colitis) (pleiotropy); Crohn's disease; Inflammatory bowel disease; Inflammatory bowel disease (MTAG); Inflammatory bowel disease, strict (require KELA)"
+STAT5A,watchlist,ENSG00000126561,1,1,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),1,Autoimmune diseases excluding thyroid diseases
+STAT6,watchlist,ENSG00000166888,28,91,NEG,UNRESOLVED(method-uncalibrated),28,"Age of onset of adult onset asthma; Age of onset of childhood onset asthma; Allergic disease (asthma, hay fever or eczema); Allergic rhinitis (Firth correction); Allergic rhinitis (SPA correction); Asthma"
+TBL1XR1,watchlist,ENSG00000177565,2,0,POS,UNRESOLVED(method-uncalibrated),4,"Adult onset asthma and/or BMI; Asthma; Asthma (OHDSI: 27); Blood clot, DVT, bronchitis, emphysema, asthma, rhinitis, eczema, allergy diagnosed by doctor: Asthma (UKB data field 6152_8)"
+TBX21,watchlist,ENSG00000073861,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+TNF,panel:CONCORDANT,ENSG00000232810,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+TNFAIP3,panel:DISCORDANT,ENSG00000118503,1,0,HETEROGENEOUS,UNRESOLVED(method-uncalibrated),1,Systemic lupus erythematosus
+TNPO1,watchlist,ENSG00000083312,0,2,NEG,UNRESOLVED(method-uncalibrated),1,ICD10 E03: Other hypothyroidism
+TPST2,watchlist,ENSG00000128294,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+TYK2,panel:CONCORDANT,ENSG00000105397,3,15,NEG,UNRESOLVED(method-uncalibrated),18,COVID-19 hospitalization or osteoarthritis (MTAG); COVID-19 hospitalization or rheumatoid arthritis (MTAG); Critical COVID-19 or osteoarthritis (MTAG); Hypothyroidism; Psoriasis; Psoriasis (PheCode 696.4)
+UFM1,watchlist,ENSG00000120686,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+USP24,watchlist,ENSG00000162402,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+WAPL,watchlist,ENSG00000062650,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
+ZNF644,watchlist,ENSG00000122482,0,0,NO_COLOC,UNRESOLVED(method-uncalibrated),0,
