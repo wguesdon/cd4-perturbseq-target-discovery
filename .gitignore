@@ -27,6 +27,7 @@ data/external/*
 
 # Single-cell / genomics artifacts (never commit these anywhere)
 *.h5ad
+*.h5mu
 *.h5
 *.loom
 *.zarr/

@@ -17,7 +17,11 @@ Reads the h5ad zscore layer (via h5py, the panel-wide per-perturbation z), resul
 cached Hallmark GMT (fetched once from Enrichr). Writes results/tables/gsea_*.csv.
 
 Usage:
-    uv run --with gseapy --with anndata --with h5py python scripts/28_gsea_mechanistic_coherence.py
+    uv run --group gsea python scripts/28_gsea_mechanistic_coherence.py
+
+`gseapy` lives in the `gsea` dependency group rather than the core dependencies: it is the only
+script that needs it, and it pulls in `requests`. The group is declared in `pyproject.toml`, so a
+clean checkout reproduces this script from `uv sync --group gsea` alone.
 """
 
 from __future__ import annotations
