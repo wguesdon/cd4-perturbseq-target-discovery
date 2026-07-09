@@ -65,9 +65,7 @@ execute:
 
 ```{python}
 #| tags: [setup]
-import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 import matplotlib as mpl
@@ -231,33 +229,6 @@ def _assert_abstract_is_current() -> None:
 
 _assert_abstract_is_current()
 
-
-def _provenance() -> str:
-    """Return a render-time provenance line: timestamp and source commit.
-
-    Returns:
-        Markdown for a minimal callout.
-    """
-    def git(*args: str) -> str:
-        try:
-            return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True,
-                                  timeout=10, check=True).stdout.strip()
-        except Exception:  # noqa: BLE001
-            return ""
-
-    sha = git("rev-parse", "--short", "HEAD") or "unknown"
-    changed = [ln[3:] for ln in git("status", "--porcelain").splitlines() if ln[3:]]
-    dirty = [f for f in changed if not f.startswith("reports/report.html")]
-    stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
-    warn = (f" {len(dirty)} uncommitted source or table changes were present at render time, so this "
-            f"commit does not reproduce this document.") if dirty else ""
-    return (f"::: {{.callout-note appearance='minimal'}}\n"
-            f"Rendered {stamp} from commit `{sha}`.{warn} Every reported quantity is read at render "
-            f"time from a table under `results/tables/`.\n:::")
-```
-
-```{python}
-Markdown(_provenance())
 ```
 
 # Introduction
