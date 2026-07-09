@@ -2,7 +2,11 @@
 title: "Reversal is not enough"
 subtitle: "A screen-native triage and abstention layer over a genome-scale CD4+ T cell Perturb-seq atlas"
 author: "William Guesdon"
-date: last-modified
+date: now
+# No timezone token here: Quarto formats the local clock time but labels it GMT, which is wrong
+# under BST. The authoritative timestamp, with its real timezone and the source commit, is the
+# provenance callout emitted by `_provenance()` immediately below the abstract.
+date-format: "YYYY-MM-DD HH:mm"
 abstract: |
   Ranking CRISPRi perturbations by how strongly they reverse an inflammatory signature is a
   released, commodity capability. On a genome-scale CD4+ T cell Perturb-seq atlas it nominates
@@ -189,6 +193,41 @@ def _assert_abstract_is_current() -> None:
 
 
 _assert_abstract_is_current()
+
+
+def _provenance() -> str:
+    """Render-time provenance: when this document was built, and from which commit.
+
+    A rendered report that names its own commit is checkable. A reader can run
+    `git checkout <sha> && quarto render` and get this document back. If the working tree was dirty
+    at render time, say so, because then the commit alone does not reproduce it.
+
+    Returns:
+        A Markdown line for the top of the report.
+    """
+    import subprocess
+    from datetime import datetime, timezone
+
+    def _git(*args: str) -> str:
+        try:
+            return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True,
+                                  timeout=10, check=True).stdout.strip()
+        except Exception:  # noqa: BLE001 - provenance must never break a render
+            return ""
+
+    sha = _git("rev-parse", "--short", "HEAD") or "unknown"
+    dirty = bool(_git("status", "--porcelain"))
+    stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+    state = (" · **uncommitted changes present at render time**, so this commit alone does not "
+             "reproduce this document") if dirty else ""
+    return (f"::: {{.callout-note appearance='minimal'}}\n"
+            f"Rendered **{stamp}** from commit `{sha}`{state}. Every number below is read from a "
+            f"committed table in `results/tables/`; `scripts/30_pvalue_genealogy.py` fails if any of "
+            f"them has drifted.\n:::")
+```
+
+```{python}
+Markdown(_provenance())
 ```
 
 # Introduction

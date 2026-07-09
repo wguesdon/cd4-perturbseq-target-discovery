@@ -37,10 +37,12 @@ data/external/*
 # Notebook checkpoints
 .ipynb_checkpoints/
 
-# Quarto render output. report.html is 6 MB with resources embedded and is rebuilt by
-# `quarto render reports/report.qmd`. Commit the final render at submission, not every draft.
+# Quarto render output. `reports/report.html` IS COMMITTED, deliberately: it is ~7 MB with resources
+# embedded, and it is the submission artifact. It carries its own render timestamp and the commit it
+# was built from, so a stale copy is self-evident. Rebuild with:
+#   QUARTO_PYTHON="$PWD/.venv/bin/python" quarto render reports/report.qmd --to html
+# The scratch directories below are not committed.
 /.quarto/
-reports/*.html
 reports/*_files/
 reports/.jupyter_cache/
 
