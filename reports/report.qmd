@@ -879,20 +879,13 @@ shows CTLA-4 lowering; that is the *absence of a liability signal*, not evidence
 #| fig-width: 11
 #| fig-height: 4.8
 
-freimer = pd.read_csv(REPO / "resources/external_screens/Freimer2022_Screen.csv").rename(
-    columns={"id": "gene_name", "screen": "arm"})
-# Sign, established from the marker gene inside its own arm: `pos` = knockdown LOWERS the marker.
-freimer["lfc"] = freimer["pos|lfc"]
-freimer["lowers"] = (freimer["pos|fdr"] < 0.10) & (freimer["lfc"] > 0)
-il2_arm = freimer[freimer["arm"] == "IL2"][["gene_name", "lowers", "lfc"]]
-
-fm = window.merge(il2_arm, on="gene_name", how="inner").dropna(
-    subset=["rest_de_genes", "efficacy", "lfc"])
-fhit, fnon = fm[fm["lowers"]], fm[~fm["lowers"]]
-p_mwu = stats.mannwhitneyu(fhit["rest_de_genes"], fnon["rest_de_genes"], alternative="greater").pvalue
-h2row = ov[ov["hypothesis"].str.startswith("H2")].set_index("stratified_on")
-p_joint = float(h2row.loc["z_L2 and resting-arm disruption jointly", "p_matched"])
-rho_h2 = float(h2row["rho"].iloc[0])
+# RULE #10: the script preprocesses, the report draws. `scripts/34` established the sign convention,
+# ran the tests and wrote both of these tables. Nothing is recomputed here.
+fm = pd.read_csv(REPO / "results/tables/freimer_figure_data.csv")
+fhit, fnon = fm[fm["freimer_il2_lowers"]], fm[~fm["freimer_il2_lowers"]]
+p_mwu = float(rev["mwu_p_hits_more_resting_disruption"])
+p_joint = float(rev["h2_p_stratified_jointly"])
+rho_h2 = float(rev["h2_rho"])
 
 fig, (axa, axb) = plt.subplots(1, 2, figsize=(11, 4.8))
 
@@ -914,8 +907,8 @@ axa.text(0.03, 0.96, f"median {fnon['rest_de_genes'].median():.0f} vs "
          transform=axa.transAxes, fontsize=8.5, color=PALETTE["ink2"], va="top")
 
 fig_style(axb, xgrid=False, ygrid=True)
-axb.scatter(fnon["efficacy"], fnon["lfc"], s=11, color=PALETTE["recede"], zorder=2, label="not a hit")
-axb.scatter(fhit["efficacy"], fhit["lfc"], s=24, color=PALETTE["critical"], zorder=3,
+axb.scatter(fnon["efficacy"], fnon["freimer_il2_lfc"], s=11, color=PALETTE["recede"], zorder=2, label="not a hit")
+axb.scatter(fhit["efficacy"], fhit["freimer_il2_lfc"], s=24, color=PALETTE["critical"], zorder=3,
             label="IL-2-lowering hit")
 axb.axhline(0, color=PALETTE["axis"], linewidth=1)
 axb.set_xlabel("our efficacy score (mRNA)", fontsize=10, color=PALETTE["ink2"])

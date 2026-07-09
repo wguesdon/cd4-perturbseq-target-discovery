@@ -129,11 +129,20 @@ def review_promotion_instrument(fr: pd.DataFrame) -> pd.DataFrame:
     print(f"  It replicates under {n_rep} of {len(h2)} nulls. The axis replicates.")
     print("  It is the FDR-thresholded HIT CALL that is confounded, and promotion uses the hit call.")
 
+    # RULE #10: the script preprocesses, the report draws. Emit exactly the per-gene rows the figure
+    # needs, so `report.qmd` never has to reimplement the sign convention or rerun a test.
+    m[["gene_name", "efficacy", "rest_de_genes", "stim_de_genes", "lowers", "lfc"]].rename(
+        columns={"lowers": "freimer_il2_lowers", "lfc": "freimer_il2_lfc"}
+    ).to_csv(paths.TABLES / "freimer_figure_data.csv", index=False)
+    print(f"\n  wrote {paths.TABLES / 'freimer_figure_data.csv'} ({len(m)} co-tested genes, for the figure)")
+
     return pd.DataFrame([{
         "n_hits": len(hit), "n_nonhits": len(non),
         "median_rest_de_hits": float(hit["rest_de_genes"].median()),
         "median_rest_de_nonhits": float(non["rest_de_genes"].median()),
         "mwu_p_hits_more_resting_disruption": p,
+        "h2_rho": float(h2["rho"].iloc[0]),
+        "h2_n": int(h2["n"].iloc[0]),
         "h2_p_stratified_on_rest_de": p_rest,
         "h2_p_stratified_jointly": p_joint,
         "h2_nulls_survived": f"{n_rep} of {len(h2)}",
