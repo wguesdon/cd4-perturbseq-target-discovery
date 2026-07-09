@@ -216,10 +216,16 @@ def _provenance() -> str:
             return ""
 
     sha = _git("rev-parse", "--short", "HEAD") or "unknown"
-    dirty = bool(_git("status", "--porcelain"))
+    # Ignore this document itself. `reports/report.html` is tracked, and rendering rewrites it, so it
+    # is always dirty at the moment the render asks. The question that matters is whether any SOURCE
+    # or TABLE is uncommitted, because that is what would make the named commit fail to reproduce
+    # these numbers.
+    changed = [line[3:] for line in _git("status", "--porcelain").splitlines() if line[3:]]
+    dirty = [f for f in changed if not f.startswith("reports/report.html")]
     stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
-    state = (" · **uncommitted changes present at render time**, so this commit alone does not "
-             "reproduce this document") if dirty else ""
+    state = (f" · ⚠ **{len(dirty)} uncommitted source or table change(s) at render time**, so this "
+             f"commit alone does not reproduce this document: `{'`, `'.join(sorted(dirty)[:4])}`"
+             + (" …" if len(dirty) > 4 else "")) if dirty else ""
     return (f"::: {{.callout-note appearance='minimal'}}\n"
             f"Rendered **{stamp}** from commit `{sha}`{state}. Every number below is read from a "
             f"committed table in `results/tables/`; `scripts/30_pvalue_genealogy.py` fails if any of "
