@@ -28,11 +28,17 @@ This matters because it measures **both halves of our thesis at protein level, i
 - **`IL2`** is the activation output our **efficacy axis** scores from mRNA.
 - **`CTLA4`** is one of the nine genes in our **activation-induced co-inhibitory module**.
 
-And it is genome-agnostic to prior characterisation. That is the defect that killed direction inference
-in N17 (eQTL), IMPC and MGI: every one of those instruments can only speak about genes a drug or a
-syndrome has already characterised. A pooled functional screen cannot tell whether anyone has studied
-the gene. It is therefore the only instrument in this project capable, in principle, of promoting an
-uncharacterised gene.
+And it is **independent of drug labels**. That is the defect that killed direction inference in N17
+(eQTL), IMPC and MGI: every one of those instruments can only speak about genes a drug or a syndrome
+has already characterised. A signed functional readout does not ask whether a drug exists.
+
+> **CORRECTED 2026-07-09, after review.** An earlier draft of this section called Freimer
+> "genome-agnostic to prior characterisation". **That is wrong.** Freimer's library is **targeted** —
+> transcription factors plus candidate regulators plus controls, 1,350 genes and a non-targeting
+> pseudo-gene in the file we hold — so gene *inclusion* was a human judgement about what might regulate
+> IL2RA. That is a characterisation bias at the library-selection level. The defensible claim is that
+> Freimer is **drug-label-independent and signed**, not that it is blind to prior study. It is a weaker
+> instrument than the earlier sentence implied, and the weaker sentence is the one that governs.
 
 **What it does NOT measure.** Autoimmune therapeutic direction. A knockdown that lowers IL-2 could be
 `CD3E`, whose loss causes immunodeficiency. Lowering IL-2 is an **efficacy** readout, not a safety or
@@ -155,6 +161,51 @@ as registered, and it is fixed by requiring `lfc > 0` on the lowering side.
 and H3 run exactly as registered in §2, and the coverage gate of 10 genes stands. Only the instrument's
 sign convention, the positive control, and the zero-effect exclusion are corrected — all three from
 data that is blind to our nomination pool. The overlay still runs **once** after this addendum.
+
+---
+
+## ADDENDUM 2 — a SECONDARY, POST-HOC analysis under a relaxed rule, run at the user's direction
+
+The registered H3 emitted no card: 6 of 73 eligible pool genes are co-tested in the `IL2` arm against a
+pre-declared coverage gate of 10. **That result stands and is not superseded.**
+
+After seeing that, the user directed a relaxed promotion rule. **This is post-hoc rule relaxation.** It
+is structurally the same move the N20 red team was asked to attack, and it is recorded as a deviation
+rather than presented as the registered analysis. The registered outcome and the deviation outcome are
+both reported, side by side, and the registered one is the one that governs any headline.
+
+**The relaxed rule, fixed before the second run.**
+
+- Universe: unchanged. The frozen 91-gene pool, minus curated approved-immunomodulator targets, minus
+  direction-discordant genes, minus housekeeping and respiratory-chain genes (name **and** function),
+  minus RULE #6 competitor-overlap genes.
+- **Promotion requires** a significant Freimer `IL2`-lowering knockout effect at Freimer's own
+  threshold, with the sign convention validated by the marker-gene positive controls.
+- **No coverage gate.**
+- `IL2RA`-lowering is a **weaker supportive annotation**, never promotion: IL2RA marks activation and
+  also Treg biology, so its direction is ambiguous.
+- `CTLA4`-lowering is a **liability flag**, not disqualifying. A gene that lowers IL-2 *and* lowers
+  CTLA-4 is labelled *functional support with co-inhibitory liability*. A gene that lowers IL-2 and
+  preserves or raises CTLA-4 is labelled *functional support with favourable co-inhibitory direction*.
+  (The registered H3 excluded CTLA-4-lowering genes outright. The relaxed rule is **more permissive**
+  here, and that is stated.)
+- Output is at most three **hypothesis target cards**. Every card carries a "why this might be wrong"
+  line and the fixed verdict *"Hypothesis target for follow-up, not a vetted therapeutic target."*
+
+**Hard limits, unchanged.** Freimer may not alter the screen gate. It may not re-rank the 6,371
+perturbations. It may not rescue a gene that fails the internal evidence floor. It may not touch
+Schmidt. It may not produce the sentence "we discovered a new target". The strongest phrase permitted
+is *"a Freimer-supported follow-up hypothesis."*
+
+**Permitted verdicts, and only these three.**
+1. No Freimer-supported hypothesis target.
+2. One Freimer-supported hypothesis target, not a vetted therapeutic target.
+3. Freimer produces candidates, but all fail review on mechanism, tractability, housekeeping biology,
+   or co-inhibitory liability.
+
+**Fan-out assertions, before scoring.** One row per (gene, arm); one final row per gene after arm
+aggregation; no gene duplicated by any arm join; the candidate count must not change when Freimer is
+joined. N19 was injured by exactly this.
 
 ---
 
