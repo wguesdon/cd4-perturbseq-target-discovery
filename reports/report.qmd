@@ -101,6 +101,7 @@ fdata = pd.read_csv(T / "freimer_figure_data.csv")
 post = pd.read_csv(T / "freimer_secondary_posthoc.csv")
 den = pd.read_csv(T / "denominator_manifest.csv").set_index("universe")["n"]
 gen = pd.read_csv(T / "pvalue_genealogy.csv")
+auroc = pd.read_csv(T / "auroc_validation.csv").set_index("labelled_set")
 
 
 def spec_row(quantity: str) -> pd.Series:
@@ -664,11 +665,23 @@ safety. Approved status is not a safety label, and a null result on a three-gene
 evidence of anything. This comparison provides limited support for the binary evidence floor and none
 for the co-inhibitory criterion.
 
-Rank discrimination on the same 20 positives is weak: the area under the receiver operating
-characteristic curve is 0.542 with a 95% confidence interval of [0.373, 0.707], which includes chance.
-Out-of-sample validation of the efficacy axis is instead provided by the held-out screen of
-@schmidt2022, where it attains an area under the curve of 0.702 [0.591, 0.814] against 33 IL-2-reducing
-hits.
+Rank discrimination on the same positives is absent. Computed on the primary efficacy statistic, the
+area under the receiver operating characteristic curve is
+`{python} f"{auroc.loc['curated approved-immunomodulator targets', 'auroc']:.3f}"` with a 95% bootstrap
+interval of [`{python} f"{auroc.loc['curated approved-immunomodulator targets', 'ci_low']:.3f}"`,
+`{python} f"{auroc.loc['curated approved-immunomodulator targets', 'ci_high']:.3f}"`], which contains
+chance. Out-of-sample validation of the efficacy axis is instead provided by the held-out screen of
+@schmidt2022, where it attains
+`{python} f"{auroc.loc['Schmidt 2022 IL-2-reducing hits (HELD OUT)', 'auroc']:.3f}"`
+[`{python} f"{auroc.loc['Schmidt 2022 IL-2-reducing hits (HELD OUT)', 'ci_low']:.3f}"`,
+`{python} f"{auroc.loc['Schmidt 2022 IL-2-reducing hits (HELD OUT)', 'ci_high']:.3f}"`] against
+`{python} f"{int(auroc.loc['Schmidt 2022 IL-2-reducing hits (HELD OUT)', 'n_positives'])}"`
+IL-2-reducing hits. Schmidt's hits are the receptor-proximal signalosome that the triage layer rejects,
+so a triage score that beat the efficacy axis on this set would be suspect rather than reassuring.
+
+Both curves were previously reported as 0.542 [0.373, 0.707] and 0.702 [0.591, 0.814]. Those values were
+computed on a third score, distinct from the primary statistic and from the one used elsewhere. They are
+withdrawn.
 
 A drug-recovery benchmark constructed from Open Targets [@ochoa2023] cannot be powered on this dataset.
 Against a threshold of 60 positives fixed before counting, the primary count is 38 and the most

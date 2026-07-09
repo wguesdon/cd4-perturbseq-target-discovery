@@ -1,199 +1,137 @@
-# CD4+ T cell Perturb-seq target triage
+# A screen-native triage layer for a CD4+ T cell Perturb-seq atlas
 
-Researcher Track submission for the **2026 Built with Claude: Life Sciences** hackathon.
+An exploratory computational reanalysis of the genome-scale CRISPRi Perturb-seq atlas of primary human
+CD4+ T cells released by [Zhu, Dann et al. 2025](https://www.biorxiv.org/content/10.64898/2025.12.23.696273v1)
+(preprint). We ask whether a target-triage layer built only from quantities the screen measures can
+nominate a drug target that is not already known.
 
-> All work in this repository was started from scratch on 2026-07-07 and carried out during the
-> event. The starting question and the public dataset predate the hackathon. The analysis does not.
+**It cannot, and the reasons are the result.**
 
-## The question
+> **Read the paper:** [`reports/report.html`](reports/report.html) (self-contained), source at
+> [`reports/report.qmd`](reports/report.qmd).
 
-Which single gene knockdowns suppress the inflammatory program of a stimulated human CD4+ T cell
-**without** disabling the cell, collapsing its resting transcriptome, or destroying its tolerance
-machinery?
+All work in this repository was started on 2026-07-07 and carried out during the
+[Built with Claude: Life Sciences](docs/hackathon_brief.md) event. The question and the dataset predate
+it; the analysis does not.
 
-That last clause is the whole project. Ranking perturbations by how well they reverse a disease
-signature is a solved, released capability. On its own it nominates targets that work and would
-leave a patient immunodeficient. **Reversal is not enough.** The contribution is the safety gate
-that separates the two, and an honest account of where it fails.
+---
 
-## What we have found so far
+## What this is, and what it is not
 
-Every number below is reproducible from this repository. Days 2 to 5 are still in progress.
+It **is** an audit-ready decision layer that recovers known pharmacology above chance, exposes what the
+assay cannot see, and declines to nominate when the evidence is uncalibrated.
 
-**The naive ranking is toxic, and not for the reason we predicted.** A well-QC'd score that ranks
-perturbations purely by suppression of the effector program produces a top 100 that is enriched
-for genes causing human inborn errors of immunity. It is **not** enriched for cancer cell
-essential genes. The 31 rankable Hart core essentials sit at median rank 3148 of 6371, p equals
-0.611. A viability penalty anchored on DepMap, which is what our own plan originally specified,
-would have rejected almost nothing.
+It is **not** a validated method for target discovery, safety assessment, or therapeutic-window
+estimation. The central co-inhibitory criterion is a **messenger RNA annotation**. Nothing here was
+validated experimentally.
 
-The contaminants are of two kinds. Immune essential signalling machinery: `STAT5B`, `VAV1`,
-`IL2RB`, `CD3G`, `CD247`, `LCK`. And global transcription machinery that collapses the resting
-transcriptome: `NSD1`, `TADA2B`, `CXXC1`, `WDR82`, `USP22`. All 25 of the naive top 25 are
-rejected by the safety gate. See [`docs/results/risk_kill_2026_07_08.md`](docs/results/risk_kill_2026_07_08.md).
+## The result
 
-**An independent screen confirms the toxic hits really work.** In Schmidt and Steinhart 2022, a
-separate lab's genome wide CRISPRi screen with a protein level readout, `VAV1`, `CD3G` and `CD247`
-knockdowns genuinely reduce IL-2 production. They are effective. They are also immunodeficiency
-genes. That single table is the argument.
+Of 12,779 library genes, 6,371 perturbations survive **our own** quality-control mask, not the source
+authors'. Of these, 263 clear an evidence floor requiring both a minimum number of significantly
+decreased effector-module genes and net suppression, and 197 additionally fall below the 75th percentile
+of co-inhibitory suppression.
 
-**The efficacy axis is real.** Our transcriptome derived suppression score reaches AUROC 0.702,
-95% CI [0.591, 0.814], against the 33 significant IL-2 reducing hits in that independent screen.
+| finding | value |
+| --- | --- |
+| Top 20 by efficacy, rejected by the layer | **14 of 20**, against 4.6 for a magnitude-matched shortlist (P = 2.0e-4, the 1/5001 floor) |
+| Context-selectivity axis | 14 versus 14.2 matched, P = 0.65. No information beyond effect magnitude. Demoted to an annotation. |
+| Co-inhibitory module versus 200 matched random modules | exceeds every one, so the permutation P equals its floor of 1/201. The co-regulation confound is open. |
+| Recovery of approved immunomodulator targets | 4 of 20 eligible positives at the evidence floor (p = 0.0081) |
+| Do the safety axes add recovery? | **No.** 3 observed, 3.00 expected, p = 0.74 |
+| Rank discrimination on drug targets | AUROC 0.497 [0.339, 0.656]. Chance. |
+| Held-out validation of the efficacy axis | AUROC 0.701 [0.583, 0.803] against Schmidt 2022 IL-2 hits |
+| Independent CD4 screen (Freimer 2022) | efficacy axis concordant (Spearman +0.115, 4 of 4 stratified nulls); **co-inhibitory axis not** (+0.025, 0 of 4) |
+| Direction of effect | annotated for **17 of 197** genes; every concordant annotation requires a pre-existing approved drug |
+| Novel targets nominated | **none** |
 
-**The drug target recovery benchmark is underpowered, and we say so.** Of 36 curated positives,
-32 are perturbed, 30 are measured, and only 20 survive QC. `JAK1` and `JAK3` were never perturbed,
-so tofacitinib's targets cannot be recovered at all. AUROC on those 20 is 0.542, 95% CI
-[0.373, 0.707], which covers chance. Whether this benchmark survives is being decided by an Open
-Targets query, not by us choosing a number we like.
+The efficacy axis, the commodity half of the pipeline, is the half that shows concordance on an
+orthogonal protein-level screen. The co-inhibitory axis, which carries the headline, is the half that
+does not.
 
-## Honest limitations
+## What the screen cannot see
 
-- The screen stimulates through the TCR with no polarising cytokines. Cytokine signalling targets
-  are therefore close to invisible. `JAK2` ranks 5392, `TYK2` 5618, `S1PR1` 5993, `IL4R` 6047 of
-  6371. This bounds recall from above and is a property of the dataset, not of the method.
-- `CD3E` and `CD3G` are simultaneously approved drug targets and inborn errors of immunity. The
-  safety gate demotes the genes the benchmark counts as positives. That is correct behaviour,
-  since muromonab was withdrawn, but it means drug recovery validates the **efficacy axis** and
-  cannot validate the **window score**. The two are benchmarked separately.
-- The released differential expression is pseudobulk, not distribution aware. We inherit that.
-- The library is single gene. There are no combinatorial perturbations.
-- Th2 and Th17 readouts are proxies, because the culture is not polarised.
+- The stimulation carries no polarising cytokines, so cytokine-signalling targets rank near the bottom,
+  and two targets of an approved JAK inhibitor were never perturbed.
+- Single-gene CRISPRi is blind to redundant targets. The two catalytic calcineurin paralogues yield
+  fewer than four differentially expressed genes each; the non-redundant regulatory subunit yields 523.
+- Essentiality cannot be evaluated as a safety axis in a screen where essentiality governs entry into
+  the analysable set. A comparison among the survivors of that selection is not causal in either
+  direction.
+- A drug-recovery benchmark cannot be powered here. Against a threshold of 60 fixed before counting,
+  the primary count is 38 and the most permissive upper bound is 53.
 
-## Data
+## Claims withdrawn during this work
 
-Genome scale CD4+ T cell CRISPRi Perturb-seq, Marson lab, hosted on CZI Virtual Cell Models.
+Recorded in full in the paper's supplement and in `results/tables/pvalue_genealogy.csv`, which is
+validated at build time by `scripts/30_pvalue_genealogy.py`.
 
-- Dataset: https://virtualcellmodels.cziscience.com/dataset/genome-scale-tcell-perturb-seq
-- Reference analysis code: https://github.com/emdann/GWT_perturbseq_analysis_2025
-- Preprint: https://www.biorxiv.org/content/10.64898/2025.12.23.696273v1
+- An **inborn-errors-of-immunity enrichment** among top-ranked perturbations was used to argue that the
+  ranking is unsafe. The same flag is *more* enriched among approved drug targets than among the
+  top-ranked perturbations. It is an annotation, never a gate.
+- A per-perturbation p-value of 3.5e-13 treated 6,371 z statistics as independent when the module is a
+  single fixed nine-gene set. Its false-positive rate on random modules was 15% against a nominal 5%.
+- A drug-recovery benchmark count of 173 "powered" targets was inflated by three annotation artifacts.
+  The honest count is 38.
+- Two efficacy statistics were in use, a z score for ranking and a mean log fold change for everything
+  else. They share 9 of their top 20. Unified to one signed statistic.
+- The evidence floor admitted perturbations that *induce* the effector module, one of them a curated
+  positive. A direction requirement was added.
+- `P < 0.0001` was reported from 5,000 draws without the `+1` correction.
+- `BINDING AGENT` and `CROSS-LINKING AGENT` were treated as loss-of-function-mimicking drug mechanisms.
+  An anti-CD3 cross-linking antibody is the agonist that stimulates these very cells.
+- A rule inferring therapeutic concordance from an inborn error of immunity called `PTEN` concordant,
+  although PTEN loss causes lymphoid hyperplasia and autoimmunity.
+- Two areas under the ROC curve were computed on a third score, distinct from the primary statistic.
 
-We use the released per perturbation effect matrix `GWCD4i.DE_stats.h5ad`, 33,983 perturbation by
-condition pairs across 10,282 measured genes. We do not reprocess the 22 million raw cells. The
-matrix is 16.8 GB and is not committed. See [`data/README.md`](data/README.md).
-
-Prior gene lists and reference screens are fetched from the authors' analysis repository by
-[`scripts/fetch_priors.sh`](scripts/fetch_priors.sh), which pulls 22 small tables rather than
-cloning 1.66 GB.
-
-## How Claude Code and Claude Science are used
-
-This is a Built with Claude entry, so how the tools are wielded is itself a graded artifact. The
-division of labour is deliberate and follows what each tool is uniquely good at. The full audit
-trail, one row per action, is [`docs/claude_tooling_log.md`](docs/claude_tooling_log.md). The queue
-is [`docs/handoffs/README.md`](docs/handoffs/README.md).
-
-**Claude Code orchestrates and builds.** It plans, writes and runs the pipeline, owns the
-repository and git history, and runs adversarial multi agent audits against its own results. The
-literature review was a six agent fan out. The risk kill result above was then attacked by a six
-lens hostile audit, each finding independently refuted or reproduced by two further agents, before
-any of it was believed.
-
-**Claude Science verifies, sources, and renders.** It is a browser workbench with official
-connectors, a reviewer agent, sandboxed kernels, and provenance artifacts. It is used for the four
-things Claude Code cannot do as well:
-
-| # | Handoff | What only Claude Science gives us |
-| --- | --- | --- |
-| CS1 | Open Targets: how many phase 4 immune inhibitory targets are in our 6,371 rankable genes | An authoritative, versioned answer to a ground truth question we would otherwise be asserting from memory |
-| CS2 | Reviewer agent independently recomputes the risk kill statistics | An outside party trying to break our central claim, including resampling a background we drew only once |
-| CS3 | Evidence cards for the surviving shortlist, with PubMed citation verification | Every claim on a card checked against a source by the reviewer agent, not asserted |
-| CS4 | Figures rendered from the committed tables, with provenance | An artifact proving each figure matches the code that produced it |
-
-Two principles govern this. Claude Science is given the tasks that could **break** our result, not
-only the tasks that decorate it. CS2 exists specifically to attack the headline. And every handoff
-runs on small committed artifacts, never on the 16.8 GB matrix, so any reader can rerun them.
-
-Where Claude Science corrects or contradicts Claude Code, the disagreement is logged. A handoff
-that only ever confirms what we already believed is not evidence of anything.
-
-## Working across two machines
-
-Compute and the effect matrix live on one machine. Claude Science runs in a browser on another.
-Git is the only channel between them.
-
-| | Compute node | Claude Science node |
-| --- | --- | --- |
-| Runs | Claude Code | Claude Science web UI |
-| Has the 16.8 GB matrix | yes | no, and never needs it |
-| Writes | `src/`, `scripts/`, `results/`, `data/`, `docs/` | only **new** files under `docs/handoffs/results/` and `resources/ground_truth/` |
-
-The rule that keeps them from colliding: the Claude Science node only adds files, never edits an
-existing one. Rebase therefore stays clean. Everything a handoff needs is committed and under
-600 KB, listed in [`docs/handoffs/README.md`](docs/handoffs/README.md).
-
-There is deliberately no cloud compute. One layer of the matrix is 2.8 GB and the rows we read are
-0.93 GB, so the entire analysis runs locally in minutes. Nothing in this project trains a model.
-Foundation and perturbation models are kept off the critical path, because the literature shows
-they do not beat simple baselines here.
-
-## Method
-
-1. Build the activation program from two independent sources, a curated effector list and an
-   external bulk RNA-seq stimulation contrast. Separate the **effector module**, which is the
-   objective, from the **tolerance module**, which is a penalty. `FOXP3`, `IL10`, `IKZF2` and the
-   co-inhibitory checkpoints are stimulation induced too, so a naive objective wrongly rewards
-   destroying them.
-2. Score effector suppression in stimulated cells, calibrated against a within condition null.
-3. Gate on the axes the screen itself measures: an evidence floor, context selectivity (the
-   stimulated effect must exceed the resting effect tenfold), and tolerance preservation. Immune
-   essentiality from the IUIS list is **reported, not gated on**. It is more enriched among approved
-   drug targets (OR 8.3) than among the perturbations a naive ranking calls toxic (OR 4.2), so it
-   cannot separate a hazard from a good target. Every gate axis that was a database lookup has
-   failed here. Every axis computed from the screen has held.
-4. Validate the efficacy axis against an independent CRISPRi screen with a protein readout.
-   Validate the window score on therapeutic index, separately, because the two are not the same
-   question.
-5. Annotate survivors with druggable class and Open Targets tractability.
-6. Ship a ranked table and sourced evidence cards.
-
-Superseded planning documents are kept rather than deleted, so the reasoning is auditable. See
-[`docs/strategy_2026_07_07.md`](docs/strategy_2026_07_07.md) and the corrections recorded in
-[`docs/results/risk_kill_2026_07_08.md`](docs/results/risk_kill_2026_07_08.md).
-
-## Reproducibility
-
-Managed with [uv](https://docs.astral.sh/uv/). Python 3.13.
+## Reproducing
 
 ```bash
-git clone git@github.com:wguesdon/cd4-perturbseq-target-discovery.git
-cd cd4-perturbseq-target-discovery
-uv sync
-bash scripts/fetch_priors.sh          # 22 small prior tables, no large clone
+uv sync                                   # Python 3.13
+bash scripts/fetch_priors.sh              # prior gene lists and reference screens
+bash scripts/06_fetch_safety_priors.sh    # gnomAD, Human Protein Atlas
+bash scripts/15_fetch_open_targets.sh     # Open Targets, release pinned to 26.06
 
-# Optional, 16.8 GB. Only needed to regenerate the ranking from scratch.
-aws s3 cp s3://genome-scale-tcell-perturb-seq/marson2025_data/GWCD4i.DE_stats.h5ad \
-  data/raw/ --no-sign-request
+# the effect matrix (16.8 GB), not vendored
+aws s3 cp --no-sign-request \
+  s3://genome-scale-tcell-perturb-seq/marson2025_data/GWCD4i.DE_stats.h5ad data/raw/
 
-uv run python scripts/00_inspect_de_stats.py
 uv run python scripts/01_build_activation_program.py
-uv run python scripts/02_risk_kill_reversal.py      # exits non-zero if the headline claim fails
-uv run python scripts/03_export_handoff_inputs.py
+uv run python scripts/04_window_score.py
+# see the Methods section of reports/report.qmd for the full order
+
+QUARTO_PYTHON="$PWD/.venv/bin/python" quarto render reports/report.qmd --to html
 ```
 
-`scripts/02_risk_kill_reversal.py` is written so it can fail, on **one pre-registered primary
-endpoint**: the naive top 100 must collapse the tolerance module more than a background matched on
-transcriptome-wide effect magnitude. If it does not, the script exits non-zero and the project's
-headline is wrong. Verified falsifiable — permuting or sign-flipping the tolerance column drives it
-to exit 1.
+Several scripts are written to be able to fail. `scripts/02_risk_kill_reversal.py` exits non-zero if its
+pre-registered endpoint breaks. `scripts/29_nomination_recalibration.py` **currently exits non-zero**,
+because a pre-registered control on the rebuilt nomination rule fails for want of power; the rule is void
+by its own criterion, and the paper says so. `scripts/30` and `scripts/31` fail if any quoted statistic
+or denominator has drifted from its source table, and the paper's abstract fails the render on drift.
 
-It used to exit on `any()` of five one-sided tests, against a background matched on cell count and
-drawn once with `seed=0`. All three of those were defects, and all three are described in
-[`docs/results/magnitude_matched_2026_07_08.md`](docs/results/magnitude_matched_2026_07_08.md).
-Cell count turned out to be a viability readout rather than a power proxy, so the original matching
-controlled the confound backwards.
+## Layout
 
-## Repository layout
+| path | contents |
+| --- | --- |
+| `reports/report.qmd` | the manuscript; every number read from a committed table at render time |
+| `scripts/` | numbered pipeline, one concern per script |
+| `src/cd4_perturbseq/` | shared readers for the effect matrix and the external priors |
+| `results/tables/` | every committed intermediate; the paper reads these, never the raw data |
+| `docs/preregistration_*.md` | decision rules fixed before the analyses that used them |
+| `docs/results/*.md` | per-analysis write-ups, including the negative results |
+| `docs/citation_verification_2026_07_09.md` | every reference fetched and checked before it was cited |
+| `docs/claude_tooling_log.md` | how the analysis was built, and where the tooling disagreed with itself |
 
-```
-data/                 raw, interim, external (contents gitignored)
-docs/                 strategy, literature, results, and the Claude Science handoff queue
-resources/            committed ground truth and the small handoff input bundle
-scripts/              numbered, runnable pipeline steps
-src/cd4_perturbseq/   reusable package code
-results/              figures and tables produced by the analysis
-```
+## Limitations
 
-## License
+Donor and guide uncertainty is not propagated: results pool four donors and generally two guides per
+target, and `PPP3R1`, used here as a recovered positive, has two guides whose signatures anticorrelate.
+The co-inhibitory cut is a quantile, so it rejects a quarter of the evidence-passing set by construction
+and is calibrated against no external phenotype. The enrichment analysis is partly circular. The whole
+analysis is exploratory rather than prospectively specified. The paper's Limitations section states these
+before any result that rests on them.
 
-MIT. See [`LICENSE`](LICENSE). The source dataset is MIT plus the CZI Acceptable Use Policy. The
-preprint is CC BY.
+## Licence
+
+MIT. The source atlas is CC BY 4.0. Vendored reference screens carry their original attribution in
+`resources/external_screens/PROVENANCE.md`.

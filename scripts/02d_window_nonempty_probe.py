@@ -16,12 +16,15 @@ Small CSVs only. Never touches the h5ad.
 
 from __future__ import annotations
 
+import pathlib
+
 import sys
 
 import numpy as np
 import pandas as pd
 
-REPO = "/home/will/Documents/Github/cd4-perturbseq-target-discovery"
+# Resolve the checkout from this file, so the script runs from any clone.
+REPO = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, f"{REPO}/src")
 
 from cd4_perturbseq import priors  # noqa: E402

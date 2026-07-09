@@ -21,7 +21,7 @@
 ## Before you start
 
 ```bash
-cd /mnt/data/Github/cd4-perturbseq-target-discovery
+cd "$(git rev-parse --show-toplevel)"
 git pull --rebase
 git status -sb                       # must be clean
 
