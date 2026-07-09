@@ -16,12 +16,16 @@
   --brand-grey: #4d4d4d;
 }
 
-/* Title block. No logo, no banner. */
+/* Title block. No logo, no banner.
+   The title carries a rule in the accent colour, matching the rules under each section header. */
 .quarto-title h1.title,
 h1.title {
   color: var(--brand-navy);
   font-weight: 700;
   letter-spacing: -0.01em;
+  border-bottom: 3px solid var(--brand-blue);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .quarto-title .subtitle,
@@ -55,6 +59,24 @@ h3 {
 
 h4, h5, h6 {
   color: var(--brand-grey);
+}
+
+/* Section numbers take the accent colour, so the numbering reads as structure and the heading
+   text stays the dominant element. Applies in the body and in the table of contents. */
+.header-section-number,
+h1 .header-section-number,
+h2 .header-section-number,
+h3 .header-section-number,
+h4 .header-section-number,
+h5 .header-section-number,
+h6 .header-section-number {
+  color: var(--brand-blue);
+  font-weight: 600;
+}
+
+nav[role="doc-toc"] .header-section-number,
+.sidebar nav .header-section-number {
+  color: var(--brand-blue);
 }
 
 /* Table of contents. */
