@@ -632,6 +632,97 @@ see a redundant target. The shared, non-redundant regulatory subunit shows the p
 drug-target-recovery benchmark on this data that does not account for redundancy will report a
 false negative and blame the method.
 
+# The nomination layer, and why it abstains {#sec-nomination}
+
+## Every denominator, in one place
+
+This report quotes many counts. They are not interchangeable, and two of them are actively misleading
+unless stated. `scripts/31_denominator_manifest.py` recomputes each from its source and fails if one
+has moved.
+
+```{python}
+den = pd.read_csv(REPO / "results/tables/denominator_manifest.csv")
+d = den[["universe", "n", "meaning"]].copy()
+d["n"] = d["n"].map(lambda x: f"{x:,}")
+Markdown(d.to_markdown(index=False))
+```
+
+Two of those rows carry traps. Our count of sgRNA library targets is
+`{python} f"{int(den.loc[den['universe'] == 'sgRNA library targets', 'n'].iloc[0]):,}"`,
+while the source paper reports **12,748**; the difference is unreconciled and we say so rather than
+pick the flattering number. And the **six recovered approved-drug targets are not a subset of the
+36 curated positives**: `CD2` and `CD28` were deliberately held out of the ground truth, because a
+positive added after watching it rank is not evidence. "Six recovered" is an annotation. "Five of
+twenty above chance" is the test.
+
+## Our own nomination rule fails on the drugs we recovered
+
+We applied the nomination rule to the six approved-drug targets this pipeline recovers, asking whether
+each would have been nominated had we not already known it was a drug. **Three of six.**
+
+```{python}
+sens = pd.read_csv(REPO / "results/tables/nomination_rule_sensitivity.csv")
+s = sens[["rule", "recovered_drugs", "novel_nominated"]].copy()
+s.columns = ["rule", "re-nominates (of 6)", "novel genes returned"]
+Markdown(s.to_markdown(index=False))
+```
+
+At n = 6 that proportion is under-powered: the exact 95% interval is [0.12, 0.88] and still contains
+the pre-registered floor, one-sided binomial P = 0.062. **So the proportion alone does not reject the
+rule.** What rejects it is that it returns one gene from 206, and that its misses are a deterministic
+property of database coverage rather than a sampling rate: requiring autoimmune genetic support deletes
+`CD3E`, `IMPDH2` and `PPP3R1` at a genetic score of exactly 0.000, and requiring loss-of-function
+tolerance deletes `IMPDH2` at `prec` = 0.999. Those are anti-CD3, mycophenolate and ciclosporin: the
+essential-hub classes phenotypic pharmacology keeps hitting.
+
+The rebuilt rule is chosen on positive-class sensitivity alone, a criterion that never inspects which
+novel gene a rule promotes. **This is exploratory model repair, transparently logged. Its controls are
+sanity checks, not confirmatory discovery statistics.**
+
+## Direction of effect is a veto, not a promotion rule
+
+Direction evidence was useful only to demote. In this analysis, **absence of direction discordance is
+not favourable evidence**, because direction labels are missing for
+`{python} f"{int((doe['direction_verdict'] == 'UNKNOWN').sum())}"` of the
+`{python} f"{int(window['safe'].sum())}"` screen-passing genes and the missingness is not random.
+Concordant and discordant labels are both concentrated among already-characterised mechanisms: every
+concordant verdict requires that a drug or a monogenic syndrome already exists.
+
+We tried three times to escape that bias, and each attempt failed for a different principled reason.
+Colocalisation with eQTLs failed because **expression is not activity**: a self-calibrating direction
+proxy scored 0.50 on a nine-gene panel with a pre-registered gate at 0.80, and was refused. Systematic
+mouse phenotyping fails because **haematology is not autoimmunity**, and its immune assays under-detect
+the discordant pole. Literature-curated mouse knockouts fail because **a full knockout is not a partial
+inhibitor**: they invert `PTPN2`, whose human loss-of-function causes autoimmunity, because the mouse
+null dies of haematopoietic failure.
+
+## The gate cannot read a drug label, and this is enforced
+
+`clinical_precedent` leaked into the nomination gate once. It looked like an obvious bug fix, it was
+committed, and it would have made drug recovery circular, because that field is true for 32 of the 36
+curated positives. `scripts/32_leakage_guard.py` now permutes every forbidden field and requires the
+nominated set to be unchanged, verifies that the guard can fire by permuting a permitted field, checks
+that the known-drug label can only ever *remove* a gene and never add one, and asserts one row per gene
+on every external join. It exits non-zero otherwise.
+
+## `PPP3R1`, a caution rather than a nomination
+
+```{python}
+Markdown(
+    "`PPP3R1` is the calcineurin result and the clearest illustration of assay blindness in this "
+    "screen: the catalytic paralogues compensate, so `PPP3CA` yields one significant DE gene and "
+    "`PPP3CB` three, while the non-redundant regulatory subunit yields 523. Single-gene CRISPRi is "
+    "blind to redundant targets, and any drug-recovery benchmark that misses this blames the method "
+    "for a false negative.\n\n"
+    "It is also technically fragile. Its two guides **anticorrelate** on significant genes "
+    "(`guide_correlation_signif` = −0.390, the 5.98th percentile of 10,172 QC-passing rows). "
+    "`CD3E` rests on a **single guide** in all three conditions, and `COMMD5` in two of three. "
+    "We therefore use `PPP3R1` to illustrate redundancy and assay visibility, **not** as a "
+    "precision-ranked nomination, and we do not report a per-guide replication analysis we have "
+    "not run."
+)
+```
+
 # Discussion
 
 The value of a perturbation atlas for drug discovery is not the regulator list. It is a
