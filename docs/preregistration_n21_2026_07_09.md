@@ -102,6 +102,62 @@ If H3 returns one or more genes, the result is:
 
 Neither sentence may be strengthened. The word "discovered" does not appear in either.
 
+---
+
+## ADDENDUM 1 — the first run failed two controls, and it was right to. Recorded, not quietly fixed.
+
+Written after the first execution of `scripts/33_freimer_functional_overlay.py`, which **exited 1**.
+Nothing from that run was used. Recorded here in full, in the manner of the N9 addendum.
+
+**Failure 1: the registered positive control does not exist in the library.** Freimer is a **focused
+1,351-gene IL2RA-regulator library, not genome-wide.** Of the seven TCR-proximal signalosome genes
+registered as the positive control, **zero are present** (`ZAP70`, `VAV1`, `CD3G`, `CD247`, `LCK`,
+`ITK`, `PLCG1` — all absent). So are `CD3E`, `PPP3R1`, `IMPDH2` and `CD28`. Only `IL4R` is in scope.
+The registered control was **NOT TESTABLE**, which is a fact about the library and could have been
+checked before registration. It was not. That is a registration error.
+
+> **Substituted positive control, and why it is stronger.** In each arm, **the marker gene itself**
+> must be the strongest "knockdown lowers the marker" hit: knocking out `CTLA4` must lower CTLA-4.
+> This control requires no outside knowledge, is available in every arm, and is entirely independent
+> of any gene in our nomination pool. It is a better control than the one registered.
+
+**Failure 2: the sign convention in the data is the opposite of what this repo assumed.**
+The substituted control settles it. In each arm the marker gene is significant on the **`pos`** side
+and maximally non-significant on `neg`:
+
+| arm | marker gene | lfc | `neg` rank | `pos` rank | `pos` FDR |
+|---|---|---|---|---|---|
+| IL2RA | `IL2RA` | +2.682 | 1351 | **2** | 4.5e-4 |
+| IL2 | `IL2` | +1.804 | 1347 | **5** | 2.8e-4 |
+| CTLA4 | `CTLA4` | +3.787 | 1351 | **1** | 4.1e-4 |
+
+Therefore **`pos` = knockdown LOWERS the marker** (guides enriched in the marker-low bin), and
+`neg` = knockdown raises it. `neg|lfc` and `pos|lfc` are identical in 100% of rows: `lfc` is a
+gene-level value, not side-specific.
+
+> **This means `scripts/27_cross_screen_concordance.py:59` has the sign backwards.** Its comment reads
+> "depleted (neg) = knockdown lowers the marker", and it assigns `row_dir = "pos_regulator"` when
+> `neg|fdr <= pos|fdr`. That inverts **331 genes labelled `pos_regulator` and 141 labelled
+> `neg_regulator`** in the committed `cross_screen_concordance.csv`.
+>
+> **N19's statistical verdict is unaffected**, because its enrichment test keys on `freimer_hit`,
+> which is `min(neg|fdr, pos|fdr) < 0.10` and therefore sign-agnostic. The reported non-enrichment
+> (best p = 0.21) stands. Only the direction column is wrong. It is corrected, and the correction is
+> reported rather than silently applied.
+
+**Failure 3: the negative control tripped for a reason that is real but not the one it tests for.**
+MAGeCK aggregates the 593 non-targeting guides into one pseudo-gene. With n = 593 its FDR is tiny by
+construction, while its `lfc` is **exactly 0.0** on every arm. An FDR-only hit rule flags it. The hit
+rule must therefore require a non-zero effect, not merely significance. This is a defect in the rule
+as registered, and it is fixed by requiring `lfc > 0` on the lowering side.
+
+**What is NOT changed.** No hypothesis, no threshold, no ranking rule, and no coverage gate. H1, H2
+and H3 run exactly as registered in §2, and the coverage gate of 10 genes stands. Only the instrument's
+sign convention, the positive control, and the zero-effect exclusion are corrected — all three from
+data that is blind to our nomination pool. The overlay still runs **once** after this addendum.
+
+---
+
 ## 5. What this costs if it fails
 
 Nothing that matters. H1 and H2 are worth running on their own: they ask whether the two axes of the
