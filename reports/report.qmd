@@ -5,20 +5,24 @@ author: "William Guesdon"
 date: last-modified
 abstract: |
   Ranking CRISPRi perturbations by how strongly they reverse an inflammatory signature is a
-  released, commodity capability. We show that on a genome-scale CD4+ T cell Perturb-seq atlas
-  it nominates targets that work and would leave a patient immunodeficient. Eighteen of the top
-  twenty perturbations in a naive suppression ranking fail a safety gate, and an independent
-  lab's protein-level CRISPRi screen confirms that many of them genuinely do shut IL-2
-  production down. We then tested that headline number against itself, and most of it turned out
-  to be bought by effect size: a shortlist matched on transcriptome-wide effect magnitude is
-  rejected 15.3 times out of 20. What reversal ranking *specifically* brings in is collapse of the
-  regulatory tolerance program, rejected 12 times in our top 20 against 4.0 in a magnitude-matched
-  one. We build a therapeutic-window score with an evidence floor, a context selectivity
-  requirement and a tolerance-preservation penalty, and we read viability directly off the screen.
-  Without being told which drugs are well tolerated, the score sorts five approved immunomodulators
-  into the three mechanism classes the clinic uses. Three mechanisms we asserted were refuted in the
-  course of this work, and one the adversarial audit asserted against us was refuted in turn. We
-  report all four.
+  released, commodity capability. On a genome-scale CD4+ T cell Perturb-seq atlas it nominates
+  perturbations that suppress the activation program and that an independent lab's protein-level
+  CRISPRi screen confirms do reduce IL-2, but which a safety gate refuses: 12 of the top 20 in a
+  naive suppression ranking, against a magnitude-matched expectation of 4.0 (P < 0.0001, n = 20).
+  Those rejections fall entirely on one axis. A context-selectivity axis flags 14 of the same 20
+  against 13.6 matched (P = 0.54, n = 20), carries no information beyond panel-wide effect
+  magnitude, and we demote it to a reported annotation. The axis that survives is suppression of an
+  activation-induced co-inhibitory module, and it survives a null matched on induction as well as
+  expression (module-level permutation p = 0.005, effective n = 1 module). We build a
+  therapeutic-window score from what the screen measures, read viability directly off it, and
+  recover approved immunomodulator targets above chance without being told about them
+  (5 of the 20 assay-visible positives, 5.6x, permutation p = 0.0017; AUROC 0.542 spans chance).
+  We then turn the same hostility on our own nomination rule. It recovers only 3 of the 6
+  approved-drug targets the pipeline itself finds, and direction of effect can be adjudicated only
+  for genes that a drug or a monogenic syndrome has already characterised, so it can demote a
+  candidate but never promote one. Several asserted mechanisms were refuted in the course of this
+  work, including two of our own and one the adversarial audit asserted against us. We report them
+  all. The contribution is the decision layer and its audit, not a validated target.
 format:
   html:
     theme:
@@ -56,13 +60,16 @@ from cd4_perturbseq import priors  # noqa: E402
 FIG = "../results/figures"
 
 window = pd.read_csv(REPO / "results/tables/window_score.csv")
-naive = pd.read_csv(REPO / "results/tables/risk_kill_naive_reversal.csv")
 truth = pd.read_csv(REPO / "resources/ground_truth/immunomodulator_targets.csv")
 pillars = pd.read_csv(REPO / "results/tables/magnitude_matched_pillars.csv")
 strat = pd.read_csv(REPO / "results/tables/risk_kill_stratified_tests.csv")
 spec = pd.read_csv(REPO / "results/tables/reversal_specificity.csv")
 rivals = pd.read_csv(REPO / "results/tables/reversal_rival_rankings.csv")
 funnel = pd.read_csv(REPO / "results/tables/selection_funnel.csv").set_index("stage")
+# N9. The induction-matched module-level null. `scripts/10`'s per-perturbation p-value (3.5e-13) is
+# anticonservative by orders of magnitude — it treats 6,371 z-values as independent when the module is
+# one fixed nine-gene set, so the effective n is 1. It is never quoted; this table is quoted instead.
+n9 = pd.read_csv(REPO / "results/tables/tolerance_induction_verdict.csv").iloc[0]
 
 # Never restate these as literals. The prose used to say "only 217 of 682"; that went stale the day
 # 11_selection_funnel.py stopped unioning two gene-symbol vocabularies to build its denominator, and
@@ -85,8 +92,20 @@ POSITIVES = truth[truth["include_as_positive"]]["gene_symbol"]
 
 
 def spec_row(quantity: str) -> pd.Series:
-    """Pull one row of the reversal-specificity table by its `quantity` label."""
-    return spec[spec["quantity"].str.startswith(quantity)].iloc[0]
+    """Pull one row of the reversal-specificity table by its `quantity` label.
+
+    Raises on an unknown label rather than returning an empty frame. The report once asked for
+    `"rejected on homeostasis"`, a row the N6b rebuild had renamed to `"fails selectivity
+    annotation"`, and the render died with an opaque IndexError. A table that changes shape should
+    fail the render loudly, the way `_assert_no_dead_axis` does in `scripts/05_figures.py`.
+    """
+    hit = spec[spec["quantity"].str.startswith(quantity)]
+    if hit.empty:
+        raise KeyError(
+            f"reversal_specificity.csv has no row starting with {quantity!r}. "
+            f"Available: {sorted(spec['quantity'])}"
+        )
+    return hit.iloc[0]
 
 
 PRIMARY = strat[
@@ -94,8 +113,36 @@ PRIMARY = strat[
     & (strat["test"] == "tolerance suppression")
 ].iloc[0]
 TOL = spec_row("rejected on tolerance")
-HOM = spec_row("rejected on homeostasis")
+# The homeostasis axis was demoted to a reported annotation by N6b. The row is named for what it is.
+SEL = spec_row("fails selectivity annotation")
 ANY = spec_row("rejected (any axis)")
+
+
+def _assert_abstract_is_current() -> None:
+    """Fail the render if the YAML abstract has drifted from the committed tables.
+
+    The abstract is YAML and cannot host inline Python, so its numbers are the only literals in this
+    document. They are therefore the only ones that can rot silently. This pins each of them to the
+    table it came from. If a pipeline rerun moves a number, the render dies here rather than shipping
+    a paper whose abstract disagrees with its own results.
+    """
+    claims = {
+        "top-20 rejected": (int(ANY["observed"]), 12),
+        "matched expectation": (round(float(ANY["matched_mean"]), 1), 4.0),
+        "selectivity flags": (int(SEL["observed"]), 14),
+        "selectivity matched": (round(float(SEL["matched_mean"]), 1), 13.6),
+        "selectivity P": (round(float(SEL["p_matched_ge_observed"]), 2), 0.54),
+        "N9 module-level p": (round(float(n9["p_module_level"]), 3), 0.005),
+    }
+    drift = {k: v for k, v in claims.items() if v[0] != v[1]}
+    if drift:
+        raise ValueError(
+            "The abstract is stale. Recompute it from the tables. "
+            + "; ".join(f"{k}: table says {a}, abstract says {b}" for k, (a, b) in drift.items())
+        )
+
+
+_assert_abstract_is_current()
 ```
 
 # Introduction
@@ -152,10 +199,16 @@ Three requirements, applied in order. A fourth, immune essentiality, was removed
    @sec-failures shows.
 2. **Context selectivity.** The stimulated effect must exceed the resting effect at least
    tenfold, measured in significant DE-gene counts. This threshold is fixed a priori.
-3. **Tolerance preservation.** Perturbations in the top quartile of tolerance-module suppression
-   are rejected. The tolerance module really is suppressed beyond its own null: against 200
-   expression-matched random nine-gene modules, z = +3.87 in the naive top 100 versus +1.26 in
-   background, p = 3.5e-13.
+3. **Co-inhibitory preservation.** Perturbations in the top quartile of co-inhibitory module
+   suppression are rejected. The module is suppressed beyond a null matched on both expression
+   **and induction**: against `{python} f"{int(n9['n_modules'])}"` random nine-gene modules matched
+   on both, the real module reaches T = `{python} f"{n9['T_real']:.2f}"` while the largest matched
+   module reaches only `{python} f"{n9['T_null_max']:.2f}"`; module-level permutation
+   p = `{python} f"{n9['p_module_level']:.3f}"` (n = 1 module, not 100 perturbations). Co-induction
+   accounts for `{python} f"{n9['coinduction_share_of_scripts10_effect']:.0%}"` of the effect an
+   expression-matched null had reported. An earlier per-perturbation p-value of 3.5e-13 treated
+   6,371 z-values as independent when the module is a single fixed nine-gene set; it was
+   anticonservative by orders of magnitude and is not quoted anywhere in this report.
 
 Immune essentiality from the IUIS list is **reported, not gated on**, and the reason is in
 @sec-failures.
@@ -186,7 +239,7 @@ over [1.72, 14.79] and the p-value over [0.00064, 0.178], with 22.4% of seeds la
 
 The confounder is **not** cell count. `Spearman(n_cells_target, stim_de_genes) = -0.243`: more cells
 means *fewer* differentially expressed genes, so cell count is a viability readout and matching on it
-controlled the confound backwards. The confounder is transcriptome-wide effect magnitude, and the
+controlled the confound backwards. The confounder is panel-wide effect magnitude, and the
 background is stratified on its decile.
 
 The risk-kill script decides on **one pre-registered primary endpoint**, not on `any()` of five
@@ -285,7 +338,7 @@ the effector module included, and it crosses the differential-expression thresho
 for the same reason. If that is all that is happening, "reversal is not enough" reduces to
 "large-effect knockdowns are toxic", which is neither new nor about reversal.
 
-So we measured transcriptome-wide effect magnitude directly, as
+So we measured panel-wide effect magnitude directly, as
 $z_{L2} = \sqrt{\sum_g z_g^2}$ over all 10,282 measured genes, excluding the perturbed gene's own
 column and both module gene sets so that the covariate cannot contain the score. Then we drew 5,000
 shortlists of 20 from the same evidence-passing pool, matched to the naive top 20 on $z_{L2}$
@@ -323,14 +376,14 @@ Markdown(
 )
 ```
 
-Decomposed by axis, the picture is unambiguous and it is not the one we expected.
-**Homeostasis**, which does most of the rejecting, rejects
-`{python} f"{int(HOM['observed'])}"` of our top 20 and
-`{python} f"{HOM['matched_mean']:.1f}"` of a magnitude-matched 20
-(P = `{python} f"{HOM['p_matched_ge_observed']:.2f}"`). It is a magnitude readout.
-**Tolerance** rejects `{python} f"{int(TOL['observed'])}"` of ours against
-`{python} f"{TOL['matched_mean']:.1f}"` matched, P < 0.0001. It is the axis that is about the
-*direction* of a perturbation rather than its *size*.
+Decomposed by axis, the picture is not the one we expected. **Selectivity**, the axis we originally
+called homeostasis, flags `{python} f"{int(SEL['observed'])}"` of our top 20 and
+`{python} f"{SEL['matched_mean']:.1f}"` of a magnitude-matched 20
+(P = `{python} f"{SEL['p_matched_ge_observed']:.2f}"`, n = 20). It carries no information beyond
+effect magnitude, and N6 demoted it from a gate axis to a reported annotation on that basis.
+**The co-inhibitory module** rejects `{python} f"{int(TOL['observed'])}"` of ours against
+`{python} f"{TOL['matched_mean']:.1f}"` matched, P < 0.0001, n = 20. It is the only axis that is
+about the *direction* of a perturbation rather than its *size*.
 
 The pillar-level statistics say the same thing. Against a background stratified on $z_{L2}$
 decile, using every control row rather than one sampled draw:
@@ -353,7 +406,10 @@ Finally, rankings that never mention the effector program:
 
 ```{python}
 r = rivals.copy()
-r.columns = ["ranking", "median tolerance loss", "median z_L2", "rejected on tolerance", "rejected on homeostasis", "pass gate"]
+if len(r.columns) != 6:
+    raise ValueError(f"reversal_rival_rankings.csv changed shape: {list(r.columns)}")
+r.columns = ["ranking", "median tolerance loss", "median z_L2", "rejected on tolerance",
+             "fails selectivity (annotation)", "pass gate"]
 r.round(3)
 ```
 
@@ -361,11 +417,12 @@ Our ranking finds *more* tolerance collapse (0.54) at *lower* transcriptome disr
 than a pure-magnitude ranking does (0.29 at 179). The sign-blind ranking is identical to ours
 because the evidence floor already removes inducers; it is a weak null and we report it as one.
 
-**What survives.** "Reversal is not enough" stands: a practitioner who ranks by reversal and acts
-on the top 20 will act on 18 targets this gate refuses. But the *mechanism* we asserted, collateral
-transcriptional damage, is largely a restatement of effect size. The mechanism that survives every
-control is tolerance collapse. That is the claim, and it is the one the pre-registered primary
-endpoint of `scripts/02_risk_kill_reversal.py` tests: one-sided van Elteren,
+**What survives.** "Reversal is not enough" stands: a practitioner who ranks by reversal and acts on
+the top 20 will act on `{python} f"{N_TOP20_REJECTED}"` targets this gate refuses. But the
+*mechanism* we asserted, collateral transcriptional damage, is largely a restatement of effect size.
+The mechanism that survives every control is collapse of the co-inhibitory module. That is the
+claim, and it is the one the pre-registered primary endpoint of
+`scripts/02_risk_kill_reversal.py` tests: one-sided van Elteren,
 z = `{python} f"{PRIMARY['effect']:.2f}"`, p = `{python} f"{PRIMARY['p']:.1e}"`.
 
 ## The score sorts approved drugs it was never told about {#sec-drugs}
@@ -431,7 +488,7 @@ Markdown(
     f"Five approved-drug targets clear the evidence floor. The gate passes "
     + ", ".join(f"`{g}`" for g in passing_drugs)
     + ". It rejects "
-    + ", ".join(f"`{g}` for {r.replace('homeostasis', 'disrupting the resting transcriptome').replace('tolerance', 'collapsing tolerance')}"
+    + ", ".join(f"`{g}` for {r.replace('homeostasis', 'disrupting the resting arm').replace('tolerance', 'collapsing tolerance')}"
                 for g, r in rejected_drugs.items())
     + f".\n\nWell-tolerated agents passing the gate: **{len(wt_pass)} of {len(WELL_TOLERATED)}**. "
     f"Narrow-index agents passing: **{len(ni_pass)} of {len(NARROW_INDEX)}**. "
@@ -457,7 +514,7 @@ The fourth is not a design failure but an explanation failure, and it is the mos
 
 **We asserted a mechanism and it was wrong.** We said a naive reversal ranking is toxic because it
 nominates perturbations that cause collateral transcriptional damage. Collateral DE-gene count is
-0.72 rank-correlated with transcriptome-wide effect magnitude, and a magnitude-matched shortlist is
+0.72 rank-correlated with panel-wide effect magnitude, and a magnitude-matched shortlist is
 rejected almost as often as ours (@sec-magnitude). The claim was true and the reason was not.
 
 That is the third mechanism this project asserted and then refuted. The first was that cancer-cell
@@ -524,9 +581,9 @@ held. That is not a coincidence, and it is the project's actual contribution.
 But @sec-magnitude sharpens it one level further, and against us. Among the screen-native axes, the
 ones that are *counts of differentially expressed genes* are largely proxies for effect magnitude:
 context selectivity rejects a magnitude-matched shortlist just as often as it rejects ours
-(P = `{python} f"{HOM['p_matched_ge_observed']:.2f}"`). The axis that survives every control is the
-one built from a *graded module score* rather than a count: tolerance-module suppression, ρ = 0.07
-with transcriptome-wide effect magnitude. The lesson is not "use the screen instead of a database".
+(P = `{python} f"{SEL['p_matched_ge_observed']:.2f}"`, n = 20). The axis that survives every control
+is the one built from a *graded module score* rather than a count: co-inhibitory module suppression,
+ρ = 0.07 with panel-wide effect magnitude. The lesson is not "use the screen instead of a database".
 It is "use a graded, screen-native measure of the thing you actually care about", and the thing we
 actually care about turned out to be the regulatory program, not the collateral damage.
 
@@ -642,7 +699,7 @@ shortlist.
 
 `scripts/02_risk_kill_reversal.py` is written so that it can fail, on one pre-registered primary
 endpoint: the naive top 100 must collapse the tolerance module more than a background matched on
-transcriptome-wide effect magnitude. If it does not, the script exits non-zero and this report's
+panel-wide effect magnitude. If it does not, the script exits non-zero and this report's
 central claim is wrong. Permuting the tolerance column, or flipping its sign, makes it exit 1.
 
 It formerly exited on `any()` of five one-sided tests, against a background matched on cell count
@@ -664,7 +721,7 @@ controlled its confound backwards, right that a single seeded draw cannot carry 
 that the DE-count pillars are entangled with effect size. It was wrong that the tolerance axis is
 tautological, and its central "66% fewer DE genes at matched score" turned out to be one decile of
 ten reported as though it were the pooled effect, which is 12%. Its proposed fix offered "match on
-|score| decile, or on transcriptome-wide ‖z‖₂" as interchangeable controls; those two variables
+|score| decile, or on panel-wide ‖z‖₂" as interchangeable controls; those two variables
 correlate at ρ = 0.198, and the pillars' fate depends entirely on which is used.
 
 Claude Code also caught itself three times, which is the part worth watching. It added a measure
