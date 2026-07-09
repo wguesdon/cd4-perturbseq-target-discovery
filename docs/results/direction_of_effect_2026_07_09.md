@@ -133,3 +133,13 @@ remaining candidates carry an explicit `direction_verdict = UNKNOWN`.
 This does not weaken the entry; it sharpens the honest claim. The gate + genetics nominate candidates;
 direction of effect is the gating question that a T-cell-intrinsic knockdown screen cannot answer on its
 own for a novel gene, which is itself a reason the decision layer, not the screen, is the contribution.
+
+### Update (N17 feasibility, 2026-07-09): a lighter per-gene route IS feasible
+
+The "infeasible" verdict above stands for the full 21 GB Open Targets colocalisation dump, but it is
+**superseded for the watchlist**. Direction of effect can be read per gene by combining two API-served
+sources with no bulk download: the **eQTL Catalogue** (signed cis-eQTL `beta` in activated CD4 T cells,
+Schmiedel/DICE anti-CD3/CD28 and Cytoimmgen, matching our screen's stimulation state) and **Open Targets**
+GWAS risk-allele direction. See `docs/results/direction_eqtl_feasibility_2026_07_09.md`. N17 builds this
+v2 direction proxy, calibrated on PTPN2 (which must return DISCORDANT). It is a proxy, not formal
+colocalisation, and is reported as such.
