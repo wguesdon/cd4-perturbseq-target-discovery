@@ -320,17 +320,29 @@ def ot_tractability() -> pd.DataFrame:
     it is antibody-accessible at the cell surface, and there is any clinical precedent for a drug
     against it in any modality.
 
-    ``tractable`` is the disjunction of ALL FOUR flags, ``clinical_precedent`` included. Until
-    2026-07-09 it was ``sm_pocket or sm_druggable_family or ab_accessible``, silently discarding
-    ``clinical_precedent`` — the strongest tractability evidence that exists, since it means a drug
-    against the gene has already reached the clinic. The omission inverted the flag on the genes that
-    matter most: ``MALT1``, which has clinical-stage allosteric protease inhibitors, read as
-    untractable, while ``ICAM2`` read as tractable on cell-surface localisation alone, with neither a
-    pocket nor a precedent. See ``docs/preregistration_n20_2026_07_09.md``.
+    ``tractable`` is STRUCTURAL druggability: a pocket, a druggable family, or surface accessibility.
+    It deliberately excludes ``clinical_precedent``, and that exclusion is load-bearing rather than an
+    oversight (N20, 2026-07-09).
+
+    The reasoning, because it is easy to get backwards. ``clinical_precedent`` means a drug against the
+    gene has already reached the clinic, which is the strongest tractability evidence there is, so
+    folding it into ``tractable`` looks obviously right. It is not, because this repo validates its
+    nomination gate by asking how many APPROVED DRUG TARGETS the gate recovers. ``clinical_precedent``
+    is true for 32 of the 36 curated positives, so a gate that reads it would recover them by
+    construction and the validation would be circular. Structural tractability alone is already true
+    for all six recovered targets, so it carries the gate without the circularity.
+
+    ``tractable_with_precedent`` is the disjunction including precedent. It is the right flag for
+    REPORTING a gene's druggability and the wrong one for GATING a nomination that will be validated on
+    drug recovery. Four genes differ: ``MALT1`` (clinical-stage allosteric protease inhibitors, yet no
+    OT pocket and intracellular), ``MEN1``, ``MLST8`` and ``NDUFAF3``. Genes entering only through
+    precedent are repurposing candidates by construction and must be labelled so.
+    See ``docs/preregistration_n20_2026_07_09.md``.
 
     Returns:
         DataFrame with ``gene_name``, ``sm_pocket``, ``sm_druggable_family``, ``ab_accessible``,
-        ``clinical_precedent``, and ``tractable`` (any of the four).
+        ``clinical_precedent``, ``tractable`` (structural: any of the first three), and
+        ``tractable_with_precedent`` (any of the four).
     """
     parts = [pd.read_parquet(f, columns=["approvedSymbol", "tractability"])
              for f in sorted(glob.glob(str(OPEN_TARGETS / "target_*.parquet")))]
@@ -349,6 +361,7 @@ def ot_tractability() -> pd.DataFrame:
         rows.append({
             "gene_name": symbol, "sm_pocket": sm_pocket, "sm_druggable_family": sm_family,
             "ab_accessible": ab, "clinical_precedent": clinical,
-            "tractable": sm_pocket or sm_family or ab or clinical,
+            "tractable": sm_pocket or sm_family or ab,
+            "tractable_with_precedent": sm_pocket or sm_family or ab or clinical,
         })
     return pd.DataFrame(rows)
