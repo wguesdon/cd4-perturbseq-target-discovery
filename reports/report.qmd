@@ -53,10 +53,37 @@ execute:
 import sys
 from pathlib import Path
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from IPython.display import Markdown
 from scipy import stats
+
+# Figures 5 and 6 are drawn HERE, from the committed tables, rather than loaded as rasters produced by
+# a separate script. A reader can click "Show the code" on each and see exactly which CSV column became
+# which bar. Captions live in the Quarto `fig-cap`, never burned into the image.
+PALETTE = {"ink": "#0b0b0b", "ink2": "#52514e", "muted": "#898781", "grid": "#e1e0d9",
+           "axis": "#c3c2b7", "series": "#2a78d6", "recede": "#d8d7d0", "critical": "#d03b3b"}
+
+
+def fig_style(ax, xgrid: bool = True, ygrid: bool = False) -> None:
+    """Apply the report's house style to one matplotlib axis.
+
+    Args:
+        ax: The axis.
+        xgrid: Draw the vertical grid.
+        ygrid: Draw the horizontal grid.
+    """
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(PALETTE["axis"])
+    if xgrid:
+        ax.grid(axis="x", color=PALETTE["grid"], linewidth=0.6, zorder=0)
+    if ygrid:
+        ax.grid(axis="y", color=PALETTE["grid"], linewidth=0.6, zorder=0)
+    ax.tick_params(colors=PALETTE["muted"], labelsize=9, length=0)
 
 REPO = Path.cwd().parent if Path.cwd().name == "reports" else Path.cwd()
 sys.path.insert(0, str(REPO / "src"))
@@ -705,6 +732,83 @@ nominated set to be unchanged, verifies that the guard can fire by permuting a p
 that the known-drug label can only ever *remove* a gene and never add one, and asserts one row per gene
 on every external join. It exits non-zero otherwise.
 
+## The efficacy axis suppresses a specific program, not merely many genes {#sec-gsea}
+
+The objection that the efficacy axis is a restatement of effect size deserves a direct test. We ran
+preranked GSEA over the MSigDB Hallmark collection on the stimulated panel-wide $z$, comparing the
+top-25 efficacy screen-passing perturbations against a control matched on panel-wide effect magnitude.
+
+The result is not that the top-efficacy set suppresses *more*. Proliferation and metabolism are
+suppressed just as hard by the control. The result is a **sign inversion** on the two immune hallmarks.
+
+```{python}
+#| label: fig-gsea
+#| echo: true
+#| fig-cap: "Preranked GSEA, MSigDB Hallmark, on the Stim48hr panel-wide $z$. Top-25 efficacy screen-passing perturbations versus a control matched on panel-wide effect magnitude (mean $|z_{L2}|$ 152.7 versus 154.3). **Red marks a sign inversion at FDR < 0.10**: negative in the top-efficacy set where the equal-magnitude control is positive. `Myc Targets`, `mTORC1` and `Oxidative Phosphorylation` are suppressed in *both* groups and are therefore not evidence of specificity; they are what an effect-magnitude confound looks like. Caveat, drawn rather than hidden: both interferon responses are *induced* in both groups, a non-specific stress signature. `Inflammatory Response` inverts but does not clear FDR."
+#| fig-width: 10
+#| fig-height: 5.6
+
+gsea = pd.read_csv(REPO / "results/tables/gsea_hallmark.csv")
+top = gsea[gsea["group"] == "top_efficacy"].set_index("Term")
+ctl = gsea[gsea["group"] == "magnitude_control"].set_index("Term")
+
+# Chosen before looking at the values: the two immune hallmarks the thesis names, the
+# proliferation/metabolism hallmarks a magnitude confound would move, and the interferon caveat.
+HALLMARKS = ["IL-2/STAT5 Signaling", "TNF-alpha Signaling via NF-kB", "Inflammatory Response",
+             "Interferon Alpha Response", "Interferon Gamma Response",
+             "Myc Targets V1", "mTORC1 Signaling", "Oxidative Phosphorylation"]
+missing = set(HALLMARKS) - set(top.index) - set(ctl.index)
+if missing:
+    raise KeyError(f"gsea_hallmark.csv is missing {missing}")
+
+nes_t = np.array([top.loc[t, "NES"] for t in HALLMARKS])
+nes_c = np.array([ctl.loc[t, "NES"] for t in HALLMARKS])
+fdr_t = np.array([top.loc[t, "FDR q-val"] for t in HALLMARKS])
+flip, sig = (nes_t < 0) & (nes_c > 0), fdr_t < 0.10
+y = np.arange(len(HALLMARKS))
+
+fig, ax = plt.subplots(figsize=(10, 5.6))
+fig_style(ax)
+ax.axvline(0, color=PALETTE["axis"], linewidth=1.2, zorder=1)
+ax.barh(y + 0.20, nes_c, height=0.36, color=PALETTE["recede"], edgecolor="white", zorder=2)
+ax.barh(y - 0.20, nes_t, height=0.36, zorder=3, edgecolor="white",
+        color=[PALETTE["critical"] if (f and s) else PALETTE["series"] for f, s in zip(flip, sig)])
+for i in np.where(flip)[0]:
+    note = f"FDR {fdr_t[i]:.3f}" + ("" if sig[i] else "  (n.s.)")
+    ax.text(nes_t[i] - 0.10, i - 0.20, note, ha="right", va="center", fontsize=8.5, zorder=4,
+            color=PALETTE["ink"] if sig[i] else PALETTE["muted"],
+            fontweight="bold" if sig[i] else "normal")
+
+ax.set_yticks(y); ax.set_yticklabels(HALLMARKS, fontsize=10, color=PALETTE["ink"])
+ax.invert_yaxis()
+ax.set_xlabel("Normalised enrichment score", fontsize=10, color=PALETTE["ink2"])
+# Red and blue are BOTH top-efficacy. A two-entry legend would imply the blue bars are the control,
+# which is the misreading this figure exists to prevent.
+ax.legend(handles=[
+    mpl.patches.Patch(facecolor=PALETTE["recede"], label="magnitude-matched control"),
+    mpl.patches.Patch(facecolor=PALETTE["series"], label="top-efficacy: same direction as control"),
+    mpl.patches.Patch(facecolor=PALETTE["critical"], label="top-efficacy: sign inversion, FDR < 0.10"),
+], loc="lower right", frameon=False, fontsize=8.5, labelcolor=PALETTE["ink2"])
+plt.show()
+```
+
+```{python}
+Markdown(
+    f"`IL-2/STAT5` goes to NES **{top.loc['IL-2/STAT5 Signaling', 'NES']:.3f}** "
+    f"(FDR {top.loc['IL-2/STAT5 Signaling', 'FDR q-val']:.3f}) in the top-efficacy set, against "
+    f"**{ctl.loc['IL-2/STAT5 Signaling', 'NES']:+.3f}** "
+    f"(FDR {ctl.loc['IL-2/STAT5 Signaling', 'FDR q-val']:.3f}, not significant) in the "
+    f"magnitude-matched control. `TNF-alpha via NF-kB` goes to "
+    f"**{top.loc['TNF-alpha Signaling via NF-kB', 'NES']:.3f}** "
+    f"(FDR {top.loc['TNF-alpha Signaling via NF-kB', 'FDR q-val']:.3f}) against "
+    f"**{ctl.loc['TNF-alpha Signaling via NF-kB', 'NES']:+.3f}**. Meanwhile `Myc Targets V1` is "
+    f"{top.loc['Myc Targets V1', 'NES']:.2f} in the top set and "
+    f"{ctl.loc['Myc Targets V1', 'NES']:.2f} in the control: indistinguishable. "
+    f"**That contrast is the whole result.** An equal-magnitude perturbation set suppresses "
+    f"proliferation identically and moves the immune hallmarks the *other way*."
+)
+```
+
 ## An independent screen validates the efficacy axis, and refuses to license a target {#sec-freimer}
 
 ```{python}
@@ -766,6 +870,66 @@ resting DE burden (p = {rev['h2_p_stratified_jointly']:.4f}), but the thresholde
 **Freimer therefore supports the efficacy axis, not target promotion.** Note that neither candidate
 shows CTLA-4 lowering; that is the *absence of a liability signal*, not evidence of preservation.
 """)
+```
+
+```{python}
+#| label: fig-freimer
+#| echo: true
+#| fig-cap: "Freimer et al. 2022, an independent CRISPR screen in primary human CD4 T cells. **A.** Genes whose knockdown significantly lowers IL-2 carry far more resting-arm differential expression than genes that do not, so a thresholded IL-2 hit call is substantially a *this cell can no longer transcribe an induced gene* signal rather than a specific-immunosuppression signal. **B.** The continuous association between our mRNA efficacy score and Freimer's signed protein-level IL-2 effect survives a permutation null stratified jointly on panel-wide effect magnitude and resting-arm DE burden. The axis replicates; the thresholded hit call, which is what a promotion rule would use, does not. Grey points are non-hits; red points are IL-2-lowering hits."
+#| fig-width: 11
+#| fig-height: 4.8
+
+freimer = pd.read_csv(REPO / "resources/external_screens/Freimer2022_Screen.csv").rename(
+    columns={"id": "gene_name", "screen": "arm"})
+# Sign, established from the marker gene inside its own arm: `pos` = knockdown LOWERS the marker.
+freimer["lfc"] = freimer["pos|lfc"]
+freimer["lowers"] = (freimer["pos|fdr"] < 0.10) & (freimer["lfc"] > 0)
+il2_arm = freimer[freimer["arm"] == "IL2"][["gene_name", "lowers", "lfc"]]
+
+fm = window.merge(il2_arm, on="gene_name", how="inner").dropna(
+    subset=["rest_de_genes", "efficacy", "lfc"])
+fhit, fnon = fm[fm["lowers"]], fm[~fm["lowers"]]
+p_mwu = stats.mannwhitneyu(fhit["rest_de_genes"], fnon["rest_de_genes"], alternative="greater").pvalue
+h2row = ov[ov["hypothesis"].str.startswith("H2")].set_index("stratified_on")
+p_joint = float(h2row.loc["z_L2 and resting-arm disruption jointly", "p_matched"])
+rho_h2 = float(h2row["rho"].iloc[0])
+
+fig, (axa, axb) = plt.subplots(1, 2, figsize=(11, 4.8))
+
+fig_style(axa, xgrid=False, ygrid=True)
+bp = axa.boxplot([np.log10(fnon["rest_de_genes"] + 1), np.log10(fhit["rest_de_genes"] + 1)],
+                 patch_artist=True, widths=0.55, showfliers=False, zorder=3)
+for patch, colour in zip(bp["boxes"], [PALETTE["recede"], PALETTE["critical"]]):
+    patch.set_facecolor(colour); patch.set_edgecolor(PALETTE["axis"])
+for part in ("whiskers", "caps", "medians"):
+    for element in bp[part]:
+        element.set_color(PALETTE["ink2"])
+axa.set_xticklabels([f"not an IL-2 hit\n(n = {len(fnon)})", f"IL-2-lowering hit\n(n = {len(fhit)})"],
+                    fontsize=9.5, color=PALETTE["ink"])
+axa.set_ylabel("resting-arm DE genes, $\\log_{10}(x+1)$", fontsize=10, color=PALETTE["ink2"])
+axa.set_title("A. The hit call is confounded", fontsize=12, loc="left", fontweight="bold",
+              color=PALETTE["ink"], pad=10)
+axa.text(0.03, 0.96, f"median {fnon['rest_de_genes'].median():.0f} vs "
+                     f"{fhit['rest_de_genes'].median():.0f} genes\nMann-Whitney p = {p_mwu:.1e}",
+         transform=axa.transAxes, fontsize=8.5, color=PALETTE["ink2"], va="top")
+
+fig_style(axb, xgrid=False, ygrid=True)
+axb.scatter(fnon["efficacy"], fnon["lfc"], s=11, color=PALETTE["recede"], zorder=2, label="not a hit")
+axb.scatter(fhit["efficacy"], fhit["lfc"], s=24, color=PALETTE["critical"], zorder=3,
+            label="IL-2-lowering hit")
+axb.axhline(0, color=PALETTE["axis"], linewidth=1)
+axb.set_xlabel("our efficacy score (mRNA)", fontsize=10, color=PALETTE["ink2"])
+axb.set_ylabel("Freimer IL-2 effect (protein)\nhigher = knockdown lowers IL-2",
+               fontsize=10, color=PALETTE["ink2"])
+axb.set_title("B. The continuous axis is not", fontsize=12, loc="left", fontweight="bold",
+              color=PALETTE["ink"], pad=10)
+axb.text(0.03, 0.96, f"Spearman = {rho_h2:+.3f}, n = {len(fm)}\np = {p_joint:.4f}, stratified jointly on\n"
+                     f"panel-wide magnitude and resting DE",
+         transform=axb.transAxes, fontsize=8.5, color=PALETTE["ink2"], va="top")
+axb.legend(loc="lower right", frameon=False, fontsize=8.5, labelcolor=PALETTE["ink2"])
+
+fig.tight_layout()
+plt.show()
 ```
 
 ## `PPP3R1`, a caution rather than a nomination

@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-07-08T22:07:53.359624</dc:date>
+    <dc:date>2026-07-09T17:37:43.474599</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -983,7 +983,7 @@ L 243.068571 420.007223
 L 243.068571 222.981992 
 L 130.14 222.981992 
 z
-" clip-path="url(#p4c890e1c79)" style="fill: #2a78d6; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
+" clip-path="url(#p6726d91999)" style="fill: #2a78d6; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
    </g>
    <g id="patch_6">
     <path d="M 462.282857 420.007223 
@@ -991,7 +991,7 @@ L 575.211429 420.007223
 L 575.211429 251.128453 
 L 462.282857 251.128453 
 z
-" clip-path="url(#p4c890e1c79)" style="fill: #2a78d6; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
+" clip-path="url(#p6726d91999)" style="fill: #2a78d6; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
    </g>
    <g id="patch_7">
     <path d="M 243.068571 420.007223 
@@ -999,7 +999,7 @@ L 355.997143 420.007223
 L 355.997143 228.690094 
 L 243.068571 228.690094 
 z
-" clip-path="url(#p4c890e1c79)" style="fill: #d8d7d0; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
+" clip-path="url(#p6726d91999)" style="fill: #d8d7d0; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
    </g>
    <g id="patch_8">
     <path d="M 575.211429 420.007223 
@@ -1007,7 +1007,7 @@ L 688.14 420.007223
 L 688.14 363.900066 
 L 575.211429 363.900066 
 z
-" clip-path="url(#p4c890e1c79)" style="fill: #d8d7d0; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
+" clip-path="url(#p6726d91999)" style="fill: #d8d7d0; stroke: #fcfcfb; stroke-width: 1.5; stroke-linejoin: miter"/>
    </g>
    <g id="text_9">
     <!-- We tested our own headline. Most of it was bought by effect size. -->
@@ -2963,7 +2963,7 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="p4c890e1c79">
+  <clipPath id="p6726d91999">
    <rect x="102.24" y="54.103223" width="613.8" height="365.904"/>
   </clipPath>
  </defs>

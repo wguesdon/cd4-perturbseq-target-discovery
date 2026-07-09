@@ -208,8 +208,8 @@ def figure_1(data: pd.DataFrame, mode: str) -> None:
 
     n_safe = int(top["safe"].sum())
     ax.set_title(
-        f"Rank perturbations purely by how well they suppress inflammation,\n"
-        f"and {20 - n_safe} of the top 20 are targets you must not drug.",
+        f"Rank perturbations purely by how well they suppress the activation program,\n"
+        f"and the triage layer refuses {20 - n_safe} of the top 20.",
         fontsize=15, color=theme["ink"], loc="left", pad=16, fontweight="bold",
     )
     fig.text(0.005, -0.02,
