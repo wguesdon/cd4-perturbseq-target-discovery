@@ -121,6 +121,57 @@ construction, and a focused library cannot adjudicate a genome-scale pool. **The
 be a genome-wide, signed, functional screen in primary human CD4 T cells** — the same conclusion N19
 reached from the other direction.
 
+## 5b. The secondary, post-hoc pass — and why its two candidates fail review
+
+**This is not the registered analysis.** Addendum 2 records that a relaxed rule was directed after the
+coverage gate fired. It has no coverage gate, promotes on a significant Freimer IL-2-lowering effect,
+and treats CTLA-4 loss as a liability flag rather than a disqualifier. It is post-hoc, it was run once,
+and every output row is stamped with that provenance. Script `scripts/34_freimer_secondary_posthoc.py`.
+
+It **did** return candidates. Of the six co-tested pool genes, two show a significant IL-2-lowering
+knockdown effect: **`ATXN7L3`** (FDR 2.8e-4, lfc +1.263) and **`XBP1`** (FDR 2.8e-4, lfc +0.781).
+Neither lowers CTLA-4, so both would be labelled *functional support with favourable co-inhibitory
+direction*.
+
+**Both fail review, on grounds this pipeline had already stated.**
+
+| gene | stim DE | rest DE | rest-DE percentile | stim:rest ratio | genetics | pocket | precedent |
+|---|---|---|---|---|---|---|---|
+| `ATXN7L3` | 503 | 545 | **96.2nd** | **0.92** | 0.000 | no | no |
+| `XBP1` | 492 | 180 | **92.1st** | 2.73 | 0.000 | no | no |
+
+The selectivity requirement fixed a priori in this project is a **10x** stimulated-to-resting ratio.
+Neither is close. `ATXN7L3`'s ratio is **below 1.0**: its knockdown disturbs the *unstimulated* cell
+more than the stimulated one, which is the definition of no therapeutic window.
+
+`ATXN7L3` is a component of the **SAGA deubiquitinase module**, together with `USP22` — and `USP22` is
+named in this very report as one of the "global transcription machinery" contaminants the naive ranking
+returns. `USP22` sits at the 98.7th percentile of resting-arm disruption; `ATXN7L3` at the 96.2nd. They
+are the same failure mode. `XBP1` is the master regulator of the unfolded-protein response, broadly
+required, LoF-constraint unknown, with no pocket and no clinical precedent.
+
+**And the promotion instrument itself is confounded at its threshold.** Freimer's 29 IL-2-lowering hits
+carry a median of **66 resting-arm DE genes against 3 for the 442 non-hits** (Mann-Whitney
+p = 9.8e-7). IL-2 is a highly induced transcript, so disabling general transcription machinery lowers
+it. A Freimer IL-2 *hit call* is substantially a "this cell can no longer transcribe an induced gene"
+signal.
+
+> **Note the asymmetry, because it decides what may be claimed.** The **continuous** association
+> underpinning H2 survives stratification on resting-arm disruption (p = 0.0055) and on `z_L2` and
+> `rest_de_genes` jointly (p = 0.0075). **The efficacy axis genuinely replicates.** It is the
+> **FDR-thresholded hit call** that is confounded — and promotion uses the hit call. So H2 stands and
+> the two promoted genes do not.
+
+**Verdict, from the three permitted in Addendum 2:**
+
+> **(3) Freimer produces target-card candidates, but all fail review** — on housekeeping and chromatin
+> biology, on resting-arm disruption far outside the a-priori selectivity requirement, and on absent
+> tractability. Neither `ATXN7L3` nor `XBP1` is a Freimer-supported follow-up hypothesis worth naming
+> to a reviewer.
+
+The registered result is unchanged and governs the headline: 6 of 73 eligible genes co-tested against a
+pre-declared gate of 10, and no card emitted.
+
 ## 6. What this changes
 
 - The efficacy axis gains an orthogonal, protein-level, independent-lab replication (p = 0.0095,

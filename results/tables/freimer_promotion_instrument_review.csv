@@ -1,0 +1,2 @@
+n_hits,n_nonhits,median_rest_de_hits,median_rest_de_nonhits,mwu_p_hits_more_resting_disruption,note
+29,442,66.0,3.0,9.836216237307253e-07,Continuous H2 survives rest_de stratification (p=0.0055); the hit call does not.
