@@ -1,28 +1,33 @@
 ---
 title: "Reversal is not enough"
-subtitle: "A safety-gated therapeutic-window triage of a genome-scale CD4+ T cell Perturb-seq atlas"
+subtitle: "A screen-native triage and abstention layer over a genome-scale CD4+ T cell Perturb-seq atlas"
 author: "William Guesdon"
 date: last-modified
 abstract: |
   Ranking CRISPRi perturbations by how strongly they reverse an inflammatory signature is a
   released, commodity capability. On a genome-scale CD4+ T cell Perturb-seq atlas it nominates
   perturbations that suppress the activation program and that an independent lab's protein-level
-  CRISPRi screen confirms do reduce IL-2, but which a safety gate refuses: 12 of the top 20 in a
+  CRISPRi screen confirms do reduce IL-2, but which a screen-native triage layer refuses: 12 of the top 20 in a
   naive suppression ranking, against a magnitude-matched expectation of 4.0 (P < 0.0001, n = 20).
   Those rejections fall entirely on one axis. A context-selectivity axis flags 14 of the same 20
   against 13.6 matched (P = 0.54, n = 20), carries no information beyond panel-wide effect
   magnitude, and we demote it to a reported annotation. The axis that survives is suppression of an
   activation-induced co-inhibitory module, and it survives a null matched on induction as well as
-  expression (module-level permutation p = 0.005, effective n = 1 module). We build a
-  therapeutic-window score from what the screen measures, read viability directly off it, and
-  recover approved immunomodulator targets above chance without being told about them
-  (5 of the 20 assay-visible positives, 5.6x, permutation p = 0.0017; AUROC 0.542 spans chance).
-  We then turn the same hostility on our own nomination rule. It recovers only 3 of the 6
-  approved-drug targets the pipeline itself finds, and direction of effect can be adjudicated only
-  for genes that a drug or a monogenic syndrome has already characterised, so it can demote a
-  candidate but never promote one. Several asserted mechanisms were refuted in the course of this
-  work, including two of our own and one the adversarial audit asserted against us. We report them
-  all. The contribution is the decision layer and its audit, not a validated target.
+  expression, holding the perturbation set fixed so that activation amplitude is constant
+  (module-level permutation p = 0.005; the evidence attenuates to p = 0.0196 once the null pool is
+  restricted to co-regulated modules, and that weaker number is the one we report; the effective unit
+  is one module, not 100 perturbations). We build a triage score from what the screen measures, read
+  viability directly off it, and recover approved immunomodulator targets above chance without being
+  told about them (5 of the 20 assay-visible positives, 5.6x, permutation p = 0.0017; AUROC 0.542
+  spans chance). We then turn the same hostility on our own nomination rule. It re-nominates only 3
+  of the 6 approved-drug targets the pipeline itself recovers, and direction of effect served as a
+  veto rather than a promotion rule: direction labels are missing for 191 of the 214 screen-passing
+  genes and the missingness is not random, so absence of discordance is not favourable evidence.
+  Several asserted mechanisms were refuted in the course of this work, including two of our own and
+  one the adversarial audit asserted against us. We report them all, with a p-value genealogy. This
+  is not a safety-gated target shortlist. It is a screen-native triage and abstention layer that
+  recovers known pharmacology, exposes assay blind spots, and refuses to promote genes when the
+  evidence source is uncalibrated.
 format:
   html:
     theme:
@@ -71,6 +76,7 @@ funnel = pd.read_csv(REPO / "results/tables/selection_funnel.csv").set_index("st
 # anticonservative by orders of magnitude — it treats 6,371 z-values as independent when the module is
 # one fixed nine-gene set, so the effective n is 1. It is never quoted; this table is quoted instead.
 n9 = pd.read_csv(REPO / "results/tables/tolerance_induction_verdict.csv").iloc[0]
+doe = pd.read_csv(REPO / "results/tables/direction_of_effect.csv")
 
 # The correlation that bears on the tautology objection. This report used to quote only
 # rho(z_L2, tolerance_loss) = 0.07 and let it imply the axes are independent. They are not: the
@@ -143,6 +149,9 @@ def _assert_abstract_is_current() -> None:
         "selectivity matched": (round(float(SEL["matched_mean"]), 1), 13.6),
         "selectivity P": (round(float(SEL["p_matched_ge_observed"]), 2), 0.54),
         "N9 module-level p": (round(float(n9["p_module_level"]), 3), 0.005),
+        "N9 co-regulated-null p": (round(float(n9["p_module_level_coregulated_quartile"]), 4), 0.0196),
+        "direction-unmeasured genes": (int((doe["direction_verdict"] == "UNKNOWN").sum()), 191),
+        "screen-passing genes": (int(window["safe"].sum()), 214),
     }
     drift = {k: v for k, v in claims.items() if v[0] != v[1]}
     if drift:
@@ -173,10 +182,13 @@ Saying so is cheap. The hard part, and the part we spend @sec-magnitude on, is s
 is catching something a reversal ranking *specifically* brings in, rather than something any ranking
 by effect size would bring in. Most of it turns out to be the latter. One axis is not.
 
-Our contribution is the decision layer: a therapeutic-window score, a set of safety axes chosen
-because the data supports them rather than because a database exists, a test of whether each axis is
-about the direction of a perturbation or merely its size, and an honest account of what the assay
-cannot see.
+Our contribution is the decision layer, and it is a **triage and abstention layer**, not a
+safety-gated shortlist. The assay measures mRNA in one in-vitro CD4 stimulation. It cannot see
+therapeutic safety, tolerance, Treg function, infection risk, malignancy risk, or a dose window. What
+it can support is a triage score built only from what the screen measures, a set of **screen-internal
+safety proxies** kept because the data supports them rather than because a database exists, a test of
+whether each axis is about the direction of a perturbation or merely its size, an honest account of
+what the assay cannot see, and a rule for when to **refuse to nominate at all**.
 
 # Methods
 
@@ -190,7 +202,7 @@ After routine perturbation QC (dropping distal off-target and neighbouring-gene 
 requiring significant on-target knockdown, and dropping low baseline target expression),
 `{python} f"{N_RANKABLE:,}"` stimulated perturbations remain analysable.
 
-## The activation program, and why tolerance is not part of it
+## The activation program, and why the co-inhibitory module is scored apart from it
 
 The effector module is built from two independent sources: a curated immune effector list, and
 genes significantly induced in an external bulk RNA-seq stimulation contrast. Only genes
@@ -198,9 +210,9 @@ supported by both enter the high-confidence core.
 
 `FOXP3`, `IL10`, `IKZF2` and the co-inhibitory checkpoints are also induced by stimulation.
 Suppressing them is a liability, not a benefit. They are therefore removed from the objective and
-scored separately as a **tolerance module** whose suppression is penalised.
+scored separately as an **activation-induced co-inhibitory module** whose suppression is penalised.
 
-## The therapeutic-window score
+## The triage score
 
 Three requirements, applied in order. A fourth, immune essentiality, was removed; see @sec-failures.
 
@@ -271,13 +283,13 @@ never enters the score, the gate, or any threshold. Every number involving it is
 
 # Results
 
-## A naive reversal ranking is toxic
+## A naive reversal ranking returns perturbations the triage layer refuses
 
 ```{python}
 top20 = w.nsmallest(20, "naive_rank")
 Markdown(
     f"Of the top 20 perturbations by naive effector suppression, **{N_TOP20_REJECTED} are "
-    f"rejected** by the safety gate. The survivors are "
+    f"rejected** by the triage layer. The survivors are "
     + (", ".join(f"`{g}`" for g in top20.loc[top20["safe"], "gene_name"]) or "none")
     + ", and each needs checking by hand: a gate is not a proof."
 )
@@ -492,7 +504,7 @@ Restricting the null pool to the co-regulated quartile therefore weakens the res
 weakened number as the honest one: **p = `{python} f"{n9['p_module_level_coregulated_quartile']:.4f}"`**.
 It is a limitation, not a refutation, and it is stated before the result rather than after it.
 
-## The score sorts approved drugs it was never told about {#sec-drugs}
+## A triage layer that recovers known pharmacology but abstains from novel nomination {#sec-drugs}
 
 ```{python}
 drugs = w[w["gene_name"].isin(POSITIVES) & ~w["fail_evidence"]].copy()
@@ -626,7 +638,7 @@ The value of a perturbation atlas for drug discovery is not the regulator list. 
 defensible, ranked, annotated shortlist that a laboratory can act on, together with an explicit
 statement of what would have to be true for each entry to be wrong.
 
-Our safety gate is not the one we planned, and neither is our explanation of why it works.
+Our triage layer is not the one we planned, and neither is our explanation of why it works.
 
 The original design anchored viability on DepMap and Hart core-essential genes. We first reported
 that axis as inert, on the grounds that the 31 rankable Hart essentials sit at median rank 3,148 of
@@ -705,7 +717,7 @@ own.
 
 # Limitations
 
-- **The safety gate is T-cell-intrinsic, not organism-level.** "Rest" here means resting CD4 T
+- **The triage layer is a screen-internal proxy, T-cell-intrinsic, not organism-level safety.** "Rest" here means resting CD4 T
   cells. Mitochondrial and one-carbon genes would be toxic to gut epithelium and bone marrow, and
   this screen cannot see that. The shortlist needs a tissue-breadth axis before anyone acts on it.
 - **The assay is blind to cytokine-signalling targets.** The screen stimulates through the T cell
@@ -810,7 +822,7 @@ type-I error. `14` exits non-zero if tolerance ever stops separating from a magn
 shortlist.
 
 `scripts/02_risk_kill_reversal.py` is written so that it can fail, on one pre-registered primary
-endpoint: the naive top 100 must collapse the tolerance module more than a background matched on
+endpoint: the naive top 100 must collapse the co-inhibitory module more than a background matched on
 panel-wide effect magnitude. If it does not, the script exits non-zero and this report's
 central claim is wrong. Permuting the tolerance column, or flipping its sign, makes it exit 1.
 
