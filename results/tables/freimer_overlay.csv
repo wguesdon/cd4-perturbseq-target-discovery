@@ -1,0 +1,3 @@
+hypothesis,n,rho,p_matched,verdict
+H1 co-inhibitory attrition -> CTLA-4 loss,472,0.0116,0.8040979510244878,DOES NOT REPLICATE
+H2 efficacy -> IL-2 loss,472,0.1398,0.009495252373813094,REPLICATES

@@ -56,8 +56,15 @@ def load_freimer(fdr: float) -> pd.DataFrame:
     """
     f = _clean(pd.read_csv(SCREENS / "Freimer2022_Screen.csv")).rename(columns={"id": "gene_name"})
     f["row_min_fdr"] = f[["neg|fdr", "pos|fdr"]].min(axis=1)
-    # depleted (neg) = knockdown lowers the marker -> positive regulator of the activation marker
-    f["row_dir"] = np.where(f["neg|fdr"] <= f["pos|fdr"], "pos_regulator", "neg_regulator")
+    # SIGN, established from the marker gene inside its own arm (N21 addendum 1, 2026-07-09).
+    # Knocking out CTLA4 must lower CTLA-4. In every arm the marker gene is significant on the `pos`
+    # side (CTLA4 rank 1, IL2RA rank 2, IL2 rank 5) and maximally non-significant on `neg` (ranks
+    # 1347-1351). So `pos` = guides enriched in the marker-LOW bin = knockdown LOWERS the marker =
+    # the gene is a POSITIVE REGULATOR of that marker. `neg` = knockdown raises it.
+    # This comment previously said the opposite, and `row_dir` was inverted, mislabelling 331 genes
+    # as pos_regulator and 141 as neg_regulator. N19's enrichment verdict keys on `freimer_hit`,
+    # which is sign-agnostic, so that result is unaffected. Only this column was wrong.
+    f["row_dir"] = np.where(f["pos|fdr"] <= f["neg|fdr"], "pos_regulator", "neg_regulator")
     f = f.sort_values("row_min_fdr").groupby("gene_name", as_index=False).first()
     f["freimer_min_fdr"] = f["row_min_fdr"]
     f["freimer_hit"] = f["freimer_min_fdr"] < fdr
