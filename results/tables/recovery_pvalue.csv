@@ -1,0 +1,4 @@
+test,observed,expected,hyper_p,perm_p,drawn
+positives pass evidence floor,5,0.8978182388949929,0.0015640271197779108,0.00174,286
+positives pass full gate,4,0.6717940668654843,0.00392583463787393,0.00368,214
+safety enriches given evidence,4,3.7412587412587412,0.6291030223817231,,214
