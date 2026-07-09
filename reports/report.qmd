@@ -51,6 +51,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from IPython.display import Markdown
+from scipy import stats
 
 REPO = Path.cwd().parent if Path.cwd().name == "reports" else Path.cwd()
 sys.path.insert(0, str(REPO / "src"))
@@ -70,6 +71,15 @@ funnel = pd.read_csv(REPO / "results/tables/selection_funnel.csv").set_index("st
 # anticonservative by orders of magnitude — it treats 6,371 z-values as independent when the module is
 # one fixed nine-gene set, so the effective n is 1. It is never quoted; this table is quoted instead.
 n9 = pd.read_csv(REPO / "results/tables/tolerance_induction_verdict.csv").iloc[0]
+
+# The correlation that bears on the tautology objection. This report used to quote only
+# rho(z_L2, tolerance_loss) = 0.07 and let it imply the axes are independent. They are not: the
+# efficacy axis IS suppression of the activation module, and the co-inhibitory genes are themselves
+# activation-induced. Compute the honest number and print it next to the claim.
+_ev = window[~window["fail_evidence"]]
+RHO_EFF_TOL_ALL = float(stats.spearmanr(window["efficacy"], window["tolerance_loss"]).statistic)
+RHO_EFF_TOL_EV = float(stats.spearmanr(_ev["efficacy"], _ev["tolerance_loss"]).statistic)
+N_EVIDENCE_PASS = int(len(_ev))
 
 # Never restate these as literals. The prose used to say "only 217 of 682"; that went stale the day
 # 11_selection_funnel.py stopped unioning two gene-symbol vocabularies to build its denominator, and
@@ -399,8 +409,25 @@ Test A compares the top 100 to a magnitude-matched background. Test B compares i
 ranked by *induction* of the same module: the sign-flipped control. A pillar that fires on both
 tails measures magnitude, not suppression. Collateral DE is 0.72 rank-correlated with $z_{L2}$ and
 its direction-specificity is fragile, surviving at ten strata and dying at twenty. Resting DE does
-not survive test B at all. Tolerance is 0.07 correlated with magnitude, and perturbations that
-*induce* the effector program *induce* tolerance rather than suppressing it.
+not survive test B at all. The co-inhibitory module is 0.07 correlated with magnitude, and
+perturbations that *induce* the effector program *induce* it rather than suppressing it.
+
+::: {.callout-warning title="The two axes are not independent, and an earlier draft implied they were"}
+That $\rho = 0.07$ is the correlation with **panel-wide magnitude** $z_{L2}$, and quoting only it
+invites the reading that the efficacy and co-inhibitory axes are orthogonal. They are not. The
+efficacy axis *is* suppression of the activation module, and the co-inhibitory receptors are
+themselves activation-induced, so the correlation that bears on the objection is between efficacy and
+co-inhibitory loss:
+`{python} f"Spearman = {RHO_EFF_TOL_ALL:+.3f}"` across all
+`{python} f"{N_RANKABLE:,}"` rankable perturbations, rising to
+`{python} f"{RHO_EFF_TOL_EV:+.3f}"` among the `{python} f"{N_EVIDENCE_PASS}"` that clear the evidence
+floor, which is `{python} f"{RHO_EFF_TOL_EV**2:.1%}"` of shared rank variance. A reader is entitled
+to ask whether the gate simply rejects the most efficacious perturbations.
+
+The control that answers it is @sec-induction, and it answers it by holding the perturbation set
+fixed and varying the *module* instead. If co-inhibitory loss were nothing but activation amplitude,
+any equally-induced module would fall equally in the same top-100 perturbations. It does not.
+:::
 
 Finally, rankings that never mention the effector program:
 
@@ -424,6 +451,46 @@ The mechanism that survives every control is collapse of the co-inhibitory modul
 claim, and it is the one the pre-registered primary endpoint of
 `scripts/02_risk_kill_reversal.py` tests: one-sided van Elteren,
 z = `{python} f"{PRIMARY['effect']:.2f}"`, p = `{python} f"{PRIMARY['p']:.1e}"`.
+
+## The module survives a null matched on induction, and on co-regulation {#sec-induction}
+
+The objection above has a sharp form. Both modules are stimulation-induced, so a perturbation that
+blunts activation must reduce both. The test that separates them holds the **perturbation set fixed**
+— the top 100 by efficacy — and varies the **module**. If co-inhibitory loss were nothing but
+activation amplitude, a random nine-gene module matched on expression and on induction would fall
+just as far in those same perturbations.
+
+```{python}
+Markdown(f"""
+| quantity | value |
+|---|---|
+| real module, median $z$ in the naive top 100 | **{n9['T_real']:+.3f}** |
+| largest of {int(n9['n_modules'])} expression- and induction-matched null modules | {n9['T_null_max']:+.3f} |
+| median matched null | {n9['T_null_median']:+.3f} |
+| module-level permutation $p$ | **{n9['p_module_level']:.4f}** |
+| positive control: the effector module itself | {n9['T_effector_positive_control']:+.3f} |
+| negative control: false-positive rate on random modules | {n9['loo_fpr_module_level']:.3f} |
+| co-induction's share of the effect an expression-only null reported | {n9['coinduction_share_of_scripts10_effect']:.1%} |
+""")
+```
+
+**The effect is attenuated by this control, not eliminated.** An expression-matched null overstated it,
+and co-induction accounts for
+`{python} f"{n9['coinduction_share_of_scripts10_effect']:.0%}"` of what that null reported.
+The effective unit is **one module**, not 100 perturbations. A per-perturbation Mann-Whitney over the
+6,371 $z$ values gives `{python} f"{n9['mwu_p_void']:.2g}"`; its false-positive rate on random modules
+is `{python} f"{n9['mwu_fpr_per_perturbation']:.0%}"`, so that p-value is anticonservative by orders of
+magnitude and is **retracted**, here and everywhere.
+
+**And one confound remains open.** The nine genes are co-regulated checkpoints, and co-regulation
+inflates the statistic: across the null modules, mean gene-gene correlation predicts the statistic
+(Spearman `{python} f"{n9['spearman_rhobar_vs_T_null']:+.3f}"`,
+p = `{python} f"{n9['spearman_rhobar_vs_T_null_p']:.4f}"`). The real module's mean correlation is
+`{python} f"{n9['rho_bar_real']:.4f}"`, **higher than every one of the
+`{python} f"{int(n9['n_modules'])}"` nulls** (largest `{python} f"{n9['rho_bar_null_max']:.4f}"`).
+Restricting the null pool to the co-regulated quartile therefore weakens the result, and we report the
+weakened number as the honest one: **p = `{python} f"{n9['p_module_level_coregulated_quartile']:.4f}"`**.
+It is a limitation, not a refutation, and it is stated before the result rather than after it.
 
 ## The score sorts approved drugs it was never told about {#sec-drugs}
 
