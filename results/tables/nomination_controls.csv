@@ -1,0 +1,5 @@
+control,observed,expected,p_value,n_drawn,universe
+"recovery, conditioned on the safety gate",4,1.811,0.040059198816023676,97,214
+"recovery, unconditioned (NOT the headline)",4,0.303,0.00015999680006399873,97,6371
+power ceiling: all safe-set positives retained,4,1.811,0.03907921841563169,97,214
+shuffled tractability,4,1.865,0.035,97,214

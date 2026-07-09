@@ -384,6 +384,20 @@ def controls(f: pd.DataFrame, nom: pd.DataFrame, rng: np.random.Generator) -> di
     print(f"[control] curated positives presented as novel nominations: {contaminated or 'none'}")
     truth_ok = not contaminated
 
+    # Emit the control statistics so the p-value genealogy can read them from a committed table
+    # rather than from this script's stdout. Nothing in the report may quote an untabulated number.
+    pd.DataFrame([
+        {"control": "recovery, conditioned on the safety gate", "observed": observed,
+         "expected": round(exp_cond, 3), "p_value": p_cond, "n_drawn": len(gate), "universe": len(f)},
+        {"control": "recovery, unconditioned (NOT the headline)", "observed": observed,
+         "expected": round(exp_uncond, 3), "p_value": p_uncond, "n_drawn": len(gate), "universe": len(win)},
+        {"control": "power ceiling: all safe-set positives retained", "observed": n_pos_safe,
+         "expected": round(exp_cond, 3), "p_value": ceiling, "n_drawn": len(gate), "universe": len(f)},
+        {"control": "shuffled tractability", "observed": observed,
+         "expected": round(float(shuffled.mean()), 3), "p_value": frac_ge,
+         "n_drawn": len(gate), "universe": len(f)},
+    ]).to_csv(paths.TABLES / "nomination_controls.csv", index=False)
+
     return {
         "recovery preserved under a non-circular gate": rec_ok,
         "discordant genes still demoted": disc_ok,

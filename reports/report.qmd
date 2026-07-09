@@ -739,6 +739,51 @@ own.
 - **The shortlist has not been shown to replicate across donors.** The per-donor matrices exist and
   are unused.
 
+# The p-value genealogy {#sec-genealogy}
+
+Every statistic this project has quoted, and what happened to it. The distinction that matters is not
+"good p-value versus bad p-value". It is **what question each statistic is allowed to answer**.
+
+Three asserted mechanisms were refuted, one benchmark inverted its own verdict, a negative control
+fired on its first run and was right, and a circular criterion was committed and then reverted one
+commit after the same bias was diagnosed elsewhere. A reader is owed one place to see all of it,
+including the numbers that were wrong.
+
+The table is authored, because a retracted number has no live source. But every row marked `current`
+re-reads its value from the committed table that produced it, and
+`scripts/30_pvalue_genealogy.py` **exits non-zero if any of them has drifted**, so this report cannot
+be built on a stale claim. That guard is verified to fire.
+
+```{python}
+gen = pd.read_csv(REPO / "results/tables/pvalue_genealogy.csv")
+show = gen[["claim_id", "claim", "previous_value", "current_value", "current_status"]].copy()
+show.columns = ["id", "claim", "previously", "now", "status"]
+Markdown(show.to_markdown(index=False))
+```
+
+```{python}
+Markdown(
+    "Status counts: "
+    + ", ".join(f"**{k}** {v}" for k, v in gen["current_status"].value_counts().items())
+    + f", across {len(gen)} claims."
+)
+```
+
+The full table, with the statistical unit, the null model, the matched variables, the denominator, the
+seed policy, the script, and why each number changed, is `results/tables/pvalue_genealogy.csv`.
+
+::: {.callout-note title="The four retractions, in one sentence each"}
+- **`C4`** A per-perturbation Mann-Whitney treated 6,371 $z$ values as independent when the module is
+  one fixed nine-gene set. Its own negative control fired at a 15% false-positive rate against a
+  registered 5%. The p-value is void; the statistic is not.
+- **`C7`** A single sampled matched background made the p-value a random variable: 22.4% of seeds were
+  non-significant. It also matched on a viability readout that correlates with the confound backwards.
+- **`C8`** The drug-recovery benchmark first said 173 targets, "POWERED". Three inflation traps later,
+  the honest count is 38, against a threshold of 60 fixed before counting. It is retired.
+- **`C14`** Folding `clinical_precedent` into tractability looked like a bug fix. It is true for 32 of
+  36 curated positives, so it makes drug-recovery validation circular. Committed, then reverted.
+:::
+
 # Reproducibility
 
 Every number in this report is computed from committed tables under `results/tables/`, none of which
