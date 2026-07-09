@@ -1,0 +1,2 @@
+n_rankable_essentials,n_rankable_total,median_rank_essentials,median_rank_others,mwu_p_two_sided,mwu_p_essentials_rank_better,superseded_claim,note
+89,6371,2070.0,3197.5,0.0022891745155004762,0.0011445872577502381,"31 rankable, median rank 3148 of 6371, p = 0.611",Collider. Only a minority of library core-essentials reach DE_stats; the on-target filter then removes most nonessentials. The comparison among survivors is not causal.

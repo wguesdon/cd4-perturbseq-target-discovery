@@ -220,6 +220,58 @@ def main() -> None:
     pd.DataFrame(rows).to_csv(out, index=False)
     print(f"\nwrote {out}")
 
+    _essentiality_rank_test(ceg)
+
+
+def _essentiality_rank_test(ceg: set[str]) -> None:
+    """Where do Hart core essentials rank in the naive suppression ranking?
+
+    An earlier version of this analysis reported 31 rankable core essentials at median rank 3,148 of
+    6,371, Mann-Whitney p = 0.611, and concluded that the naive ranking is not enriched for essential
+    genes. Both the count and the p-value came from the era when this script unioned two gene-symbol
+    vocabularies. The count is wrong, and the corrected test points the other way.
+
+    The corrected result does NOT license the opposite claim either. Essentiality is a collider here:
+    only a minority of library core-essentials reach `DE_stats` at all, because their knockdown kills
+    the cell, and the on-target significance filter then removes most nonessentials. A comparison among
+    the survivors of that double selection estimates nothing causal. The number is reported so the
+    superseded one cannot be quoted, not because it supports an inference.
+
+    Args:
+        ceg: Alias-lifted Hart CEGv2 core-essential gene symbols.
+    """
+    from scipy import stats
+
+    w = pd.read_csv(paths.TABLES / "window_score.csv")
+    w["naive_rank"] = (-w["eff_mean_z"]).rank(ascending=False, method="first")
+    w["is_ceg"] = w["gene_name"].isin(ceg)
+    ess, rest = w[w["is_ceg"]], w[~w["is_ceg"]]
+
+    p_two = float(stats.mannwhitneyu(ess["naive_rank"], rest["naive_rank"], alternative="two-sided").pvalue)
+    p_better = float(stats.mannwhitneyu(ess["naive_rank"], rest["naive_rank"], alternative="less").pvalue)
+
+    frame = pd.DataFrame([{
+        "n_rankable_essentials": len(ess),
+        "n_rankable_total": len(w),
+        "median_rank_essentials": float(ess["naive_rank"].median()),
+        "median_rank_others": float(rest["naive_rank"].median()),
+        "mwu_p_two_sided": p_two,
+        "mwu_p_essentials_rank_better": p_better,
+        "superseded_claim": "31 rankable, median rank 3148 of 6371, p = 0.611",
+        "note": "Collider. Only a minority of library core-essentials reach DE_stats; the on-target "
+                "filter then removes most nonessentials. The comparison among survivors is not causal.",
+    }])
+    out = paths.TABLES / "essentiality_rank_test.csv"
+    frame.to_csv(out, index=False)
+
+    print("\n=== Hart core essentials in the naive suppression ranking ===")
+    print(f"  rankable core essentials: {len(ess)} of {len(w):,} perturbations")
+    print(f"  median naive rank: {ess['naive_rank'].median():.0f} vs {rest['naive_rank'].median():.0f} for the rest")
+    print(f"  Mann-Whitney two-sided p = {p_two:.4g}; essentials rank BETTER p = {p_better:.4g}")
+    print(f"  SUPERSEDES: '31 rankable, median rank 3148, p = 0.611' (two-vocabulary alias artifact)")
+    print(f"  This is a collider comparison and supports no causal inference either way.")
+    print(f"wrote {out}")
+
 
 if __name__ == "__main__":
     main()
