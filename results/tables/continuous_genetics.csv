@@ -1,0 +1,11 @@
+test,observed,matched_mean,p,extra
+naive top 100 continuous,0.151858629579109,0.08751274787934674,0.0012,n=100
+safe-set top 100 continuous,0.0925748220007141,0.10157284427044204,0.6694,n=100
+delta continuous (safe-naive),-0.05928380757839491,,0.0476,"CI [-0.1184,-0.0005]"
+ordinal gate-pass vs gen_score (evidence-passers),,,0.5123839877917538,MWU two-sided
+binary thr=0.05 naive,36.0,24.078000000000003,0.0044,
+binary thr=0.05 safe,24.0,26.4628,0.7614,
+binary thr=0.1 naive,32.0,19.7266,0.0016,
+binary thr=0.1 safe,21.0,22.082399999999996,0.6612,
+binary thr=0.2 naive,28.000000000000004,16.656999999999996,0.0026,
+binary thr=0.2 safe,18.0,19.3216,0.6814,

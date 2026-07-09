@@ -104,3 +104,32 @@ the next task in the loop.
 
 **Do not headline PTPN2 as a novel inhibitor target.** If it appears in the report at all, it appears here,
 as the worked example of the direction-of-effect check.
+
+---
+
+## Addendum (N12 feasibility, 2026-07-09): the rigorous direction method is infeasible in budget
+
+N11 left 191 of 214 safe genes direction-UNKNOWN. The plan was N12 = direction-aware eQTL
+colocalisation (the risk-allele→expression sign; lit review §1.10). Feasibility was assessed before
+building it, and it does not fit the budget:
+
+- **Raw Open Targets colocalisation is 21 GB** (200 parts × ~105 MB) for 26.06, plus `credible_set`
+  (1.9 GB) and the study/variant joins, over a slow link, for the sparse yield the lit review itself
+  predicted on ~200 genes. Not feasible in the time/compute budget.
+- **A systematic GO-based direction signal is too sparse.** Matching the stable GO IDs for
+  "negative/positive regulation of T-cell / immune activation" against the on-disk Open Targets `go`
+  field classifies only ~6 of 214 safe genes, adds a signal for just 1 of the 191 UNKNOWN, and — the
+  disqualifying result — **does not even flag PTPN2**, a canonical negative regulator. GO regulatory
+  annotation is too incomplete to vet direction here.
+
+**Conclusion, stated as a limitation.** There is no cheap, systematic, in-silico direction signal for
+the novel candidates in this budget. Direction of effect for a novel gene needs either colocalisation
+(too heavy here) or curated mechanism knowledge (incomplete, and N11 already found two curation errors).
+So the novel shortlist is **direction-unresolved** and must be labelled that way: it is
+hypothesis-generating, and per-gene direction review is the first step before any wet-lab follow-up.
+N11's verdicts stand for the 23 genes with a signal (PTPN2 and RC3H1 discordant, demoted). The
+remaining candidates carry an explicit `direction_verdict = UNKNOWN`.
+
+This does not weaken the entry; it sharpens the honest claim. The gate + genetics nominate candidates;
+direction of effect is the gating question that a T-cell-intrinsic knockdown screen cannot answer on its
+own for a novel gene, which is itself a reason the decision layer, not the screen, is the contribution.
