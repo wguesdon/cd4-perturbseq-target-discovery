@@ -144,28 +144,46 @@ def controls(fr: pd.DataFrame, win: pd.DataFrame) -> dict[str, bool]:
             "no fan-out": fan_ok}
 
 
-def _matched_null(merged: pd.DataFrame, x: str, y: str, rng: np.random.Generator) -> tuple[float, float]:
-    """Spearman of x vs y, and a p-value from a z_L2-stratified permutation.
+# Stratifiers for the permutation null. `z_l2` is panel-wide effect magnitude in the stimulated arm.
+# `rest_de_genes` is resting-arm disruption, and it is the confound that matters here: Freimer's
+# IL-2-lowering hits carry a median 66 resting-arm DE genes against 3 for non-hits. If the association
+# were shared collateral damage, stratifying on it would destroy the correlation.
+STRATIFIERS = {
+    "z_L2": ["z_l2"],
+    "resting-arm disruption": ["rest_de_genes"],
+    "stimulated-arm DE burden": ["stim_de_genes"],
+    "z_L2 and resting-arm disruption jointly": ["z_l2", "rest_de_genes"],
+}
 
-    Shuffling y within z_L2 deciles destroys the association while preserving any relationship
-    between y and effect magnitude, so a surviving correlation cannot be bought by effect size.
+
+def _matched_null(merged: pd.DataFrame, x: str, y: str, strata: list[str],
+                  rng: np.random.Generator) -> tuple[float, float]:
+    """Spearman of x vs y, and a p-value from a permutation stratified on `strata`.
+
+    Shuffling y within strata destroys the association while preserving any relationship between y and
+    the stratifying variables, so a surviving correlation cannot be bought by them.
 
     Args:
         merged: The co-tested frame.
         x: Our axis column.
         y: The Freimer signed column.
+        strata: Columns defining the strata. Quintiles are used per column, so a joint stratification
+            on two columns yields up to 25 cells and remains populated at n = 472.
         rng: Random generator.
 
     Returns:
         Tuple of (observed rho, permutation p-value).
     """
     obs = float(stats.spearmanr(merged[x], merged[y]).statistic)
-    decile = pd.qcut(merged["z_l2"], 10, labels=False, duplicates="drop")
+    key = None
+    for c in strata:
+        q = pd.qcut(merged[c].rank(method="first"), 5, labels=False, duplicates="drop")
+        key = q if key is None else key.astype(str) + "_" + q.astype(str)
     null = []
     for _ in range(N_MATCHED):
         shuffled = merged[y].copy()
-        for d in decile.unique():
-            m = decile == d
+        for cell in pd.unique(key):
+            m = key == cell
             shuffled[m] = rng.permutation(shuffled[m].to_numpy())
         null.append(float(stats.spearmanr(merged[x], shuffled).statistic))
     null = np.array(null)
@@ -249,25 +267,30 @@ def main() -> None:
     for arm, ours, label in (("CTLA4", "tolerance_loss", "H1 co-inhibitory attrition -> CTLA-4 loss"),
                              ("IL2", "efficacy", "H2 efficacy -> IL-2 loss")):
         sub = fr[fr["arm"] == arm][["gene_name", "lfc", "fdr_lower"]]
-        m = win.merge(sub, on="gene_name", how="inner").dropna(subset=["z_l2", ours, "lfc"])
+        need = ["z_l2", "rest_de_genes", "stim_de_genes", ours, "lfc"]
+        m = win.merge(sub, on="gene_name", how="inner").dropna(subset=need)
         if len(m) < 20:
             print(f"\n{label}: only {len(m)} co-tested genes. UNDERPOWERED, not tested.")
-            results.append({"hypothesis": label, "n": len(m), "rho": np.nan, "p_matched": np.nan,
+            results.append({"hypothesis": label, "arm": arm, "axis": ours, "n": len(m),
+                            "rho": np.nan, "stratified_on": "n/a", "p_matched": np.nan,
                             "verdict": "UNDERPOWERED"})
             continue
         # With the sign established in addendum 1, a LARGER positive lfc means the knockdown lowers
         # the marker more. Our axes are also "more suppression = larger". So a POSITIVE rho means the
         # two platforms agree.
         m["freimer_lowering"] = m["lfc"]
-        rho, p = _matched_null(m, ours, "freimer_lowering", rng)
-        verdict = "REPLICATES" if (rho > 0 and p < 0.05) else "DOES NOT REPLICATE"
         print(f"\n{label}")
         print(f"  co-tested genes: {len(m)}")
-        print(f"  Spearman({ours}, Freimer {arm} lowering) = {rho:+.3f}")
-        print(f"  z_L2-stratified permutation p ({N_MATCHED:,} draws) = {p:.4f}")
-        print(f"  VERDICT: {verdict}")
-        results.append({"hypothesis": label, "n": len(m), "rho": round(rho, 4),
-                        "p_matched": p, "verdict": verdict})
+        for sname, scols in STRATIFIERS.items():
+            rho, p = _matched_null(m, ours, "freimer_lowering", scols, rng)
+            verdict = "REPLICATES" if (rho > 0 and p < 0.05) else "DOES NOT REPLICATE"
+            print(f"  Spearman = {rho:+.3f}   stratified on {sname:<40} p = {p:.4f}   {verdict}")
+            results.append({"hypothesis": label, "arm": arm, "axis": ours, "n": len(m),
+                            "rho": round(rho, 4), "stratified_on": sname, "p_matched": p,
+                            "verdict": verdict})
+        primary = [r for r in results if r["hypothesis"] == label]
+        n_rep = sum(r["verdict"] == "REPLICATES" for r in primary)
+        print(f"  OVERALL: replicates under {n_rep} of {len(STRATIFIERS)} nulls")
 
     print("\n" + "=" * 88)
     print("POST-HOC diagnostic (NOT pre-registered). Is H1's negative real, or just insensitive?")

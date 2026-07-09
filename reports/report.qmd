@@ -705,6 +705,69 @@ nominated set to be unchanged, verifies that the guard can fire by permuting a p
 that the known-drug label can only ever *remove* a gene and never add one, and asserts one row per gene
 on every external join. It exits non-zero otherwise.
 
+## An independent screen validates the efficacy axis, and refuses to license a target {#sec-freimer}
+
+```{python}
+ov = pd.read_csv(REPO / "results/tables/freimer_overlay.csv")
+rev = pd.read_csv(REPO / "results/tables/freimer_promotion_instrument_review.csv").iloc[0]
+h2 = ov[ov["hypothesis"].str.startswith("H2")]
+h1 = ov[ov["hypothesis"].str.startswith("H1")]
+t = ov[["hypothesis", "n", "rho", "stratified_on", "p_matched", "verdict"]].copy()
+t["p_matched"] = t["p_matched"].map(lambda p: f"{p:.4f}")
+t["rho"] = t["rho"].map(lambda r: f"{r:+.3f}")
+Markdown(t.to_markdown(index=False))
+```
+
+Freimer et al. 2022 screens primary human CD4 T cells for regulators of `IL2RA`, `IL2` and `CTLA4`.
+`IL2` is the activation output our efficacy axis scores from mRNA; `CTLA4` is one of the nine genes in
+our co-inhibitory module. It is **drug-label-independent and signed**, though its library is targeted,
+so it is not blind to prior study. `Schmidt & Steinhart 2022` remains **held out** and is never used
+here: it is the only out-of-sample validation the efficacy axis has.
+
+**The efficacy axis replicates.** Spearman
+`{python} f"{h2['rho'].iloc[0]:+.3f}"` across
+`{python} f"{int(h2['n'].iloc[0])}"` co-tested genes, and it survives
+`{python} f"{int((h2['verdict'] == 'REPLICATES').sum())}"` of
+`{python} f"{len(h2)}"` permutation nulls, including one stratified directly on resting-arm
+disruption. Independent lab, different platform, protein readout rather than mRNA.
+
+**The co-inhibitory axis does not.** Spearman
+`{python} f"{h1['rho'].iloc[0]:+.3f}"`, replicating under
+`{python} f"{int((h1['verdict'] == 'REPLICATES').sum())}"` of `{python} f"{len(h1)}"` nulls. A more
+sensitive post-hoc contrast does not rescue it, and that contrast is calibrated: the identical test
+fires cleanly on the efficacy arm. The axis is internally validated and externally uncorroborated, and
+that limitation precedes every result which rests on it.
+
+### The temptation, and the refusal
+
+```{python}
+Markdown(f"""
+As a final exploratory challenge we relaxed the registered overlay, dropping its coverage gate, to ask
+whether a signed, drug-label-independent primary-human-CD4 marker screen could rescue a novel
+hypothesis target. **This is a post-hoc relaxation, recorded as a deviation, and it does not govern the
+headline.** It produced two IL-2-lowering candidates, **ATXN7L3** and **XBP1**.
+
+Both failed review for reasons the pipeline had already encoded. `ATXN7L3` fails the pre-specified
+context-selectivity criterion: its stimulated-over-resting DE ratio is **0.92** against a fixed **10x**
+requirement, and it lies at the **96.2nd percentile** of resting-arm disruption. That is inconsistent
+with the screen-internal therapeutic-window proxy. It also belongs to the SAGA deubiquitinase
+machinery, the same global-transcription failure mode this report already flags for `USP22`. `XBP1`, a
+master regulator of the unfolded-protein response, is similarly high-disruption at the 92.1st
+percentile. Neither carries genetic support, a small-molecule pocket, or clinical precedent.
+
+Across Freimer, the **{int(rev['n_hits'])} IL-2-lowering hits carry a median of
+{rev['median_rest_de_hits']:.0f} resting-arm DE genes against {rev['median_rest_de_nonhits']:.0f} for
+the {int(rev['n_nonhits'])} non-hits** (Mann-Whitney p = {rev['mwu_p_hits_more_resting_disruption']:.1e}),
+indicating that thresholded IL-2 hit calls partly capture impaired transcription of an induced gene.
+The **continuous** efficacy association still replicated after stratifying on resting disruption
+(p = {rev['h2_p_stratified_on_rest_de']:.4f}) and under joint adjustment for panel-wide magnitude and
+resting DE burden (p = {rev['h2_p_stratified_jointly']:.4f}), but the thresholded promotion rule did not.
+
+**Freimer therefore supports the efficacy axis, not target promotion.** Note that neither candidate
+shows CTLA-4 lowering; that is the *absence of a liability signal*, not evidence of preservation.
+""")
+```
+
 ## `PPP3R1`, a caution rather than a nomination
 
 ```{python}

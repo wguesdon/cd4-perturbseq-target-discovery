@@ -16,6 +16,8 @@ RELAXED RULE
     no coverage gate
     IL2RA-lowering   weaker supportive annotation, never promotion (IL2RA marks activation AND Tregs)
     CTLA4-lowering   liability flag, NOT disqualifying (the registered rule excluded these outright)
+                     Absence of a CTLA4-lowering signal is NOT preservation evidence; it is the
+                     absence of a liability signal, and is labelled as such.
 
 Freimer may not alter the screen gate, re-rank the 6,371 perturbations, rescue a gene that fails the
 internal evidence floor, or touch Schmidt. The word "discovered" may not appear. The strongest phrase
@@ -114,9 +116,17 @@ def review_promotion_instrument(fr: pd.DataFrame) -> pd.DataFrame:
     print("\n  So a Freimer IL-2-lowering HIT is substantially a 'this cell can no longer transcribe an")
     print("  induced gene' signal, not a clean specific-immunosuppression signal. IL-2 is a highly")
     print("  induced transcript; disabling general transcription machinery lowers it.")
+    # Read the stratified p-values from the committed overlay table rather than retyping them.
+    ov = pd.read_csv(paths.TABLES / "freimer_overlay.csv")
+    h2 = ov[ov["hypothesis"].str.startswith("H2")].set_index("stratified_on")
+    p_rest = float(h2.loc["resting-arm disruption", "p_matched"])
+    p_joint = float(h2.loc["z_L2 and resting-arm disruption jointly", "p_matched"])
+    n_rep = int((h2["verdict"] == "REPLICATES").sum())
+
     print("\n  NOTE the asymmetry, because it matters: the CONTINUOUS association between our efficacy")
     print("  axis and Freimer's continuous effect SURVIVES stratification on resting-arm disruption")
-    print("  (p = 0.0055) and on z_L2 and rest_de_genes jointly (p = 0.0075). The axis replicates.")
+    print(f"  (p = {p_rest:.4f}) and on z_L2 and resting-arm disruption jointly (p = {p_joint:.4f}).")
+    print(f"  It replicates under {n_rep} of {len(h2)} nulls. The axis replicates.")
     print("  It is the FDR-thresholded HIT CALL that is confounded, and promotion uses the hit call.")
 
     return pd.DataFrame([{
@@ -124,7 +134,11 @@ def review_promotion_instrument(fr: pd.DataFrame) -> pd.DataFrame:
         "median_rest_de_hits": float(hit["rest_de_genes"].median()),
         "median_rest_de_nonhits": float(non["rest_de_genes"].median()),
         "mwu_p_hits_more_resting_disruption": p,
-        "note": "Continuous H2 survives rest_de stratification (p=0.0055); the hit call does not.",
+        "h2_p_stratified_on_rest_de": p_rest,
+        "h2_p_stratified_jointly": p_joint,
+        "h2_nulls_survived": f"{n_rep} of {len(h2)}",
+        "note": "The continuous H2 association survives resting-disruption stratification; "
+                "the FDR-thresholded hit call does not, and promotion uses the hit call.",
     }])
 
 
@@ -178,9 +192,12 @@ def main() -> None:
 
     promoted = tab[tab["freimer_il2_lowers"]].copy()
     if len(promoted):
-        promoted["co_inhibitory_direction"] = promoted["freimer_ctla4_lowers"].map(
-            {True: "functional support with co-inhibitory LIABILITY",
-             False: "functional support with FAVOURABLE co-inhibitory direction"})
+        # Absence of a CTLA4-lowering signal in one marker arm is NOT positive preservation evidence.
+        # It is simply the absence of a liability signal. Naming it "favourable" would smuggle in a
+        # claim the data cannot support.
+        promoted["ctla4_annotation"] = promoted["freimer_ctla4_lowers"].map(
+            {True: "CTLA4-lowering liability in Freimer",
+             False: "no CTLA4-lowering liability in Freimer (absence of a signal, not preservation)"})
     promoted = promoted.head(3)
 
     tab.to_csv(paths.TABLES / "freimer_secondary_posthoc.csv", index=False)
@@ -199,9 +216,10 @@ def main() -> None:
             lambda x: f"{(w['rest_de_genes'] < x).mean() * 100:.1f}th")
         pw["stim_over_rest"] = (pw["stim_de_genes"] / pw["rest_de_genes"]).round(2)
         print(pw.to_string(index=False))
-        print("\n  The selectivity requirement this project fixed a priori was a 10x stimulated-to-resting")
-        print("  ratio. Neither promoted gene is close. A ratio below 1.0 means the perturbation disturbs")
-        print("  the UNSTIMULATED cell more than the stimulated one, which is the definition of no window.")
+        print("\n  The pre-specified context-selectivity criterion is a 10x stimulated-over-resting DE ratio.")
+        print("  Neither promoted gene meets it. A ratio below 1.0 means the perturbation disturbs the")
+        print("  UNSTIMULATED cell more than the stimulated one, which is inconsistent with the")
+        print("  screen-internal therapeutic-window proxy.")
 
     print("\n" + "=" * 88)
     print("VERDICT (only three are permitted; addendum 2)")
@@ -213,7 +231,7 @@ def main() -> None:
         print(f"  Freimer supports {len(promoted)} gene(s) with an IL-2-lowering knockdown effect:")
         for _, r in promoted.iterrows():
             print(f"\n    {r['gene_name']}  (IL2 FDR {r['freimer_il2_fdr']:.3g}, lfc {r['freimer_il2_lfc']:+.3f})")
-            print(f"      {r['co_inhibitory_direction']}")
+            print(f"      {r['ctla4_annotation']}")
             print(f"      tier: {r['tier']}")
             print(f"      liabilities: {r['liabilities']}")
         print("\n  Each is a hypothesis target for follow-up, NOT a vetted therapeutic target.")

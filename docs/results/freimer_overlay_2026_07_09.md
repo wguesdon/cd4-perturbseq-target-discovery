@@ -18,8 +18,14 @@ arms: `IL2RA`, `IL2`, `CTLA4`. Two of them map directly onto the two halves of t
 in our **activation-induced co-inhibitory module**. N19 collapsed all three arms to a binary
 "replicates: yes or no" and discarded the sign, so the sign was unspent.
 
-Critically, a pooled functional screen is **not characterisation-bound**. It cannot tell whether anyone
-has previously studied a gene. That is the defect that killed direction inference in N17, IMPC and MGI.
+Critically, it is **drug-label-independent and signed**. A signed functional readout does not ask
+whether a drug exists, and that is the defect that killed direction inference in N17, IMPC and MGI.
+
+> **Corrected after review.** An earlier draft called Freimer "not characterisation-bound". That is
+> wrong. Its library is **targeted** — transcription factors plus candidate regulators plus controls —
+> so gene *inclusion* was a human judgement about what might regulate IL2RA. That is a characterisation
+> bias at the library-selection level. The defensible claim is drug-label-independent, not blind to
+> prior study. It is a weaker instrument than the earlier sentence implied.
 
 **What Freimer does not measure: autoimmune therapeutic direction.** A knockdown that lowers IL-2 could
 be `CD3E`, whose loss causes immunodeficiency. Lowering IL-2 is an **efficacy** readout, not a safety
@@ -59,8 +65,10 @@ no fan-out.
 
 ## 3. H2 — the efficacy axis replicates on an orthogonal, protein-level platform
 
-> Spearman(`efficacy`, Freimer IL-2 lowering) = **+0.140**, n = **472** co-tested genes,
-> **z_L2-stratified permutation p = 0.0095** (2,000 draws).
+> Spearman(`efficacy`, Freimer IL-2 lowering) = **+0.135**, n = **471** co-tested genes. It replicates
+> under **all four** permutation nulls: stratified on z_L2 (p = 0.0115), on resting-arm disruption
+> (p = 0.0065), on stimulated-arm DE burden (p = 0.0060), and on z_L2 and resting-arm disruption
+> jointly (p = 0.0070). 2,000 draws each.
 
 Stratifying the permutation on panel-wide effect magnitude means the association **cannot be bought by
 effect size**. A post-hoc hit contrast agrees and is stronger: the 29 genes Freimer calls IL-2-lowering
@@ -72,8 +80,8 @@ different library. It is the strongest external validation in this project.
 
 ## 4. H1 — the co-inhibitory axis does NOT replicate against CTLA-4 protein
 
-> Spearman(`tolerance_loss`, Freimer CTLA-4 lowering) = **+0.012**, n = 472,
-> **z_L2-stratified permutation p = 0.80**. Pre-registered verdict: **DOES NOT REPLICATE.**
+> Spearman(`tolerance_loss`, Freimer CTLA-4 lowering) = **+0.006**, n = 471. It replicates under
+> **none** of the four nulls (p = 0.89, 0.90, 0.91, 0.88). Pre-registered verdict: **DOES NOT REPLICATE.**
 
 A post-hoc, more sensitive contrast does not rescue it. The 13 genes Freimer calls CTLA-4-lowering have
 a nominally higher median `tolerance_loss` (+0.193 vs +0.112, Mann-Whitney p = 0.027), but the
@@ -130,8 +138,8 @@ and every output row is stamped with that provenance. Script `scripts/34_freimer
 
 It **did** return candidates. Of the six co-tested pool genes, two show a significant IL-2-lowering
 knockdown effect: **`ATXN7L3`** (FDR 2.8e-4, lfc +1.263) and **`XBP1`** (FDR 2.8e-4, lfc +0.781).
-Neither lowers CTLA-4, so both would be labelled *functional support with favourable co-inhibitory
-direction*.
+Neither lowers CTLA-4. That is the **absence of a liability signal**, not evidence of preservation, and
+it is labelled *no CTLA4-lowering liability in Freimer*.
 
 **Both fail review, on grounds this pipeline had already stated.**
 
@@ -141,8 +149,8 @@ direction*.
 | `XBP1` | 492 | 180 | **92.1st** | 2.73 | 0.000 | no | no |
 
 The selectivity requirement fixed a priori in this project is a **10x** stimulated-to-resting ratio.
-Neither is close. `ATXN7L3`'s ratio is **below 1.0**: its knockdown disturbs the *unstimulated* cell
-more than the stimulated one, which is the definition of no therapeutic window.
+Neither meets it. `ATXN7L3`'s ratio is **below 1.0**: its knockdown disturbs the *unstimulated* cell
+more than the stimulated one. That is inconsistent with the screen-internal therapeutic-window proxy.
 
 `ATXN7L3` is a component of the **SAGA deubiquitinase module**, together with `USP22` — and `USP22` is
 named in this very report as one of the "global transcription machinery" contaminants the naive ranking

@@ -71,6 +71,9 @@ def rows() -> list[dict]:
     ctrl = _t("nomination_controls").set_index("control")
     sens = _t("nomination_rule_sensitivity").set_index("rule")
     ceiling = _t("open_targets_benchmark_ceiling")
+    ov = _t("freimer_overlay")
+    rev = _t("freimer_promotion_instrument_review")
+    post = _t("freimer_secondary_posthoc")
 
     return [
         dict(
@@ -366,6 +369,71 @@ def rows() -> list[dict]:
                                "reasons: expression is not activity (eQTL); haematology is not "
                                "autoimmunity (IMPC); a full knockout is not a partial inhibitor (MGI).",
             check=None,
+        ),
+        dict(
+            claim_id="C17-freimerEfficacy", section="@sec-freimer",
+            claim="The efficacy axis replicates on an independent, signed, primary-human-CD4 screen",
+            previous_value="(new in N21; no prior external replication of this axis except Schmidt)",
+            current_value="Spearman +0.135; p = 0.0065 stratified on resting-arm disruption; "
+                          "p = 0.0070 stratified on z_L2 and resting-arm disruption jointly",
+            current_status="current",
+            statistical_unit="gene (n = 471 co-tested)",
+            null_model="2,000-draw permutation, shuffled within strata; four stratifiers tried",
+            matched_variables="z_L2; rest_de_genes; stim_de_genes; z_L2 and rest_de_genes jointly",
+            universe_or_denominator="471 genes co-tested in our screen and Freimer's IL2 arm",
+            random_seed_policy="seed 0, 2,000 draws per stratifier",
+            script="scripts/33_freimer_functional_overlay.py",
+            why_changed="Freimer's IL-2-lowering hits carry a median 66 resting-arm DE genes against 3 "
+                        "for non-hits, so the association could have been shared collateral damage. "
+                        "Stratifying the null on resting-arm disruption directly does not destroy it. "
+                        "It replicates under all four nulls.",
+            interpretation_now="Independent lab, different platform, protein readout, different "
+                               "library. The strongest external validation in this project, and it is "
+                               "of the EFFICACY axis, not the co-inhibitory one.",
+            check=lambda: (int((ov[ov["hypothesis"].str.startswith("H2")]["verdict"] == "REPLICATES").sum()), 4),
+        ),
+        dict(
+            claim_id="C18-freimerHitConfound", section="@sec-freimer",
+            claim="Freimer's thresholded IL-2 hit calls are confounded by global disruption",
+            previous_value="(new in N21)",
+            current_value="29 IL-2-lowering hits carry a median 66 resting-arm DE genes vs 3 for the "
+                          "442 non-hits, Mann-Whitney p = 9.8e-7",
+            current_status="current",
+            statistical_unit="gene",
+            null_model="Mann-Whitney, hits vs non-hits",
+            matched_variables="none; this IS the confound, measured directly",
+            universe_or_denominator="471 co-tested genes",
+            random_seed_policy="none",
+            script="scripts/34_freimer_secondary_posthoc.py",
+            why_changed="n/a. Measured when the relaxed rule returned two chromatin/stress genes.",
+            interpretation_now="A Freimer IL-2 hit call is substantially a 'this cell can no longer "
+                               "transcribe an induced gene' signal. The CONTINUOUS axis (C17) survives "
+                               "the confound; the THRESHOLDED hit call does not, and promotion uses "
+                               "the hit call. So Freimer supports the efficacy axis, not target promotion.",
+            check=lambda: (int(rev["n_hits"].iloc[0]), 29),
+        ),
+        dict(
+            claim_id="C19-freimerPromotion", section="@sec-freimer",
+            claim="A relaxed, post-hoc Freimer promotion rule nominating novel targets",
+            previous_value="registered H3: no card (6 of 73 co-tested vs a pre-declared gate of 10)",
+            current_value="2 candidates, ATXN7L3 and XBP1. Both FAIL review.",
+            current_status="descriptive",
+            statistical_unit="gene",
+            null_model="n/a (a filter, not a test)",
+            matched_variables="n/a",
+            universe_or_denominator="73 eligible genes of the frozen 91-gene pool; 6 co-tested",
+            random_seed_policy="none",
+            script="scripts/34_freimer_secondary_posthoc.py",
+            why_changed="POST-HOC rule relaxation, directed after the registered coverage gate fired. "
+                        "Recorded as a deviation in addendum 2, not as the registered analysis.",
+            interpretation_now="Exploratory addendum; does NOT govern the headline. ATXN7L3 sits at the "
+                               "96.2nd percentile of resting-arm disruption with a stimulated-over-"
+                               "resting DE ratio of 0.92 against a pre-specified 10x criterion, and is "
+                               "in the SAGA deubiquitinase module with USP22, a contaminant this report "
+                               "already names. XBP1 is the 92.1st percentile. Neither has genetic "
+                               "support, a pocket, or clinical precedent. Verdict: candidates produced, "
+                               "all fail review.",
+            check=lambda: (len(post[post["freimer_il2_lowers"]]), 2),
         ),
         dict(
             claim_id="C16-axesNotOrthogonal", section="@sec-induction",
