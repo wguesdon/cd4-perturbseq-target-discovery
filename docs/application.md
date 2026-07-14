@@ -91,7 +91,7 @@ https://x.com/williamguesdon
 
 **What's your Discord handle?**
 
-williamguesdon
+`[REDACTED — kept out of version control because this repo is public]`
 
 **How did you hear about this hackathon?**
 
